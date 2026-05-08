@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MissedPledge;
+use Illuminate\Http\Request;
+
+class MissedPledgeController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $missedPledges = \App\Models\MissedPledge::with('pledge')->orderByDesc('missed_date')->get();
+        return view('missed-pledges.index', compact('missedPledges'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $pledges = \App\Models\Pledge::all();
+        return view('missed-pledges.create', compact('pledges'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'pledge_id' => 'required|exists:pledges,id',
+            'missed_date' => 'required|date',
+            'reason' => 'nullable|string',
+        ]);
+        \App\Models\MissedPledge::create($data);
+        return redirect()->route('missed-pledges.index')->with('success', 'Missed pledge recorded.');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(MissedPledge $missedPledge)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(MissedPledge $missedPledge)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, MissedPledge $missedPledge)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(MissedPledge $missedPledge)
+    {
+        //
+    }
+}
