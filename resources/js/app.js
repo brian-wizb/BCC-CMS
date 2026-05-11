@@ -3,6 +3,7 @@ import './bootstrap';
 const THEME_STORAGE_KEY = 'bcc-theme';
 const SIDEBAR_COLLAPSE_KEY = 'bcc-sidebar-collapsed';
 const SIDEBAR_SECTION_KEY = 'bcc-sidebar-sections';
+const SIDEBAR_SCROLL_KEY = 'bcc-sidebar-scroll';
 const themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 const desktopSidebarQuery = window.matchMedia('(min-width: 1024px)');
 
@@ -184,6 +185,32 @@ function initializeSidebar() {
     });
 
     window.addEventListener('resize', syncSectionHeights);
+
+    // Sidebar scroll persistence via localStorage (survives tab across navigation)
+    const sidebarScrollEl = document.querySelector('.sidebar-scroll');
+    if (sidebarScrollEl) {
+        const target = parseInt(window.localStorage.getItem(SIDEBAR_SCROLL_KEY), 10) || 0;
+        if (target > 0) {
+            // Keep trying with rAF until the scroll sticks (panels may still be
+            // expanding which increases scrollHeight and allows larger scrollTop).
+            let attempts = 0;
+            const tryRestore = () => {
+                sidebarScrollEl.scrollTop = target;
+                attempts++;
+                if (sidebarScrollEl.scrollTop < target - 5 && attempts < 40) {
+                    requestAnimationFrame(tryRestore);
+                }
+            };
+            requestAnimationFrame(tryRestore);
+        }
+        let scrollSaveTimer;
+        sidebarScrollEl.addEventListener('scroll', () => {
+            clearTimeout(scrollSaveTimer);
+            scrollSaveTimer = setTimeout(() => {
+                window.localStorage.setItem(SIDEBAR_SCROLL_KEY, String(sidebarScrollEl.scrollTop));
+            }, 80);
+        });
+    }
 }
 
 if (document.readyState === 'loading') {

@@ -17,7 +17,7 @@
             <dl class="mt-6 grid gap-4 md:grid-cols-3">
                 <div class="rounded-2xl border border-[var(--color-surface-200)] p-4">
                     <dt class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Leader</dt>
-                    <dd class="mt-2 text-sm text-[var(--color-ink-950)]">{{ $department->leader?->full_name ?: $department->leader?->username ?: '—' }}</dd>
+                    <dd class="mt-2 text-sm text-[var(--color-ink-950)]">{{ $department->leader?->full_name ?: '—' }}</dd></dd>
                 </div>
                 <div class="rounded-2xl border border-[var(--color-surface-200)] p-4">
                     <dt class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Members</dt>

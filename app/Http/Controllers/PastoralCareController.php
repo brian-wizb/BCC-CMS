@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Family;
+use App\Models\Leader;
 use App\Models\Member;
 use App\Models\PastoralCase;
 use App\Models\PastoralCaseNote;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -39,7 +39,7 @@ class PastoralCareController extends Controller
         return view('pastoral-care.create', [
             'members' => Member::query()->orderBy('full_name')->get(['id', 'full_name']),
             'families' => Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']),
-            'users' => User::query()->orderBy('full_name')->get(['id', 'full_name', 'username']),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'role']),
         ]);
     }
 
@@ -51,7 +51,7 @@ class PastoralCareController extends Controller
             'case_type' => ['required', 'string', 'max:255'],
             'priority' => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
             'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'closed'])],
-            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'assigned_to' => ['nullable', 'integer', Rule::exists('leaders', 'id')],
             'summary' => ['nullable', 'string'],
         ]);
 
@@ -67,7 +67,7 @@ class PastoralCareController extends Controller
     {
         return view('pastoral-care.show', [
             'case' => $pastoral_case->load(['member', 'family', 'assignee', 'notes.creator']),
-            'users' => User::query()->orderBy('full_name')->get(['id', 'full_name', 'username']),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'role']),
         ]);
     }
 
@@ -76,7 +76,7 @@ class PastoralCareController extends Controller
         $data = $request->validate([
             'priority' => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
             'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'closed'])],
-            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'assigned_to' => ['nullable', 'integer', Rule::exists('leaders', 'id')],
             'summary' => ['nullable', 'string'],
         ]);
 

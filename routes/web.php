@@ -367,6 +367,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/communications/{communication}/send', [CommunicationController::class, 'send'])
         ->middleware('permission:communications.send')
         ->name('communications.send');
+    Route::post('/communications/{communication}/retry', [CommunicationController::class, 'retryFailed'])
+        ->middleware('permission:communications.send')
+        ->name('communications.retry');
 
     Route::get('/events', [EventController::class, 'index'])
         ->middleware('permission:events.read')
@@ -447,14 +450,19 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
 
-    // Payroll Phase 1 routes
+    // Finance routes
     Route::resource('payroll', App\Http\Controllers\PayrollController::class);
-    Route::resource('payroll-categories', App\Http\Controllers\PayrollCategoryController::class);
+    Route::resource('payroll-categories', App\Http\Controllers\PayrollCategoryController::class)
+        ->only(['index', 'store', 'destroy']);
     Route::resource('employees', App\Http\Controllers\EmployeeController::class);
     Route::resource('expenditures', App\Http\Controllers\ExpenditureController::class)
         ->middleware('permission:expenditures.read');
     Route::resource('department-income', App\Http\Controllers\DepartmentIncomeController::class);
-    Route::resource('income', App\Http\Controllers\IncomeController::class)->only(['index', 'create', 'store']);
+    Route::resource('department-expenses', App\Http\Controllers\DepartmentExpenseController::class);
+    Route::resource('income', App\Http\Controllers\IncomeController::class);
+    // Income Types — full CRUD inline
+    Route::resource('income-types', App\Http\Controllers\IncomeTypeController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('donations', App\Http\Controllers\DonationController::class);
     Route::resource('campaigns', App\Http\Controllers\CampaignController::class);
     Route::resource('pledges', App\Http\Controllers\PledgeController::class);

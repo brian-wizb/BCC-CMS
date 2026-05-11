@@ -38,7 +38,7 @@
                                 <p class="font-medium text-[var(--color-ink-950)]">{{ $zone->name }}</p>
                                 <p class="mt-1 text-xs text-slate-500">{{ $zone->description ?: 'No description' }}</p>
                             </td>
-                            <td class="px-4 py-4 text-slate-500">{{ $zone->leader?->full_name ?: $zone->leader?->username ?: '—' }}</td>
+                            <td class="px-4 py-4 text-slate-500">{{ $zone->leader?->full_name ?: '—' }}</td>
                             <td class="px-4 py-4 text-slate-500">{{ $zone->memberships_count }}</td>
                             <td class="px-4 py-4"><x-ui.status-badge :status="$zone->status" /></td>
                             <td class="px-4 py-4">

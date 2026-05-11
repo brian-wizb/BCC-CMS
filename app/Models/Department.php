@@ -20,7 +20,7 @@ class Department extends Model
 
     public function leader(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'leader_id');
+        return $this->belongsTo(Leader::class, 'leader_id');
     }
 
     public function memberships(): HasMany

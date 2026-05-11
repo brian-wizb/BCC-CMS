@@ -22,8 +22,8 @@
             </select>
             <select name="assigned_to" class="form-input">
                 <option value="">Unassigned</option>
-                @foreach($users as $user)
-                    <option value="{{ $user->id }}" @selected((string)$requestItem->assigned_to === (string)$user->id)>{{ $user->full_name ?: $user->username }}</option>
+                @foreach($leaders as $leader)
+                    <option value="{{ $leader->id }}" @selected((string)$requestItem->assigned_to === (string)$leader->id)>{{ $leader->full_name }}{{ $leader->role ? ' - '.$leader->role : '' }}</option>
                 @endforeach
             </select>
             <textarea name="request_text" class="form-input md:col-span-2" rows="4" required>{{ $requestItem->request_text }}</textarea>

@@ -413,14 +413,29 @@ return [
             'permission' => 'expenditures.read',
         ],
         [
-            'label' => 'Department Income/Expenses',
+            'label' => 'Department Income',
             'route' => 'department-income.index',
+            'permission' => 'departments.read',
+        ],
+        [
+            'label' => 'Department Expenses',
+            'route' => 'department-expenses.index',
             'permission' => 'departments.read',
         ],
         [
             'label' => 'Income Records',
             'route' => 'income.index',
             'permission' => 'income.read',
+        ],
+        [
+            'label' => 'Income Types',
+            'route' => 'income-types.index',
+            'permission' => 'income.read',
+        ],
+        [
+            'label' => 'Payroll Categories',
+            'route' => 'payroll-categories.index',
+            'permission' => 'payroll.read',
         ],
         // --- Phase 2: Giving & Campaigns ---
         [

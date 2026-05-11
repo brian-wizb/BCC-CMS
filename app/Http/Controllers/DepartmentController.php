@@ -7,8 +7,8 @@ use App\Http\Requests\Departments\StoreDepartmentRequest;
 use App\Http\Requests\Departments\UpdateDepartmentRequest;
 use App\Models\Department;
 use App\Models\DepartmentMember;
+use App\Models\Leader;
 use App\Models\Member;
-use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,7 +52,7 @@ class DepartmentController extends Controller
     {
         return view('departments.create', [
             'department' => new Department(['status' => 'active']),
-            'leaders' => User::query()->with('roles')->orderBy('full_name')->get(),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(),
         ]);
     }
 
@@ -74,7 +74,7 @@ class DepartmentController extends Controller
     public function show(Department $department): View
     {
         $department->load([
-            'leader.roles',
+            'leader',
             'memberships.member',
         ]);
 
@@ -91,7 +91,7 @@ class DepartmentController extends Controller
     {
         return view('departments.edit', [
             'department' => $department,
-            'leaders' => User::query()->with('roles')->orderBy('full_name')->get(),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(),
         ]);
     }
 

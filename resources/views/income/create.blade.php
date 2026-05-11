@@ -1,47 +1,130 @@
-@extends('layouts.app')
+﻿<x-layouts.app title="Add Income">
+    <div class="mx-auto max-w-2xl space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(16,185,129,0.12);">
+                    <i class="fas fa-plus text-base" style="color:rgba(16,185,129,0.9);"></i>
+                </span>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Finance &rsaquo; Income</p>
+                    <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Add Income</h3>
+                </div>
+            </div>
+            <a href="{{ route('income.index') }}" class="btn-secondary flex items-center gap-1.5 text-sm">
+                <i class="fas fa-arrow-left text-xs"></i> All Income
+            </a>
+        </div>
 
-@section('content')
-<div class="container mx-auto p-4 max-w-lg">
-    <h1 class="text-2xl font-bold mb-4">Add Income Record</h1>
-    <form method="POST" action="{{ route('income.store') }}" class="space-y-4">
-        @csrf
-        <div>
-            <label class="block mb-1 font-semibold">Income Type</label>
-            <select name="income_type_id" class="w-full border rounded px-2 py-1" required>
-                <option value="">Select type</option>
-                @foreach($incomeTypes as $type)
-                    <option value="{{ $type->id }}">{{ $type->type }}</option>
-                @endforeach
-            </select>
-            @error('income_type_id')
-                <div class="text-red-600 text-sm">{{ $message }}</div>
-            @enderror
-        </div>
-        <div>
-            <label class="block mb-1 font-semibold">Amount</label>
-            <input type="number" name="amount" step="0.01" class="w-full border rounded px-2 py-1" required />
-            @error('amount')
-                <div class="text-red-600 text-sm">{{ $message }}</div>
-            @enderror
-        </div>
-        <div>
-            <label class="block mb-1 font-semibold">Received Date</label>
-            <input type="date" name="received_date" class="w-full border rounded px-2 py-1" required />
-            @error('received_date')
-                <div class="text-red-600 text-sm">{{ $message }}</div>
-            @enderror
-        </div>
-        <div>
-            <label class="block mb-1 font-semibold">Comment</label>
-            <textarea name="comment" class="w-full border rounded px-2 py-1"></textarea>
-            @error('comment')
-                <div class="text-red-600 text-sm">{{ $message }}</div>
-            @enderror
-        </div>
-        <div>
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
-            <a href="{{ route('income.index') }}" class="ml-2 text-gray-600">Cancel</a>
-        </div>
-    </form>
-</div>
-@endsection
+        <article class="surface-card p-6">
+            <form action="{{ route('income.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
+                @csrf
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <i class="fas fa-bookmark mr-1 opacity-60"></i>Income Type <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="income_type_id" class="form-input w-full" required>
+                            <option value="">— Select type —</option>
+                            @foreach($incomeTypes as $type)
+                                <option value="{{ $type->id }}" @selected(old('income_type_id') == $type->id)>{{ $type->type }}</option>
+                            @endforeach
+                        </select>
+                        @error('income_type_id')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <i class="fas fa-info-circle mr-1 opacity-60"></i>Status
+                        </label>
+                        <select name="status" class="form-input w-full">
+                            <option value="Received" @selected(old('status','Received') === 'Received')>Received</option>
+                            <option value="Pending" @selected(old('status') === 'Pending')>Pending</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <i class="fas fa-coins mr-1 opacity-60"></i>Amount (Tsh.) <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="number" step="1" min="0" name="amount" class="form-input w-full"
+                            value="{{ old('amount') }}" placeholder="0" required>
+                        @error('amount')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <i class="fas fa-calendar-alt mr-1 opacity-60"></i>Received Date <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="date" name="received_date" class="form-input w-full"
+                            value="{{ old('received_date', today()->toDateString()) }}" required>
+                        @error('received_date')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+
+                {{-- Contributor Section --}}
+                <div class="rounded-xl border border-[var(--color-surface-200)] p-4">
+                    <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Contributor (Optional)</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <i class="fas fa-user-circle mr-1 opacity-60"></i>Member
+                            </label>
+                            <select name="member_id" class="form-input w-full">
+                                <option value="">— Select member (if applicable) —</option>
+                                @foreach($members as $m)
+                                    <option value="{{ $m->id }}" @selected(old('member_id') == $m->id)>
+                                        {{ $m->full_name ?? $m->name ?? '#'.$m->id }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    <i class="fas fa-user mr-1 opacity-60"></i>Contributor Name
+                                </label>
+                                <input type="text" name="contributor_name" class="form-input w-full"
+                                    value="{{ old('contributor_name') }}" placeholder="Full name">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    <i class="fas fa-phone mr-1 opacity-60"></i>Contacts
+                                </label>
+                                <input type="text" name="contributor_contacts" class="form-input w-full"
+                                    value="{{ old('contributor_contacts') }}" placeholder="Phone or email">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <i class="fas fa-map-marker-alt mr-1 opacity-60"></i>Address
+                            </label>
+                            <input type="text" name="contributor_address" class="form-input w-full"
+                                value="{{ old('contributor_address') }}" placeholder="City / District">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <i class="fas fa-paperclip mr-1 opacity-60"></i>Attachment
+                        </label>
+                        <input type="file" name="attachment" class="form-input w-full">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <i class="fas fa-align-left mr-1 opacity-60"></i>Comment
+                        </label>
+                        <textarea name="comment" rows="2" class="form-input w-full" placeholder="Optional notes...">{{ old('comment') }}</textarea>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 pt-2">
+                    <button type="submit" class="btn-primary flex items-center gap-1.5">
+                        <i class="fas fa-save text-xs"></i> Save Income
+                    </button>
+                    <a href="{{ route('income.index') }}" class="btn-secondary text-sm">Cancel</a>
+                </div>
+            </form>
+        </article>
+    </div>
+</x-layouts.app>

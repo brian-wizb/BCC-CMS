@@ -13,7 +13,7 @@
             <option value="">Select leader</option>
             @foreach ($leaders as $leader)
                 <option value="{{ $leader->id }}" @selected((string) old('leader_id', $department->leader_id) === (string) $leader->id)>
-                    {{ $leader->full_name ?: $leader->username }}{{ $leader->primaryRole() ? ' - '.$leader->primaryRole()->name : '' }}
+                    {{ $leader->full_name }}{{ $leader->role ? ' - '.$leader->role : '' }}
                 </option>
             @endforeach
         </select>

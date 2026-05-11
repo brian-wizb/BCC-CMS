@@ -19,6 +19,29 @@ class WhatsAppService
     }
 
     /**
+     * Send a plain-text WhatsApp message to a phone number.
+     * This is the general-purpose method used by bulk communications.
+     *
+     * @param  string  $toPhone  Any accepted format: +255693228630 / 0693228630 / 255693228630
+     * @param  string  $body     Message text
+     * @return string  Twilio message SID
+     */
+    public function send(string $toPhone, string $body): string
+    {
+        $normalised = self::normalisePhone($toPhone);
+
+        $message = $this->client->messages->create(
+            'whatsapp:' . $normalised,
+            [
+                'from' => $this->from,
+                'body' => $body,
+            ]
+        );
+
+        return $message->sid;
+    }
+
+    /**
      * Send a QR code image to a WhatsApp number.
      *
      * @param  string  $toPhone   E.164 phone number, e.g. +255693228630
@@ -28,18 +51,16 @@ class WhatsAppService
      */
     public function sendQrCode(string $toPhone, string $name, string $qrToken): string
     {
-        // QR image generated on-the-fly by qrserver.com — no PHP GD needed
         $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/'
             . '?size=400x400'
             . '&margin=10'
             . '&data=' . urlencode($qrToken);
 
         $appName = config('app.name', 'BCC');
+        $normalised = self::normalisePhone($toPhone);
 
         $message = $this->client->messages->create(
-            'whatsapp:' . ltrim($toPhone, '+') !== $toPhone
-                ? 'whatsapp:' . $toPhone
-                : 'whatsapp:+' . ltrim($toPhone, '+'),
+            'whatsapp:' . $normalised,
             [
                 'from'     => $this->from,
                 'body'     => "Hello {$name}! 👋\n\n"

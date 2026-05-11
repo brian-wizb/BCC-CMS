@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Zones\StoreZoneMemberRequest;
 use App\Http\Requests\Zones\StoreZoneRequest;
 use App\Http\Requests\Zones\UpdateZoneRequest;
+use App\Models\Leader;
 use App\Models\Member;
-use App\Models\User;
 use App\Models\Zone;
 use App\Models\ZoneMember;
 use App\Services\AuditLogger;
@@ -52,7 +52,7 @@ class ZoneController extends Controller
     {
         return view('zones.create', [
             'zone' => new Zone(['status' => 'active']),
-            'leaders' => User::query()->with('roles')->orderBy('full_name')->get(),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(),
         ]);
     }
 
@@ -74,7 +74,7 @@ class ZoneController extends Controller
     public function show(Zone $zone): View
     {
         $zone->load([
-            'leader.roles',
+            'leader',
             'memberships.member',
         ]);
 
@@ -91,7 +91,7 @@ class ZoneController extends Controller
     {
         return view('zones.edit', [
             'zone' => $zone,
-            'leaders' => User::query()->with('roles')->orderBy('full_name')->get(),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(),
         ]);
     }
 

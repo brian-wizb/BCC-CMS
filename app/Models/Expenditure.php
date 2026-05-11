@@ -6,6 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 class Expenditure extends Model
 {
     protected $fillable = [
-        'date', 'description', 'amount', 'category', 'attachment', 'notes',
+        'expense_category',
+        'payment_method',
+        'amount',
+        'expense_date',
+        'reference_no',
+        'comment',
+        'attachment_url',
+        'status',
     ];
 }

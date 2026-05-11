@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Leader;
 use App\Models\Member;
 use App\Models\PrayerRequest;
-use App\Models\User;
 use App\Models\Visitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +29,7 @@ class PrayerRequestController extends Controller
             'status' => $status,
             'members' => Member::query()->orderBy('full_name')->get(['id', 'full_name']),
             'visitors' => Visitor::query()->orderBy('full_name')->get(['id', 'full_name']),
-            'users' => User::query()->orderBy('full_name')->get(['id', 'full_name', 'username']),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'role']),
         ]);
     }
 
@@ -37,7 +37,7 @@ class PrayerRequestController extends Controller
     {
         return view('prayer-requests.show', [
             'requestItem' => $prayer_request->load(['member', 'visitor', 'assignee']),
-            'users' => User::query()->orderBy('full_name')->get(['id', 'full_name', 'username']),
+            'leaders' => Leader::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'role']),
         ]);
     }
 
@@ -71,7 +71,7 @@ class PrayerRequestController extends Controller
             'request_text' => [$isUpdate ? 'sometimes' : 'required', 'string'],
             'visibility' => ['required', 'string', Rule::in(['private', 'leadership', 'public'])],
             'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'answered', 'closed'])],
-            'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'assigned_to' => ['nullable', 'integer', Rule::exists('leaders', 'id')],
         ]);
     }
 }

@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // Automatically generate upcoming recurring services every Monday at midnight
 Schedule::command('attendance:generate-recurring --weeks=4')->weekly()->mondays()->at('00:00');
 
+// Auto-generate pastoral alerts every day at 07:00
+Schedule::command('alerts:generate')->daily()->at('07:00');
+

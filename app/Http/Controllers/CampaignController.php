@@ -53,7 +53,7 @@ class CampaignController extends Controller
      */
     public function edit(Campaign $campaign)
     {
-        //
+        return view('campaigns.edit', compact('campaign'));
     }
 
     /**
@@ -61,7 +61,15 @@ class CampaignController extends Controller
      */
     public function update(Request $request, Campaign $campaign)
     {
-        //
+        $data = $request->validate([
+            'name'          => 'required|string',
+            'description'   => 'nullable|string',
+            'start_date'    => 'nullable|date',
+            'end_date'      => 'nullable|date',
+            'target_amount' => 'nullable|numeric',
+        ]);
+        $campaign->update($data);
+        return redirect()->route('campaigns.index')->with('success', 'Campaign updated.');
     }
 
     /**
@@ -69,6 +77,7 @@ class CampaignController extends Controller
      */
     public function destroy(Campaign $campaign)
     {
-        //
+        $campaign->delete();
+        return redirect()->route('campaigns.index')->with('success', 'Campaign deleted.');
     }
 }

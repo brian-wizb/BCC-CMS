@@ -12,7 +12,7 @@
                 @method('PUT')
                 <select name="priority" class="form-input" required>@foreach(['low','medium','high'] as $p)<option value="{{ $p }}" @selected($case->priority === $p)>{{ ucfirst($p) }}</option>@endforeach</select>
                 <select name="status" class="form-input" required>@foreach(['open','in_progress','closed'] as $s)<option value="{{ $s }}" @selected($case->status === $s)>{{ str_replace('_',' ',ucfirst($s)) }}</option>@endforeach</select>
-                <select name="assigned_to" class="form-input"><option value="">Unassigned</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((string)$case->assigned_to === (string)$user->id)>{{ $user->full_name ?: $user->username }}</option>@endforeach</select>
+                <select name="assigned_to" class="form-input"><option value="">Unassigned</option>@foreach($leaders as $leader)<option value="{{ $leader->id }}" @selected((string)$case->assigned_to === (string)$leader->id)>{{ $leader->full_name }}{{ $leader->role ? ' - '.$leader->role : '' }}</option>@endforeach</select>
                 <input name="summary" class="form-input" value="{{ $case->summary }}">
                 <button type="submit" class="btn-secondary md:col-span-2">Update case</button>
             </form>

@@ -62,14 +62,35 @@
             </article>
 
             {{-- Trend chart --}}
-            @if ($trendData->isNotEmpty())
-            <article class="surface-card p-5">
-                <p class="mb-3 text-xs font-semibold text-[var(--color-ink-950)]">
-                    <i class="fa-solid fa-chart-line mr-1.5 text-[var(--color-brand-600)]"></i>Attendance Trend (last 12 months)
-                </p>
-                <canvas id="trendChart" height="100"></canvas>
+            <article class="surface-card overflow-hidden">
+                {{-- Header band --}}
+                <div class="border-b border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-sm font-bold text-[var(--color-ink-950)] flex items-center gap-2">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-brand-600)] text-white text-xs">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </span>
+                        Attendance Trend
+                    </p>
+                    <div class="flex gap-1.5">
+                        @foreach(['3m' => '3 mo', '6m' => '6 mo', '12m' => '12 mo', 'ytd' => 'This year', 'all' => 'All time'] as $val => $label)
+                            <a href="{{ request()->fullUrlWithQuery(['period' => $val]) }}"
+                               class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors
+                                      {{ $period === $val
+                                           ? 'bg-[var(--color-brand-600)] text-white shadow-sm'
+                                           : 'bg-white border border-[var(--color-surface-200)] text-slate-600 hover:border-[var(--color-brand-400)] hover:text-[var(--color-brand-600)]' }}">
+                                {{ $label }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="p-5">
+                @if ($trendData->isNotEmpty())
+                    <canvas id="trendChart" height="100"></canvas>
+                @else
+                    <p class="py-8 text-center text-sm text-slate-400"><i class="fa-solid fa-chart-simple mr-2 opacity-40"></i>No attendance data for this period.</p>
+                @endif
+                </div>
             </article>
-            @endif
         </div>
 
         {{-- QR Code card (1/3 width) --}}
@@ -141,83 +162,11 @@
     </article>
 
     @push('scripts')
+    {{-- Chart.js trend --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    @if ($trendData->isNotEmpty())
     <script>
-        // ── QR Code ─────────────────────────────────────────────────────
-        @if ($member->qr_token)
-        const qr = new QRCode(document.getElementById('qrCanvas'), {
-            text:          '{{ $member->qr_token }}',
-            width:         180,
-            height:        180,
-            colorDark:     '#1e1e2e',
-            colorLight:    '#ffffff',
-            correctLevel:  QRCode.CorrectLevel.H,
-        });
-
-        document.getElementById('downloadQr').addEventListener('click', () => {
-            const img = document.querySelector('#qrCanvas img') || document.querySelector('#qrCanvas canvas');
-            const canvas = img.tagName === 'CANVAS' ? img : null;
-            if (canvas) {
-                const a = document.createElement('a');
-                a.download = '{{ Str::slug($member->full_name) }}-qr.png';
-                a.href = canvas.toDataURL('image/png');
-                a.click();
-            } else if (img) {
-                const a = document.createElement('a');
-                a.download = '{{ Str::slug($member->full_name) }}-qr.png';
-                a.href = img.src;
-                a.click();
-            }
-        });
-
-        @if ($member->phone)
-        document.getElementById('sendWhatsapp').addEventListener('click', function () {
-            const btn = this;
-            const statusEl = document.getElementById('waStatus');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
-            statusEl.classList.add('hidden');
-
-            fetch('{{ route("attendance.qr.send") }}', {
-                method:  'POST',
-                headers: {
-                    'X-CSRF-TOKEN':  '{{ csrf_token() }}',
-                    'Content-Type':  'application/json',
-                    'Accept':        'application/json',
-                },
-                body: JSON.stringify({
-                    person_type: 'member',
-                    person_id:   {{ $member->id }},
-                }),
-            })
-            .then(r => r.json())
-            .then(data => {
-                statusEl.classList.remove('hidden');
-                if (data.success) {
-                    statusEl.className = 'text-xs text-center text-green-600';
-                    statusEl.textContent = '✓ ' + data.message;
-                } else {
-                    statusEl.className = 'text-xs text-center text-red-500';
-                    statusEl.textContent = '✗ ' + (data.error ?? 'Failed to send');
-                }
-            })
-            .catch(() => {
-                statusEl.classList.remove('hidden');
-                statusEl.className = 'text-xs text-center text-red-500';
-                statusEl.textContent = '✗ Network error. Please try again.';
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-brands fa-whatsapp text-base"></i> Send via WhatsApp';
-            });
-        });
-        @endif
-        @endif
-
-        // ── Trend Chart ──────────────────────────────────────────────────
-        @if ($trendData->isNotEmpty())
-        const trendLabels  = {!! $trendData->pluck('month')->map(fn($m) => "'" . \Carbon\Carbon::parse($m.'-01')->format('M Y') . "'")->implode(',') !!};
+        const trendLabels   = [{!! $trendData->pluck('month')->map(fn($m) => "'" . \Carbon\Carbon::parse($m.'-01')->format('M Y') . "'")->implode(',') !!}];
         const trendAttended = [{{ $trendData->pluck('attended')->implode(',') }}];
         const trendTotal    = [{{ $trendData->pluck('total_recorded')->implode(',') }}];
 
@@ -246,7 +195,72 @@
                 scales:  { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
             },
         });
+    </script>
+    @endif
+
+    {{-- QR Code — isolated block, same pattern as members/show --}}
+    @if ($member->qr_token)
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <script>
+        new QRCode(document.getElementById('qrCanvas'), {
+            text:         '{{ addslashes($member->qr_token) }}',
+            width:        200,
+            height:       200,
+            colorDark:    '#000',
+            colorLight:   '#fff',
+            correctLevel: QRCode.CorrectLevel.H,
+        });
+
+        document.getElementById('downloadQr').addEventListener('click', () => {
+            setTimeout(() => {
+                const canvas = document.querySelector('#qrCanvas canvas');
+                const img    = document.querySelector('#qrCanvas img');
+                const a = document.createElement('a');
+                a.download = '{{ Str::slug($member->full_name) }}-qr.png';
+                a.href = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '#');
+                a.click();
+            }, 100);
+        });
+
+        @if ($member->phone)
+        document.getElementById('sendWhatsapp').addEventListener('click', function () {
+            const btn = this, statusEl = document.getElementById('waStatus');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
+            statusEl.classList.add('hidden');
+
+            fetch('{{ route("attendance.qr.send") }}', {
+                method:  'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept':       'application/json',
+                },
+                body: JSON.stringify({ person_type: 'member', person_id: {{ $member->id }} }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                statusEl.classList.remove('hidden');
+                if (data.success) {
+                    statusEl.className = 'text-xs text-center text-green-600';
+                    statusEl.textContent = '✓ ' + data.message;
+                } else {
+                    statusEl.className = 'text-xs text-center text-red-500';
+                    statusEl.textContent = '✗ ' + (data.error ?? 'Failed to send');
+                }
+            })
+            .catch(() => {
+                statusEl.classList.remove('hidden');
+                statusEl.className = 'text-xs text-center text-red-500';
+                statusEl.textContent = '✗ Network error. Please try again.';
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-brands fa-whatsapp text-base"></i> Send via WhatsApp';
+            });
+        });
         @endif
     </script>
+    @endif
     @endpush
 </x-layouts.app>

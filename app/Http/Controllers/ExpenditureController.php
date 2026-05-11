@@ -2,69 +2,83 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Expenditure;
 
 class ExpenditureController extends Controller
 {
+    private array $paymentMethods = ['Cash', 'Mobile', 'Credit', 'Cheque', 'Bank'];
+
     public function index()
     {
-        $expenditures = \App\Models\Expenditure::orderByDesc('date')->paginate(20);
+        $expenditures = Expenditure::orderByDesc('expense_date')->paginate(20);
         return view('expenditures.index', compact('expenditures'));
     }
 
     public function create()
     {
-        return view('expenditures.create');
+        $paymentMethods = $this->paymentMethods;
+        return view('expenditures.create', compact('paymentMethods'));
     }
 
-    public function store(\Illuminate\Http\Request $request)
+    public function store(Request $request)
     {
         $data = $request->validate([
-            'date' => 'required|date',
-            'description' => 'required|string|max:255',
-            'amount' => 'required|numeric',
-            'category' => 'nullable|string|max:100',
-            'attachment' => 'nullable|file',
-            'notes' => 'nullable|string',
+            'expense_category' => 'required|string|max:255',
+            'payment_method'   => 'required|string',
+            'amount'           => 'required|numeric|min:0',
+            'expense_date'     => 'required|date',
+            'reference_no'     => 'nullable|string|max:100',
+            'comment'          => 'nullable|string',
+            'attachment'       => 'nullable|file|max:10240',
+            'status'           => 'nullable|string',
         ]);
         if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-            $path = $file->store('uploads/expenditures', 'public');
-            $data['attachment'] = '/storage/' . $path;
+            $file     = $request->file('attachment');
+            $filename = uniqid() . '-' . preg_replace('/[^\w.\-]+/', '_', $file->getClientOriginalName());
+            $path     = $file->storeAs('uploads/expenditures', $filename, 'public');
+            $data['attachment_url'] = '/storage/' . $path;
         }
-        \App\Models\Expenditure::create($data);
-        return redirect()->route('expenditures.index')->with('success', 'Expenditure recorded successfully.');
+        unset($data['attachment']);
+        $data['status'] = $data['status'] ?? 'Paid';
+        Expenditure::create($data);
+        return redirect()->route('expenditures.index')->with('success', 'Expense recorded successfully.');
     }
 
     public function edit($id)
     {
-        $expenditure = \App\Models\Expenditure::findOrFail($id);
-        return view('expenditures.edit', compact('expenditure'));
+        $expenditure    = Expenditure::findOrFail($id);
+        $paymentMethods = $this->paymentMethods;
+        return view('expenditures.edit', compact('expenditure', 'paymentMethods'));
     }
 
-    public function update(\Illuminate\Http\Request $request, $id)
+    public function update(Request $request, $id)
     {
-        $expenditure = \App\Models\Expenditure::findOrFail($id);
+        $expenditure = Expenditure::findOrFail($id);
         $data = $request->validate([
-            'date' => 'required|date',
-            'description' => 'required|string|max:255',
-            'amount' => 'required|numeric',
-            'category' => 'nullable|string|max:100',
-            'attachment' => 'nullable|file',
-            'notes' => 'nullable|string',
+            'expense_category' => 'required|string|max:255',
+            'payment_method'   => 'required|string',
+            'amount'           => 'required|numeric|min:0',
+            'expense_date'     => 'required|date',
+            'reference_no'     => 'nullable|string|max:100',
+            'comment'          => 'nullable|string',
+            'attachment'       => 'nullable|file|max:10240',
+            'status'           => 'nullable|string',
         ]);
         if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-            $path = $file->store('uploads/expenditures', 'public');
-            $data['attachment'] = '/storage/' . $path;
+            $file     = $request->file('attachment');
+            $filename = uniqid() . '-' . preg_replace('/[^\w.\-]+/', '_', $file->getClientOriginalName());
+            $path     = $file->storeAs('uploads/expenditures', $filename, 'public');
+            $data['attachment_url'] = '/storage/' . $path;
         }
+        unset($data['attachment']);
+        $data['status'] = $data['status'] ?? 'Paid';
         $expenditure->update($data);
-        return redirect()->route('expenditures.index')->with('success', 'Expenditure updated successfully.');
+        return redirect()->route('expenditures.index')->with('success', 'Expense updated successfully.');
     }
 
     public function destroy($id)
     {
-        $expenditure = \App\Models\Expenditure::findOrFail($id);
-        $expenditure->delete();
-        return redirect()->route('expenditures.index')->with('success', 'Expenditure deleted successfully.');
+        Expenditure::findOrFail($id)->delete();
+        return redirect()->route('expenditures.index')->with('success', 'Expense deleted successfully.');
     }
 }

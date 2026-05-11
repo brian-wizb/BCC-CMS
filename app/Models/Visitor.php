@@ -61,4 +61,10 @@ class Visitor extends Model
     {
         return $this->hasMany(PrayerRequest::class);
     }
+
+    public function followUpTasks(): HasMany
+    {
+        return $this->hasMany(FollowUpTask::class, 'person_id')
+            ->where('person_type', 'visitor');
+    }
 }

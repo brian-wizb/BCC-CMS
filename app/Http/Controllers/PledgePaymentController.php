@@ -65,7 +65,9 @@ class PledgePaymentController extends Controller
      */
     public function edit(PledgePayment $pledgePayment)
     {
-        //
+        $pledges   = \App\Models\Pledge::all();
+        $campaigns = \App\Models\Campaign::all();
+        return view('pledge-payments.edit', compact('pledgePayment', 'pledges', 'campaigns'));
     }
 
     /**
@@ -73,7 +75,27 @@ class PledgePaymentController extends Controller
      */
     public function update(Request $request, PledgePayment $pledgePayment)
     {
-        //
+        $data = $request->validate([
+            'pledge_id'      => 'required|exists:pledges,id',
+            'campaign_id'    => 'nullable|exists:campaigns,id',
+            'phone'          => 'nullable|string',
+            'invoice_number' => 'nullable|string',
+            'amount'         => 'required|numeric',
+            'payment_date'   => 'required|date',
+            'method'         => 'nullable|string',
+            'notes'          => 'nullable|string',
+            'attachment'     => 'nullable|file',
+        ]);
+        if ($request->hasFile('attachment')) {
+            $file     = $request->file('attachment');
+            $filename = uniqid() . '-' . preg_replace('/[^\w.\-]+/', '_', $file->getClientOriginalName());
+            $path     = $file->storeAs('uploads', $filename, 'public');
+            $data['attachment'] = '/storage/' . $path;
+        } else {
+            unset($data['attachment']);
+        }
+        $pledgePayment->update($data);
+        return redirect()->route('pledge-payments.index')->with('success', 'Pledge payment updated.');
     }
 
     /**
@@ -81,6 +103,7 @@ class PledgePaymentController extends Controller
      */
     public function destroy(PledgePayment $pledgePayment)
     {
-        //
+        $pledgePayment->delete();
+        return redirect()->route('pledge-payments.index')->with('success', 'Pledge payment deleted.');
     }
 }

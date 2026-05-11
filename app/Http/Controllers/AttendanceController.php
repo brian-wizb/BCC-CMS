@@ -489,8 +489,12 @@ class AttendanceController extends Controller
 
     // ── Member Profile ────────────────────────────────────────────────────
 
-    public function memberProfile(Member $member): View
+    public function memberProfile(Member $member, Request $request): View
     {
+        $period = in_array($request->input('period'), ['3m', '6m', '12m', 'ytd', 'all'])
+            ? $request->input('period')
+            : '12m';
+
         $records = AttendanceRecord::query()
             ->with(['service'])
             ->where('member_id', $member->id)
@@ -519,20 +523,29 @@ class AttendanceController extends Controller
             }
         }
 
-        // Monthly trend for last 12 months
-        $trendData = DB::table('attendance_records as ar')
+        // Monthly trend — period-aware
+        $trendQuery = DB::table('attendance_records as ar')
             ->join('services as s', 's.id', '=', 'ar.service_id')
             ->selectRaw("DATE_FORMAT(s.service_date, '%Y-%m') as month,
                          SUM(CASE WHEN ar.attendance_status IN ('present','late') THEN 1 ELSE 0 END) as attended,
                          COUNT(*) as total_recorded")
-            ->where('ar.member_id', $member->id)
-            ->where('s.service_date', '>=', now()->subMonths(12)->startOfMonth()->toDateString())
+            ->where('ar.member_id', $member->id);
+
+        match ($period) {
+            '3m'  => $trendQuery->where('s.service_date', '>=', now()->subMonths(3)->startOfMonth()->toDateString()),
+            '6m'  => $trendQuery->where('s.service_date', '>=', now()->subMonths(6)->startOfMonth()->toDateString()),
+            'ytd' => $trendQuery->where('s.service_date', '>=', now()->startOfYear()->toDateString()),
+            'all' => null,
+            default => $trendQuery->where('s.service_date', '>=', now()->subMonths(12)->startOfMonth()->toDateString()),
+        };
+
+        $trendData = $trendQuery
             ->groupByRaw("DATE_FORMAT(s.service_date, '%Y-%m')")
             ->orderBy('month')
             ->get();
 
         return view('attendance.member-profile', compact(
-            'member', 'records', 'rate', 'streak', 'attended', 'totalServices', 'trendData'
+            'member', 'records', 'rate', 'streak', 'attended', 'totalServices', 'trendData', 'period'
         ));
     }
 

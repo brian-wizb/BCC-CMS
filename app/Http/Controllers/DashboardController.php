@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alert;
 use App\Models\Campaign;
 use App\Models\DepartmentIncome;
 use App\Models\Donation;
@@ -137,12 +138,17 @@ class DashboardController extends Controller
             ],
         ];
 
+        $openAlertsCount    = Alert::query()->where('status', 'open')->count();
+        $criticalAlertsCount = Alert::query()->where('severity', 'critical')->where('status', '!=', 'resolved')->count();
+
         return view('dashboard.index', [
             'user' => $user,
             'primaryRole' => $user?->primaryRole(),
             'stats' => $stats,
             'chartData' => $chartData,
             'timetable' => $timetable,
+            'openAlertsCount' => $openAlertsCount,
+            'criticalAlertsCount' => $criticalAlertsCount,
         ]);
     }
 }

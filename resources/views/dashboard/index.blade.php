@@ -33,6 +33,29 @@
         <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Unfinished Pledges</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">Tsh {{ number_format($stats['unfinished_pledges_total'], 2) }}</p><p class="mt-1 text-xs text-slate-500">Pending commitment follow-through</p></article>
     </section>
 
+    {{-- ── Alerts Banner (only shown when there are open alerts) ────────── --}}
+    @if($openAlertsCount > 0)
+    <section class="mt-6">
+        <a href="{{ route('alerts.index') }}" class="flex items-center justify-between gap-4 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 hover:bg-rose-100 transition-colors group">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow">
+                    <i class="fa-solid fa-bell text-base"></i>
+                </span>
+                <div>
+                    <p class="font-semibold text-rose-800">{{ $openAlertsCount }} Open Alert{{ $openAlertsCount !== 1 ? 's' : '' }} Require Attention</p>
+                    <p class="text-xs text-rose-600">
+                        @if($criticalAlertsCount > 0)
+                            {{ $criticalAlertsCount }} critical &mdash;
+                        @endif
+                        Click to review and take action.
+                    </p>
+                </div>
+            </div>
+            <i class="fa-solid fa-arrow-right text-rose-400 group-hover:translate-x-1 transition-transform"></i>
+        </a>
+    </section>
+    @endif
+
     <section class="mt-6 grid gap-4 xl:grid-cols-3 md:grid-cols-2">
         <article class="surface-card p-5"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Donations Total</p><p class="mt-2 text-2xl font-semibold">Tsh {{ number_format($stats['donations_total'], 2) }}</p></article>
         <article class="surface-card p-5"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Income Total</p><p class="mt-2 text-2xl font-semibold">Tsh {{ number_format($stats['income_total'], 2) }}</p></article>

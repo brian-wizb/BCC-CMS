@@ -56,7 +56,10 @@
         'Communications' => 'megaphone',
         'Payroll' => 'wallet',
         'Expenditures' => 'wallet',
-        'Department Income/Expenses' => 'chart',
+        'Department Income' => 'chart',
+        'Department Expenses' => 'chart',
+        'Income Types' => 'bookmark',
+        'Payroll Categories' => 'tags',
         'Income Records' => 'chart',
         'Donations' => 'gift',
         'Campaigns' => 'megaphone',
@@ -77,7 +80,7 @@
         'Core' => ['Dashboard', 'Executive', 'Reports', 'Scorecards'],
         'People' => ['Users', 'Members', 'Families', 'Departments', 'Zones', 'Visitors', 'Follow-Up', 'Leaders'],
         'Ministry' => ['Attendance', 'Pastoral Care', 'Prayer Requests', 'Alerts', 'Events', 'Volunteers', 'Communications'],
-        'Finance' => ['Payroll', 'Expenditures', 'Department Income/Expenses', 'Income Records', 'Donations', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
+        'Finance' => ['Payroll', 'Payroll Categories', 'Expenditures', 'Department Income', 'Department Expenses', 'Income Records', 'Income Types', 'Donations', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
     ];
 
     $assignedLabels = collect($sectionMap)->flatten()->all();

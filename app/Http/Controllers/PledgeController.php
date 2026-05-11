@@ -55,7 +55,8 @@ class PledgeController extends Controller
      */
     public function edit(Pledge $pledge)
     {
-        //
+        $campaigns = \App\Models\Campaign::all();
+        return view('pledges.edit', compact('pledge', 'campaigns'));
     }
 
     /**
@@ -63,7 +64,16 @@ class PledgeController extends Controller
      */
     public function update(Request $request, Pledge $pledge)
     {
-        //
+        $data = $request->validate([
+            'pledger_name'  => 'nullable|string',
+            'pledger_email' => 'nullable|email',
+            'amount'        => 'required|numeric',
+            'pledge_date'   => 'required|date',
+            'campaign_id'   => 'nullable|exists:campaigns,id',
+            'notes'         => 'nullable|string',
+        ]);
+        $pledge->update($data);
+        return redirect()->route('pledges.index')->with('success', 'Pledge updated.');
     }
 
     /**
@@ -71,6 +81,7 @@ class PledgeController extends Controller
      */
     public function destroy(Pledge $pledge)
     {
-        //
+        $pledge->delete();
+        return redirect()->route('pledges.index')->with('success', 'Pledge deleted.');
     }
 }

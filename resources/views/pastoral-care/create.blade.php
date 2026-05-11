@@ -8,7 +8,7 @@
             <input name="case_type" class="form-input" placeholder="Case type" required>
             <select name="priority" class="form-input" required><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
             <select name="status" class="form-input" required><option value="open">Open</option><option value="in_progress">In progress</option><option value="closed">Closed</option></select>
-            <select name="assigned_to" class="form-input"><option value="">Assign user</option>@foreach($users as $user)<option value="{{ $user->id }}">{{ $user->full_name ?: $user->username }}</option>@endforeach</select>
+            <select name="assigned_to" class="form-input"><option value="">Assign leader</option>@foreach($leaders as $leader)<option value="{{ $leader->id }}">{{ $leader->full_name }}{{ $leader->role ? ' - '.$leader->role : '' }}</option>@endforeach</select>
             <textarea name="summary" class="form-input md:col-span-2" rows="4" placeholder="Case summary"></textarea>
             <button type="submit" class="btn-primary md:col-span-2">Create case</button>
         </form>

@@ -8,6 +8,7 @@ class IncomeType extends Model
 {
     protected $fillable = [
         'type',
+        'description',
     ];
 
     public function incomes()

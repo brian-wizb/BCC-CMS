@@ -52,7 +52,8 @@ class MissedPledgeController extends Controller
      */
     public function edit(MissedPledge $missedPledge)
     {
-        //
+        $pledges = \App\Models\Pledge::orderBy('pledge_date', 'desc')->get();
+        return view('missed-pledges.edit', compact('missedPledge', 'pledges'));
     }
 
     /**
@@ -60,7 +61,13 @@ class MissedPledgeController extends Controller
      */
     public function update(Request $request, MissedPledge $missedPledge)
     {
-        //
+        $data = $request->validate([
+            'pledge_id'   => 'required|exists:pledges,id',
+            'missed_date' => 'required|date',
+            'reason'      => 'nullable|string',
+        ]);
+        $missedPledge->update($data);
+        return redirect()->route('missed-pledges.index')->with('success', 'Missed pledge updated.');
     }
 
     /**
@@ -68,6 +75,7 @@ class MissedPledgeController extends Controller
      */
     public function destroy(MissedPledge $missedPledge)
     {
-        //
+        $missedPledge->delete();
+        return redirect()->route('missed-pledges.index')->with('success', 'Missed pledge deleted.');
     }
 }

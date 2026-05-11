@@ -38,7 +38,7 @@
                                 <p class="font-medium text-[var(--color-ink-950)]">{{ $department->name }}</p>
                                 <p class="mt-1 text-xs text-slate-500">{{ $department->description ?: 'No description' }}</p>
                             </td>
-                            <td class="px-4 py-4 text-slate-500">{{ $department->leader?->full_name ?: $department->leader?->username ?: '—' }}</td>
+                            <td class="px-4 py-4 text-slate-500">{{ $department->leader?->full_name ?: '—' }}</td>
                             <td class="px-4 py-4 text-slate-500">{{ $department->memberships_count }}</td>
                             <td class="px-4 py-4"><x-ui.status-badge :status="$department->status" /></td>
                             <td class="px-4 py-4">
