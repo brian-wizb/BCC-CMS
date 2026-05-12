@@ -3,17 +3,42 @@
     <div class="space-y-6">
         {{-- Header --}}
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <h1 class="text-2xl font-bold text-[var(--color-ink-950)]">Donation Records</h1>
-            <a href="{{ route('donations.create') }}" class="btn-primary">
-                <i class="fa-solid fa-plus mr-2"></i> New Donation
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(16,185,129,0.12);">
+                    <i class="fas fa-hand-holding-heart text-base" style="color:rgba(16,185,129,0.9);"></i>
+                </span>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Finance</p>
+                    <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Donation Records</h3>
+                </div>
+            </div>
+            <a href="{{ route('donations.create') }}" class="btn-primary flex items-center gap-1.5">
+                <i class="fas fa-plus text-xs"></i> New Donation
             </a>
         </div>
 
-        @if (session('status'))
-            <div class="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {{ session('status') }}
+        {{-- Search --}}
+        <form method="GET" action="{{ route('donations.index') }}" class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-[180px] flex-1">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                    <i class="fas fa-search text-xs"></i>
+                </span>
+                <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Name, type, tithe code, reference...">
             </div>
-        @endif
+            <button type="submit" class="btn-secondary">Search</button>
+            @if(!empty($search))
+                <a href="{{ route('donations.index') }}" class="btn-secondary flex items-center gap-1"><i class="fas fa-times text-xs"></i></a>
+            @endif
+            <div class="ml-auto flex items-center gap-2 text-sm text-slate-500">
+                <span class="whitespace-nowrap">Show</span>
+                <select name="per_page" onchange="this.form.submit()" class="form-input py-1.5 text-sm w-auto">
+                    @foreach([10, 25, 50, 100] as $n)
+                        <option value="{{ $n }}" @selected(($perPage ?? 25) == $n)>{{ $n }}</option>
+                    @endforeach
+                </select>
+                <span>entries</span>
+            </div>
+        </form>
 
         {{-- Table --}}
         <article class="surface-card overflow-hidden">
@@ -75,7 +100,7 @@
                                             Edit
                                         </a>
                                         <form method="POST" action="{{ route('donations.destroy', $donation) }}"
-                                              onsubmit="return confirm('Delete this donation record? This cannot be undone.')">
+                                              data-confirm="Delete this donation record? This cannot be undone.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
@@ -88,9 +113,9 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-5 py-12 text-center text-slate-400">
-                                    No donations recorded yet.
-                                    <a href="{{ route('donations.create') }}" class="ml-2 text-blue-600 underline">Add the first one</a>.
+                                <td colspan="10" class="px-5 py-12 text-center">
+                                    <i class="fas fa-hand-holding-heart mb-3 block text-3xl text-slate-300"></i>
+                                    <p class="text-sm text-slate-400">No donations recorded yet. <a href="{{ route('donations.create') }}" class="text-blue-600 underline">Add the first one</a>.</p>
                                 </td>
                             </tr>
                         @endforelse

@@ -48,7 +48,7 @@
                                                 <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
                                             </button>
                                             <form method="POST" action="{{ route('income-types.destroy', $type) }}"
-                                                onsubmit="return confirm('Delete {{ addslashes($type->type) }}?')">
+                                                data-confirm="Delete {{ $type->type }}?">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">
                                                     <i class="fas fa-trash mr-1 text-[10px]"></i>Delete

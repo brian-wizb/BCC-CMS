@@ -93,11 +93,11 @@
                                 @endphp
                                 <tr class="hover:bg-slate-50">
                                     <td class="px-5 py-3 font-medium text-[var(--color-ink-950)]">{{ $recipientName }}</td>
-                                    <td class="px-5 py-3 text-slate-500">{{ $delivery->recipient_contact ?: 'â€”' }}</td>
+                                    <td class="px-5 py-3 text-slate-500">{{ $delivery->recipient_contact ?: '—' }}</td>
                                     <td class="px-5 py-3"><x-ui.status-badge :status="$delivery->delivery_status" /></td>
-                                    <td class="px-5 py-3 max-w-xs truncate text-slate-400 text-xs" title="{{ $delivery->provider_response }}">{{ $delivery->provider_response ?: 'â€”' }}</td>
+                                    <td class="px-5 py-3 max-w-xs truncate text-slate-400 text-xs" title="{{ $delivery->provider_response }}">{{ $delivery->provider_response ?: '—' }}</td>
                                     <td class="px-5 py-3 text-slate-400 text-xs whitespace-nowrap">
-                                        {{ $delivery->delivered_at?->format('d M Y H:i') ?? 'â€”' }}
+                                        {{ $delivery->delivered_at?->format('d M Y H:i') ?? '—' }}
                                     </td>
                                 </tr>
                             @empty
@@ -166,7 +166,7 @@
                 <article class="surface-card p-5">
                     <p class="mb-3 text-sm text-slate-500">Ready to send? This will queue a message for every recipient with a phone number on file.</p>
                     <form method="POST" action="{{ route('communications.send', $communication) }}"
-                          onsubmit="return confirm('Send this communication to all recipients? This cannot be undone.');">
+                          data-confirm="Send this communication to all recipients? This cannot be undone.">
                         @csrf
                         <button type="submit" class="btn-primary w-full">
                             <i class="fa-solid fa-paper-plane mr-2"></i> Send now
@@ -186,7 +186,7 @@
                             {{ $stats['failed'] }} delivery/deliveries failed.
                         </p>
                         <form method="POST" action="{{ route('communications.retry', $communication) }}" class="mt-3"
-                              onsubmit="return confirm('Re-queue all failed deliveries?');">
+                              data-confirm="Re-queue all failed deliveries?">
                             @csrf
                             <button type="submit" class="btn-secondary w-full">
                                 <i class="fa-solid fa-rotate-right mr-2"></i> Retry failed
@@ -200,7 +200,7 @@
 
             {{-- Delete --}}
             <form method="POST" action="{{ route('communications.destroy', $communication) }}"
-                  onsubmit="return confirm('Permanently delete this communication and all delivery records?');">
+                  data-confirm="Permanently delete this communication and all delivery records?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn-secondary w-full text-rose-600">

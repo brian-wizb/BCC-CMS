@@ -30,7 +30,7 @@
             <button class="btn-secondary md:col-span-2" type="submit">Update request</button>
         </form>
 
-        <form method="POST" action="{{ route('prayer-requests.destroy', $requestItem) }}" class="mt-4" onsubmit="return confirm('Delete this prayer request?');">
+        <form method="POST" action="{{ route('prayer-requests.destroy', $requestItem) }}" class="mt-4" data-confirm="Delete this prayer request?">
             @csrf
             @method('DELETE')
             <button class="btn-secondary text-red-600" type="submit">Delete request</button>

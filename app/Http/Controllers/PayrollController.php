@@ -10,10 +10,19 @@ class PayrollController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $payrolls = \App\Models\Payroll::with('employee')->orderByDesc('payment_date')->get();
-        return view('payroll.index', compact('payrolls'));
+        $search = $request->input('search');
+        $query  = \App\Models\Payroll::with('employee');
+        if ($search) {
+            $query->whereHas('employee', fn($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('designation', 'like', "%{$search}%")
+            );
+        }
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $payrolls = $query->orderByDesc('payment_date')->paginate($perPage)->withQueryString();
+        return view('payroll.index', compact('payrolls', 'search', 'perPage'));
     }
 
     /**

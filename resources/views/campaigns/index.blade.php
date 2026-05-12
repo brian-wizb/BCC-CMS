@@ -17,11 +17,28 @@
             </a>
         </div>
 
-        @if(session('success'))
-        <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            <i class="fas fa-check-circle flex-shrink-0"></i> {{ session('success') }}
-        </div>
-        @endif
+        {{-- Search --}}
+        <form method="GET" action="{{ route('campaigns.index') }}" class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-[180px] flex-1">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                    <i class="fas fa-search text-xs"></i>
+                </span>
+                <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Campaign name or description...">
+            </div>
+            <button type="submit" class="btn-secondary">Search</button>
+            @if(!empty($search))
+                <a href="{{ route('campaigns.index') }}" class="btn-secondary flex items-center gap-1"><i class="fas fa-times text-xs"></i></a>
+            @endif
+            <div class="ml-auto flex items-center gap-2 text-sm text-slate-500">
+                <span class="whitespace-nowrap">Show</span>
+                <select name="per_page" onchange="this.form.submit()" class="form-input py-1.5 text-sm w-auto">
+                    @foreach([10, 25, 50, 100] as $n)
+                        <option value="{{ $n }}" @selected(($perPage ?? 20) == $n)>{{ $n }}</option>
+                    @endforeach
+                </select>
+                <span>entries</span>
+            </div>
+        </form>
 
         {{-- Table --}}
         <article class="surface-card overflow-hidden">
@@ -40,7 +57,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
-                        @forelse($campaigns as $i => $campaign)
+                        @forelse($campaigns as $campaign)
                         @php
                             $now = \Carbon\Carbon::today();
                             $start = $campaign->start_date ? \Carbon\Carbon::parse($campaign->start_date) : null;
@@ -54,7 +71,7 @@
                             }
                         @endphp
                         <tr class="hover:bg-slate-50 transition">
-                            <td class="px-4 py-3 text-slate-400">{{ $i + 1 }}</td>
+                            <td class="px-4 py-3 text-slate-400">{{ $campaigns->firstItem() + $loop->index }}</td>
                             <td class="px-4 py-3 font-medium text-[var(--color-ink-950)]">{{ $campaign->name }}</td>
                             <td class="px-4 py-3 max-w-xs text-slate-500">
                                 <span class="line-clamp-1" title="{{ $campaign->description }}">{{ $campaign->description ?: '—' }}</span>
@@ -76,7 +93,7 @@
                                     <a href="{{ route('campaigns.edit', $campaign) }}" class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                                         <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
                                     </a>
-                                    <form method="POST" action="{{ route('campaigns.destroy', $campaign) }}" onsubmit="return confirm('Delete this campaign?')">
+                                    <form method="POST" action="{{ route('campaigns.destroy', $campaign) }}" data-confirm="Delete this campaign?">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">
                                             <i class="fas fa-trash mr-1 text-[10px]"></i>Delete
@@ -96,6 +113,11 @@
                     </tbody>
                 </table>
             </div>
+            @if($campaigns->hasPages())
+            <div class="border-t border-[var(--color-surface-200)] px-5 py-4">
+                {{ $campaigns->links() }}
+            </div>
+            @endif
         </article>
     </div>
 </x-layouts.app>

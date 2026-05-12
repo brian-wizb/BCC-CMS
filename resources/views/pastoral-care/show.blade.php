@@ -45,7 +45,7 @@
                 <button class="btn-primary mt-3 w-full" type="submit">Add note</button>
             </form>
 
-            <form method="POST" action="{{ route('pastoral-care.destroy', $case) }}" onsubmit="return confirm('Delete this pastoral case?');">
+            <form method="POST" action="{{ route('pastoral-care.destroy', $case) }}" data-confirm="Delete this pastoral case?">
                 @csrf
                 @method('DELETE')
                 <button class="btn-secondary w-full text-red-600" type="submit">Delete case</button>

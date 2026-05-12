@@ -13,21 +13,22 @@ class DepartmentIncomeController extends Controller
         $department = $request->input('department');
         $from       = $request->input('from');
         $to         = $request->input('to');
+        $search     = $request->input('search');
 
         $query = DepartmentIncome::query();
-        if ($department) {
-            $query->where('department', $department);
-        }
-        if ($from) {
-            $query->whereDate('received_date', '>=', $from);
-        }
-        if ($to) {
-            $query->whereDate('received_date', '<=', $to);
-        }
-        $records     = $query->orderByDesc('received_date')->get();
-        $total       = $records->sum('amount');
+        if ($department) $query->where('department', $department);
+        if ($from)       $query->whereDate('received_date', '>=', $from);
+        if ($to)         $query->whereDate('received_date', '<=', $to);
+        if ($search)     $query->where(function($q) use ($search) {
+            $q->where('income_type', 'like', "%{$search}%")
+              ->orWhere('comment', 'like', "%{$search}%");
+        });
+
+        $total       = (clone $query)->sum('amount');
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $records     = $query->orderByDesc('received_date')->paginate($perPage)->withQueryString();
         $departments = $this->departments;
-        return view('department-income.index', compact('records', 'total', 'departments', 'department', 'from', 'to'));
+        return view('department-income.index', compact('records', 'total', 'departments', 'department', 'from', 'to', 'search', 'perPage'));
     }
 
     public function create()

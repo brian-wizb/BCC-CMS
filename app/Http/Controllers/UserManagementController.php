@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class UserManagementController extends Controller
@@ -20,9 +19,21 @@ class UserManagementController extends Controller
 
     public function index(): View
     {
+        $search = request('search');
+
         return view('users.index', [
-            'users' => User::query()->with('roles')->orderBy('created_at')->paginate(10),
-            'roles' => Role::query()->orderBy('name')->get(),
+            'users' => User::query()
+                ->with('roles')
+                ->when($search, fn ($q) => $q->where(function ($q) use ($search) {
+                    $q->where('username', 'like', "%{$search}%")
+                      ->orWhere('full_name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                }))
+                ->orderBy('created_at')
+                ->paginate(15)
+                ->withQueryString(),
+            'roles'  => Role::query()->orderBy('name')->get(),
+            'search' => $search,
         ]);
     }
 
@@ -30,19 +41,13 @@ class UserManagementController extends Controller
     {
         $data = $request->validated();
 
-        $attributes = [
-            'username' => $data['username'],
+        $user = User::query()->create([
+            'username'  => $data['username'],
             'full_name' => $data['full_name'] ?? null,
-            'email' => $data['email'] ?? null,
-            'password' => Hash::make($data['password']),
-            'status' => 'active',
-        ];
-
-        if (Schema::hasColumn('users', 'name')) {
-            $attributes['name'] = $data['full_name'] ?? $data['username'];
-        }
-
-        $user = User::query()->create($attributes);
+            'email'     => $data['email'] ?? null,
+            'password'  => Hash::make($data['password']),
+            'status'    => 'active',
+        ]);
 
         $role = Role::query()->where('key', $data['role'])->firstOrFail();
         $user->roles()->sync([$role->id]);
@@ -54,8 +59,8 @@ class UserManagementController extends Controller
             entityId: $user->id,
             after: [
                 'username' => $user->username,
-                'role' => $role->key,
-                'status' => $user->status,
+                'role'     => $role->key,
+                'status'   => $user->status,
             ],
         );
 
@@ -64,32 +69,38 @@ class UserManagementController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $data = $request->validated();
+        $data   = $request->validated();
         $before = [
             'full_name' => $user->full_name,
-            'email' => $user->email,
-            'status' => $user->status,
-            'role' => $user->primaryRole()?->key,
+            'email'     => $user->email,
+            'status'    => $user->status,
+            'role'      => $user->primaryRole()?->key,
         ];
 
         $user->fill([
             'full_name' => $data['full_name'] ?? null,
-            'email' => $data['email'] ?? null,
-            'status' => $data['status'],
+            'email'     => $data['email'] ?? null,
+            'status'    => $data['status'],
         ]);
-
-        if (Schema::hasColumn('users', 'name')) {
-            $user->name = $data['full_name'] ?? $user->username;
-        }
 
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
+            $this->auditLogger->log(
+                request: $request,
+                action: 'user.password_changed',
+                entityType: 'system_user',
+                entityId: $user->id,
+            );
         }
 
         $user->save();
 
-        $role = Role::query()->where('key', $data['role'])->firstOrFail();
-        $user->roles()->sync([$role->id]);
+        // Only allow role change if the actor has assign_roles permission
+        $newRole = Role::query()->where('key', $data['role'])->firstOrFail();
+        if ($before['role'] !== $newRole->key) {
+            abort_unless(auth()->user()->hasPermission('users.assign_roles'), 403, 'You are not allowed to change user roles.');
+            $user->roles()->sync([$newRole->id]);
+        }
 
         $this->auditLogger->log(
             request: $request,
@@ -99,9 +110,9 @@ class UserManagementController extends Controller
             before: $before,
             after: [
                 'full_name' => $user->full_name,
-                'email' => $user->email,
-                'status' => $user->status,
-                'role' => $role->key,
+                'email'     => $user->email,
+                'status'    => $user->status,
+                'role'      => $newRole->key,
             ],
         );
 
@@ -114,10 +125,11 @@ class UserManagementController extends Controller
 
         $before = [
             'username' => $user->username,
-            'role' => $user->primaryRole()?->key,
-            'status' => $user->status,
+            'role'     => $user->primaryRole()?->key,
+            'status'   => $user->status,
         ];
 
+        // Soft delete — preserves audit log FK references
         $user->delete();
 
         $this->auditLogger->log(
@@ -128,6 +140,21 @@ class UserManagementController extends Controller
             before: $before,
         );
 
-        return redirect()->route('users.index')->with('status', 'User deleted successfully.');
+        return redirect()->route('users.index')->with('status', 'User deactivated and removed.');
+    }
+
+    public function restore(User $user): RedirectResponse
+    {
+        $user->restore();
+
+        $this->auditLogger->log(
+            request: request(),
+            action: 'user.restore',
+            entityType: 'system_user',
+            entityId: $user->id,
+            after: ['username' => $user->username],
+        );
+
+        return redirect()->route('users.index')->with('status', 'User restored successfully.');
     }
 }

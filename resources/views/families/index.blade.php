@@ -100,7 +100,7 @@
                                         <i class="fas fa-pen text-[10px]"></i> Edit
                                     </a>
                                     <form method="POST" action="{{ route('families.destroy', $family) }}"
-                                          onsubmit="return confirm('Delete this family record?');">
+                                          data-confirm="Delete this family record?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"

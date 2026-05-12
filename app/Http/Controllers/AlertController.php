@@ -11,6 +11,7 @@ use App\Models\MemberTimelineEvent;
 use App\Models\FollowUpTask;
 use App\Models\PastoralCase;
 use App\Models\PrayerRequest;
+use App\Models\Visitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -167,23 +168,26 @@ class AlertController extends Controller
             }
         }
 
-        // pledge_due: check whether the pledge still has missed payments on record
+        // pledge_due: check actual unpaid balance (due_date past + payments < amount)
         $pledgeAlerts = $alertsByType->get('pledge_due', collect());
         if ($pledgeAlerts->isNotEmpty()) {
-            $pledgeIds    = $pledgeAlerts->pluck('reference_id')->map(fn ($id) => (int) $id);
-            $missedCounts = \Illuminate\Support\Facades\DB::table('missed_pledges')
-                ->whereIn('pledge_id', $pledgeIds)
-                ->selectRaw('pledge_id, COUNT(*) as cnt')
-                ->groupBy('pledge_id')
-                ->pluck('cnt', 'pledge_id');
+            $pledgeIds = $pledgeAlerts->pluck('reference_id')->map(fn ($id) => (int) $id);
+            $pledges   = \App\Models\Pledge::with('payments')->whereIn('id', $pledgeIds)->get()->keyBy('id');
 
             foreach ($pledgeAlerts as $alert) {
                 $pid    = (int) $alert->reference_id;
-                $missed = (int) ($missedCounts[$pid] ?? 0);
-                $conditionActive[$alert->id] = $missed > 0;
-                $conditionDetail[$alert->id] = $missed > 0
-                    ? "{$missed} missed payment(s) still on record."
-                    : 'All pledge payments are up to date — condition resolved.';
+                $pledge = $pledges->get($pid);
+                if (! $pledge) {
+                    $conditionActive[$alert->id] = false;
+                    $conditionDetail[$alert->id] = 'Pledge record no longer exists — condition resolved.';
+                    continue;
+                }
+                $paid = $pledge->payments->sum('amount');
+                $due  = $pledge->amount - $paid;
+                $conditionActive[$alert->id] = $due > 0;
+                $conditionDetail[$alert->id] = $due > 0
+                    ? 'Unpaid balance: Tsh. ' . number_format($due) . ' — condition still active.'
+                    : 'Pledge fully paid — condition resolved.';
             }
         }
 
@@ -373,6 +377,74 @@ class AlertController extends Controller
                 if ($pr->member_id) {
                     $this->writeTimeline($pr->member_id, 'alert_created', 'Stale prayer request alert', 'Prayer request #' . $pr->id . ' has been open for over 30 days.');
                 }
+            });
+
+        // 5. Overdue follow-up tasks — incomplete tasks past their due date
+        $overdueTasks = FollowUpTask::query()
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', today())
+            ->get();
+
+        if ($overdueTasks->isNotEmpty()) {
+            $memberNames  = Member::whereIn('id', $overdueTasks->where('person_type', 'member')->pluck('person_id'))
+                ->pluck('full_name', 'id');
+            $visitorNames = Visitor::whereIn('id', $overdueTasks->where('person_type', 'visitor')->pluck('person_id'))
+                ->pluck('full_name', 'id');
+
+            foreach ($overdueTasks as $task) {
+                if ($alertExists('follow_up_overdue', 'follow_up_task', (string) $task->id)) {
+                    continue;
+                }
+                $personName = match ($task->person_type) {
+                    'member'  => $memberNames[$task->person_id]  ?? 'Member #' . $task->person_id,
+                    'visitor' => $visitorNames[$task->person_id] ?? 'Visitor #' . $task->person_id,
+                    default   => ucfirst($task->person_type) . ' #' . $task->person_id,
+                };
+                $taskLabel = ucwords(str_replace('_', ' ', $task->task_type ?? 'task'));
+                $days      = (int) now()->diffInDays($task->due_date);
+                $notesPart = $task->notes ? ' — ' . $task->notes : '';
+                Alert::create([
+                    'alert_type'     => 'follow_up_overdue',
+                    'reference_type' => 'follow_up_task',
+                    'reference_id'   => (string) $task->id,
+                    'title'          => "{$taskLabel} for {$personName}",
+                    'message'        => "{$taskLabel} for {$personName}{$notesPart}. Task is {$days} day(s) overdue.",
+                    'severity'       => $days >= 14 ? 'high' : 'medium',
+                    'status'         => 'open',
+                    'due_at'         => now()->addDays(3),
+                ]);
+                $created++;
+            }
+        }
+
+        // 6. Pledges due — past due_date with unpaid balance
+        \App\Models\Pledge::query()
+            ->with('payments')
+            ->whereNotNull('due_date')
+            ->whereDate('due_date', '<', today())
+            ->each(function (\App\Models\Pledge $pledge) use (&$created, $alertExists) {
+                $paid = $pledge->payments->sum('amount');
+                $due  = $pledge->amount - $paid;
+                if ($due <= 0) {
+                    return; // fully paid
+                }
+                if ($alertExists('pledge_due', 'pledge', (string) $pledge->id)) {
+                    return;
+                }
+                $name = $pledge->pledger_name ?? 'Unknown pledger';
+                $days = (int) now()->diffInDays($pledge->due_date);
+                Alert::create([
+                    'alert_type'     => 'pledge_due',
+                    'reference_type' => 'pledge',
+                    'reference_id'   => (string) $pledge->id,
+                    'title'          => "Pledge due: {$name}",
+                    'message'        => "{$name} has an outstanding pledge balance of Tsh. " . number_format($due) . " — due {$days} day(s) ago.",
+                    'severity'       => $days >= 30 ? 'high' : 'medium',
+                    'status'         => 'open',
+                    'due_at'         => now()->addDays(7),
+                ]);
+                $created++;
             });
 
         return $created;

@@ -50,7 +50,7 @@
                                 <td class="px-4 py-4"><x-ui.status-badge :status="$membership->status" /></td>
                                 <td class="px-4 py-4 text-slate-500">{{ $membership->joined_at?->format('d M Y') ?: '—' }}</td>
                                 <td class="px-4 py-4">
-                                    <form method="POST" action="{{ route('zones.members.destroy', [$zone, $membership]) }}" onsubmit="return confirm('Remove this member from the zone?');">
+                                    <form method="POST" action="{{ route('zones.members.destroy', [$zone, $membership]) }}" data-confirm="Remove this member from the zone?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn-secondary text-red-600">Remove</button>

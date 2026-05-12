@@ -8,10 +8,19 @@ class ExpenditureController extends Controller
 {
     private array $paymentMethods = ['Cash', 'Mobile', 'Credit', 'Cheque', 'Bank'];
 
-    public function index()
+    public function index(Request $request)
     {
-        $expenditures = Expenditure::orderByDesc('expense_date')->paginate(20);
-        return view('expenditures.index', compact('expenditures'));
+        $search = $request->input('search');
+        $query  = Expenditure::query();
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('expense_category', 'like', "%{$search}%")
+                  ->orWhere('reference_no', 'like', "%{$search}%");
+            });
+        }
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $expenditures = $query->orderByDesc('expense_date')->paginate($perPage)->withQueryString();
+        return view('expenditures.index', compact('expenditures', 'search', 'perPage'));
     }
 
     public function create()

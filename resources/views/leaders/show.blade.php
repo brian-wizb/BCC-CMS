@@ -105,7 +105,7 @@
                     <i class="fas fa-cog mr-1 opacity-60"></i> Actions
                 </p>
                 <form method="POST" action="{{ route('leaders.destroy', $leader) }}"
-                      onsubmit="return confirm('Delete this leader permanently?');">
+                      data-confirm="Delete this leader permanently?">
                     @csrf
                     @method('DELETE')
                     <button type="submit"

@@ -178,7 +178,7 @@
                         </p>
                     @else
                         <form method="POST" action="{{ route('visitors.convert', $visitor) }}"
-                              onsubmit="return confirm('Convert this visitor into a member?');">
+                              data-confirm="Convert this visitor into a member?">
                             @csrf
                             @method('PATCH')
                             <button type="submit" class="btn-primary w-full">
@@ -221,7 +221,7 @@
                         <i class="fa-solid fa-trash w-4 text-center"></i> Danger Zone
                     </h4>
                     <form method="POST" action="{{ route('visitors.destroy', $visitor) }}"
-                          onsubmit="return confirm('Permanently delete {{ addslashes($visitor->full_name) }}?');">
+                          data-confirm="Permanently delete {{ $visitor->full_name }}?">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100">

@@ -48,6 +48,12 @@
                 <div class="topbar-profile-status">
                     <x-ui.status-badge :status="$user?->status ?? 'unknown'" />
                 </div>
+                <a href="{{ route('profile.index') }}" title="My Profile"
+                   class="ml-2 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-[var(--color-ink-950)] hover:bg-[var(--color-surface-200)] transition-colors">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                        <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/><path d="M3 21c0-4.418 4.03-8 9-8s9 3.582 9 8"/>
+                    </svg>
+                </a>
             </div>
 
             <div class="topbar-utility-stack">
@@ -76,7 +82,14 @@
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="btn-secondary topbar-logout-btn">Log out</button>
+                    <button type="submit" class="topbar-logout-btn">
+                        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16,17 21,12 16,7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Log out
+                    </button>
                 </form>
             </div>
         </div>

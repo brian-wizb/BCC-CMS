@@ -205,7 +205,7 @@
                                 <x-ui.status-badge :status="$task->status" />
                                 {{-- Delete --}}
                                 <form method="POST" action="{{ route('follow-up.tasks.destroy', $task) }}"
-                                      onsubmit="return confirm('Delete this task?');">
+                                      data-confirm="Delete this task?">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"

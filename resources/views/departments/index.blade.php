@@ -45,7 +45,7 @@
                                 <div class="flex flex-wrap gap-2">
                                     <a href="{{ route('departments.show', $department) }}" class="btn-secondary">View</a>
                                     <a href="{{ route('departments.edit', $department) }}" class="btn-secondary">Edit</a>
-                                    <form method="POST" action="{{ route('departments.destroy', $department) }}" onsubmit="return confirm('Delete this department?');">
+                                    <form method="POST" action="{{ route('departments.destroy', $department) }}" data-confirm="Delete this department?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn-secondary text-red-600">Delete</button>

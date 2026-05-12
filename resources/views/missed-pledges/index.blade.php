@@ -11,16 +11,8 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Missed Pledges</h3>
                 </div>
             </div>
-            <a href="{{ route('missed-pledges.create') }}" class="btn-primary flex items-center gap-1.5">
-                <i class="fas fa-plus text-xs"></i> Record Missed Pledge
-            </a>
+            {{-- Auto-computed from overdue pledges with outstanding balances --}}
         </div>
-
-        @if(session('success'))
-        <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            <i class="fas fa-check-circle flex-shrink-0"></i> {{ session('success') }}
-        </div>
-        @endif
 
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">
@@ -28,42 +20,43 @@
                     <thead class="bg-[var(--color-surface-50)]">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">#</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Pledger</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Amount Pledged (Tsh.)</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Missed Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Reason</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Actions</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Phone</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Campaign</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Amount (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Paid Amount (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Due Amount (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Start Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Due/End Date</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
-                        @forelse($missedPledges as $i => $missed)
+                        @forelse($missedPledges as $i => $pledge)
+                        @php $paid = $pledge->payments->sum('amount'); $due = max(0, $pledge->amount - $paid); @endphp
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-4 py-3 text-slate-400">{{ $i + 1 }}</td>
-                            <td class="px-4 py-3 font-medium text-[var(--color-ink-950)]">{{ $missed->pledge->pledger_name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-slate-700">{{ $missed->pledge ? number_format($missed->pledge->amount, 2) : '—' }}</td>
-                            <td class="px-4 py-3 text-slate-500">{{ $missed->missed_date ? \Carbon\Carbon::parse($missed->missed_date)->format('d M Y') : '—' }}</td>
-                            <td class="px-4 py-3 max-w-xs text-slate-500">
-                                <span class="line-clamp-2" title="{{ $missed->reason }}">{{ $missed->reason ?: '—' }}</span>
+                            <td class="px-4 py-3 font-medium text-[var(--color-ink-950)]">
+                                <a href="{{ route('pledges.edit', $pledge) }}" class="hover:text-blue-600">{{ $pledge->pledger_name ?: '—' }}</a>
                             </td>
+                            <td class="px-4 py-3 text-slate-500">{{ $pledge->pledger_phone ?: '—' }}</td>
                             <td class="px-4 py-3">
-                                <div class="flex items-center gap-1">
-                                    <a href="{{ route('missed-pledges.edit', $missed) }}" class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
-                                        <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
-                                    </a>
-                                    <form method="POST" action="{{ route('missed-pledges.destroy', $missed) }}" onsubmit="return confirm('Delete this record?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">
-                                            <i class="fas fa-trash mr-1 text-[10px]"></i>Delete
-                                        </button>
-                                    </form>
-                                </div>
+                                @if($pledge->campaign)
+                                    <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(245,158,11,0.12); color:rgba(245,158,11,0.9);">{{ $pledge->campaign->name }}</span>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
                             </td>
+                            <td class="px-4 py-3 text-slate-700">{{ number_format($pledge->amount, 2) }}</td>
+                            <td class="px-4 py-3 text-emerald-700 font-medium">{{ number_format($paid, 2) }}</td>
+                            <td class="px-4 py-3 font-semibold text-rose-600">{{ number_format($due, 2) }}</td>
+                            <td class="px-4 py-3 text-slate-500">{{ $pledge->pledge_date ? \Carbon\Carbon::parse($pledge->pledge_date)->format('d M Y') : '—' }}</td>
+                            <td class="px-4 py-3 text-rose-500 font-medium">{{ \Carbon\Carbon::parse($pledge->due_date)->format('d M Y') }}</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-12 text-center">
-                                <i class="fas fa-calendar-times mb-3 block text-3xl text-slate-300"></i>
-                                <p class="text-sm text-slate-400">No missed pledges recorded. <a href="{{ route('missed-pledges.create') }}" class="text-blue-600 underline">Add one</a>.</p>
+                            <td colspan="9" class="px-4 py-12 text-center">
+                                <i class="fas fa-calendar-check mb-3 block text-3xl text-slate-300"></i>
+                                <p class="text-sm text-slate-400">No overdue pledges — all pledges are fully paid or not yet due.</p>
                             </td>
                         </tr>
                         @endforelse

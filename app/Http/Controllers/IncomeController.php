@@ -15,8 +15,9 @@ class IncomeController extends Controller
         if ($search) {
             $query->whereHas('incomeType', fn($q) => $q->where('type', 'like', "%$search%"));
         }
-        $records = $query->orderByDesc('received_date')->paginate(20);
-        return view('income.index', compact('records', 'search'));
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $records = $query->orderByDesc('received_date')->paginate($perPage)->withQueryString();
+        return view('income.index', compact('records', 'search', 'perPage'));
     }
 
     public function create()

@@ -10,10 +10,19 @@ class CampaignController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $campaigns = \App\Models\Campaign::orderByDesc('start_date')->get();
-        return view('campaigns.index', compact('campaigns'));
+        $search = $request->input('search');
+        $query  = \App\Models\Campaign::query();
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $campaigns = $query->orderByDesc('start_date')->paginate($perPage)->withQueryString();
+        return view('campaigns.index', compact('campaigns', 'search', 'perPage'));
     }
 
     /**

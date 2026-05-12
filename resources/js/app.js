@@ -187,8 +187,7 @@ function initializeSidebar() {
     window.addEventListener('resize', syncSectionHeights);
 
     // Sidebar scroll persistence via localStorage (survives tab across navigation)
-    const sidebarScrollEl = document.querySelector('.sidebar-scroll');
-    if (sidebarScrollEl) {
+    const sidebarScrollEl = document.querySelector('.sidebar-scroll');    if (sidebarScrollEl) {
         const target = parseInt(window.localStorage.getItem(SIDEBAR_SCROLL_KEY), 10) || 0;
         if (target > 0) {
             // Keep trying with rAF until the scroll sticks (panels may still be
@@ -213,12 +212,161 @@ function initializeSidebar() {
     }
 }
 
+// ── Toast notification system ─────────────────────────────────────────────
+const TOAST_ICONS = {
+    success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+    error:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+    warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+    info:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+};
+
+function getOrCreateToastContainer() {
+    let container = document.getElementById('bcc-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'bcc-toast-container';
+        container.className = 'toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'false');
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+function dismissToast(toast) {
+    if (toast.dataset.dismissed) return;
+    toast.dataset.dismissed = 'true';
+    toast.style.animation = 'toastSlideOut 320ms cubic-bezier(0.4, 0, 1, 1) forwards';
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+}
+
+function showToast(type, message, duration = 5200) {
+    const container = getOrCreateToastContainer();
+    const safeType = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
+    const label = safeType.charAt(0).toUpperCase() + safeType.slice(1);
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${safeType}`;
+    toast.setAttribute('role', 'alert');
+    toast.style.setProperty('--toast-duration', `${duration}ms`);
+    toast.innerHTML = `
+        <span class="toast-icon toast-icon-${safeType}" aria-hidden="true">${TOAST_ICONS[safeType]}</span>
+        <div class="toast-body">
+            <p class="toast-type-label">${label}</p>
+            <p class="toast-message">${message}</p>
+        </div>
+        <button type="button" class="toast-dismiss" aria-label="Dismiss notification">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <div class="toast-progress toast-progress-${safeType}"></div>
+    `;
+
+    toast.querySelector('.toast-dismiss').addEventListener('click', () => dismissToast(toast));
+    container.appendChild(toast);
+
+    const timer = setTimeout(() => dismissToast(toast), duration);
+    toast.addEventListener('mouseenter', () => clearTimeout(timer));
+}
+
+function initializeToasts() {
+    const dataEl = document.getElementById('bcc-toast-data');
+    if (!dataEl) return;
+    dataEl.querySelectorAll('[data-toast]').forEach((el, i) => {
+        setTimeout(() => {
+            showToast(el.dataset.toast, el.dataset.toastMsg);
+        }, i * 130);
+    });
+}
+
+// Expose globally for in-page toast calls
+window.showToast = showToast;
+
+// ── Button ripple micro-interaction ───────────────────────────────────────
+function initializeRipple() {
+    document.addEventListener('pointerdown', (e) => {
+        const btn = e.target.closest('.btn-primary, .btn-secondary, .btn-danger');
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        const size = Math.max(rect.width, rect.height) * 2;
+        ripple.className = 'btn-ripple';
+        ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size / 2}px;top:${e.clientY - rect.top - size / 2}px`;
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+    });
+}
+
+// ── Custom confirm modal ─────────────────────────────────────────────────
+function showConfirmModal(message, onConfirm) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'bcc-modal-backdrop';
+    backdrop.setAttribute('aria-modal', 'true');
+    backdrop.setAttribute('role', 'alertdialog');
+    backdrop.innerHTML = `
+        <div class="bcc-modal">
+            <div class="bcc-modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <p class="bcc-modal-title">Are you sure?</p>
+            <p class="bcc-modal-message">${message}</p>
+            <div class="bcc-modal-actions">
+                <button type="button" class="bcc-modal-cancel">Cancel</button>
+                <button type="button" class="bcc-modal-confirm">Confirm</button>
+            </div>
+        </div>
+    `;
+
+    let closed = false;
+
+    function close(confirmed) {
+        if (closed) return;
+        closed = true;
+        document.removeEventListener('keydown', onEsc);
+        const modal = backdrop.querySelector('.bcc-modal');
+        modal.style.animation = 'bccModalOut 240ms cubic-bezier(0.4, 0, 1, 1) forwards';
+        backdrop.style.animation = 'bccBackdropOut 240ms ease forwards';
+        setTimeout(() => {
+            backdrop.remove();
+            if (confirmed) onConfirm();
+        }, 250);
+    }
+
+    const onEsc = (e) => { if (e.key === 'Escape') close(false); };
+    document.addEventListener('keydown', onEsc);
+
+    backdrop.querySelector('.bcc-modal-cancel').addEventListener('click', () => close(false));
+    backdrop.querySelector('.bcc-modal-confirm').addEventListener('click', () => close(true));
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(false); });
+
+    document.body.appendChild(backdrop);
+    setTimeout(() => backdrop.querySelector('.bcc-modal-confirm').focus(), 40);
+}
+
+function initializeConfirmForms() {
+    document.addEventListener('submit', (e) => {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement) || !form.dataset.confirm) return;
+        e.preventDefault();
+        const message = form.dataset.confirm;
+        showConfirmModal(message, () => {
+            form.removeAttribute('data-confirm');
+            form.requestSubmit();
+        });
+    });
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initializeTheme();
         initializeSidebar();
+        initializeToasts();
+        initializeRipple();
+        initializeConfirmForms();
     }, { once: true });
 } else {
     initializeTheme();
     initializeSidebar();
+    initializeToasts();
+    initializeRipple();
+    initializeConfirmForms();
 }

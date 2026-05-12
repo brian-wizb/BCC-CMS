@@ -80,7 +80,7 @@
                                             @endforeach
                                         </select>
                                     </form>
-                                    <form method="POST" action="{{ route('volunteers.assignments.destroy', $assignment) }}" class="mt-2" onsubmit="return confirm('Delete this assignment?');">
+                                    <form method="POST" action="{{ route('volunteers.assignments.destroy', $assignment) }}" class="mt-2" data-confirm="Delete this assignment?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-xs font-semibold text-red-600">Delete</button>

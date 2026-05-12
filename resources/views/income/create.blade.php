@@ -68,7 +68,7 @@
                             <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <i class="fas fa-user-circle mr-1 opacity-60"></i>Member
                             </label>
-                            <select name="member_id" class="form-input w-full">
+                            <select name="member_id" class="form-input w-full" data-tom-select data-placeholder="— Select member (if applicable) —">
                                 <option value="">— Select member (if applicable) —</option>
                                 @foreach($members as $m)
                                     <option value="{{ $m->id }}" @selected(old('member_id') == $m->id)>

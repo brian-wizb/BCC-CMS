@@ -17,12 +17,14 @@
             </div>
         </div>
 
-        <x-ui.department-zone-filters
+        <x-ui.report-filters
             :action="route('reports.events')"
             :departments="$departments"
             :zones="$zones"
             :department-id="$departmentId"
             :zone="$zone"
+            :date-from="$dateFrom"
+            :date-to="$dateTo"
         />
 
         <div class="mt-6 overflow-x-auto">
@@ -30,23 +32,25 @@
                 <thead class="bg-[var(--color-surface-50)] text-left text-slate-500">
                     <tr>
                         <th class="px-4 py-3"><i class="fas fa-calendar-alt mr-1.5 opacity-60"></i>Event</th>
+                        <th class="px-4 py-3"><i class="fas fa-tag mr-1.5 opacity-60"></i>Type</th>
                         <th class="px-4 py-3"><i class="fas fa-clock mr-1.5 opacity-60"></i>Date</th>
                         <th class="px-4 py-3"><i class="fas fa-info-circle mr-1.5 opacity-60"></i>Status</th>
                         <th class="px-4 py-3"><i class="fas fa-user-plus mr-1.5 opacity-60"></i>Registrations</th>
-                        <th class="px-4 py-3"><i class="fas fa-hands-helping mr-1.5 opacity-60"></i>Volunteer Assignments</th>
+                        <th class="px-4 py-3"><i class="fas fa-hands-helping mr-1.5 opacity-60"></i>Volunteers</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
                     @forelse ($events as $event)
                         <tr>
                             <td class="px-4 py-4 font-medium text-[var(--color-ink-950)]">{{ $event->title }}</td>
+                            <td class="px-4 py-4 text-slate-400 capitalize">{{ str_replace('_', ' ', $event->event_type ?? '—') }}</td>
                             <td class="px-4 py-4">{{ optional($event->start_date)->format('d M Y') ?: '—' }}</td>
                             <td class="px-4 py-4"><x-ui.status-badge :status="$event->status" /></td>
                             <td class="px-4 py-4">{{ $event->registrations_count }}</td>
                             <td class="px-4 py-4">{{ $event->volunteer_assignments_count }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">No event records found.</td></tr>
+                        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No event records found.</td></tr>
                     @endforelse
                 </tbody>
             </table>

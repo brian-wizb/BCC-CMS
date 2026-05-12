@@ -176,7 +176,7 @@
                                     <a href="{{ route('attendance.record.edit', $record) }}"
                                        class="text-[var(--color-brand-600)] hover:underline text-xs">Edit</a>
                                     <form method="POST" action="{{ route('attendance.record.destroy', $record) }}"
-                                          onsubmit="return confirm('Delete this record?');" class="inline">
+                                          data-confirm="Delete this record?" class="inline">
                                         @csrf @method('DELETE')
                                         <button class="text-red-500 hover:underline text-xs" type="submit">Delete</button>
                                     </form>

@@ -23,9 +23,9 @@
                             @error('pledger_name')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Pledger Email</label>
-                            <input type="email" name="pledger_email" value="{{ old('pledger_email') }}" class="form-input w-full" placeholder="email@example.com">
-                            @error('pledger_email')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</label>
+                            <input type="text" name="pledger_phone" value="{{ old('pledger_phone') }}" class="form-input w-full" placeholder="e.g. 0712 345 678">
+                            @error('pledger_phone')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
 
@@ -47,10 +47,17 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Pledge Date <span class="text-rose-500">*</span></label>
-                        <input type="date" name="pledge_date" value="{{ old('pledge_date') }}" required class="form-input w-full">
-                        @error('pledge_date')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Start Date <span class="text-rose-500">*</span></label>
+                            <input type="date" name="pledge_date" value="{{ old('pledge_date') }}" required class="form-input w-full">
+                            @error('pledge_date')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Due/End Date</label>
+                            <input type="date" name="due_date" value="{{ old('due_date') }}" class="form-input w-full">
+                            @error('due_date')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                        </div>
                     </div>
 
                     <div>

@@ -1,125 +1,140 @@
-@extends('layouts.app')
-@section('title', 'Department Income Records')
-@section('content')
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold mb-0"><i class="bi bi-building text-info me-2"></i>Department Income Records</h3>
-        <a href="{{ route('department-income.create') }}" class="btn btn-info text-white">
-            <i class="bi bi-plus-circle me-1"></i>Add Department Income
+<x-layouts.app title="Department Income">
+<div class="space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(59,130,246,0.12);">
+                <i class="fas fa-building-columns text-base" style="color:rgba(59,130,246,0.9);"></i>
+            </span>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Finance</p>
+                <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Department Income</h3>
+            </div>
+        </div>
+        <a href="{{ route('department-income.create') }}" class="btn-primary flex items-center gap-1.5">
+            <i class="fas fa-plus text-xs"></i> Add Income
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     {{-- Filters --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-2">
-            <form method="GET" action="{{ route('department-income.index') }}" class="row g-2 align-items-end">
-                <div class="col-sm-3">
-                    <label class="form-label small fw-semibold mb-1"><i class="bi bi-calendar-range me-1"></i>From</label>
-                    <input type="date" name="from" value="{{ request('from') }}" class="form-control form-control-sm">
-                </div>
-                <div class="col-sm-3">
-                    <label class="form-label small fw-semibold mb-1"><i class="bi bi-calendar-range me-1"></i>To</label>
-                    <input type="date" name="to" value="{{ request('to') }}" class="form-control form-control-sm">
-                </div>
-                <div class="col-sm-3">
-                    <label class="form-label small fw-semibold mb-1"><i class="bi bi-building me-1"></i>Department</label>
-                    <select name="department" class="form-select form-select-sm">
-                        <option value="">All Departments</option>
-                        @foreach($departments as $dept)
-                            <option value="{{ $dept }}" {{ request('department')==$dept?'selected':'' }}>{{ $dept }}</option>
+    <article class="surface-card p-4">
+        <form method="GET" action="{{ route('department-income.index') }}" class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[140px]">
+                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">From</label>
+                <input type="date" name="from" value="{{ request('from') }}" class="form-input w-full">
+            </div>
+            <div class="flex-1 min-w-[140px]">
+                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">To</label>
+                <input type="date" name="to" value="{{ request('to') }}" class="form-input w-full">
+            </div>
+            <div class="flex-1 min-w-[160px]">
+                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Department</label>
+                <select name="department" class="form-input w-full">
+                    <option value="">All Departments</option>
+                    @foreach($departments as $dept)
+                        <option value="{{ $dept }}" {{ request('department') == $dept ? 'selected' : '' }}>{{ $dept }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex-1 min-w-[160px]">
+                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Search</label>
+                <input type="text" name="search" value="{{ $search ?? '' }}" class="form-input w-full" placeholder="Income type or comment...">
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="submit" class="btn-primary flex items-center gap-1.5 text-sm">
+                    <i class="fas fa-filter text-xs"></i> Filter
+                </button>
+                <a href="{{ route('department-income.index') }}" class="btn-secondary text-sm">Clear</a>
+                <div class="flex items-center gap-2 text-sm text-slate-500 pl-2 border-l border-[var(--color-surface-200)]">
+                    <span class="whitespace-nowrap">Show</span>
+                    <select name="per_page" onchange="this.form.submit()" class="form-input py-1.5 text-sm w-auto">
+                        @foreach([10, 25, 50, 100] as $n)
+                            <option value="{{ $n }}" @selected(($perPage ?? 20) == $n)>{{ $n }}</option>
                         @endforeach
                     </select>
+                    <span>entries</span>
                 </div>
-                <div class="col-sm-auto">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-filter me-1"></i>Filter
-                    </button>
-                    <a href="{{ route('department-income.index') }}" class="btn btn-sm btn-outline-secondary ms-1">
-                        <i class="bi bi-x-circle me-1"></i>Clear
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
+            </div>
+        </form>
+    </article>
 
-    {{-- Total banner --}}
-    <div class="row g-3 mb-4">
-        <div class="col-sm-4">
-            <div class="card border-0 bg-info bg-opacity-10">
-                <div class="card-body py-3 d-flex align-items-center gap-3">
-                    <div class="rounded-circle bg-info bg-opacity-25 p-3">
-                        <i class="bi bi-cash-coin fs-4 text-info"></i>
-                    </div>
-                    <div>
-                        <div class="text-muted small">Total Income Amount</div>
-                        <div class="fw-bold fs-5 text-info">Tsh. {{ number_format($total ?? 0) }}</div>
-                    </div>
-                </div>
+    {{-- Total stat --}}
+    <div class="grid gap-4 sm:grid-cols-3">
+        <div class="surface-card flex items-center gap-4 p-4">
+            <span class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl" style="background:rgba(59,130,246,0.12);">
+                <i class="fas fa-coins text-lg" style="color:rgba(59,130,246,0.9);"></i>
+            </span>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Total Income</p>
+                <p class="text-xl font-bold" style="color:rgba(59,130,246,0.9);">Tsh. {{ number_format($total ?? 0) }}</p>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+    <article class="surface-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-[var(--color-surface-200)] text-sm">
+                <thead class="bg-[var(--color-surface-50)]">
                     <tr>
-                        <th class="ps-4" width="50">#</th>
-                        <th>Department</th>
-                        <th>Income Type</th>
-                        <th>Amount (Tsh.)</th>
-                        <th>Received Date</th>
-                        <th>Attachment</th>
-                        <th class="text-center" width="120">Actions</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">#</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Department</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Income Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Amount (Tsh.)</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Received Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Attachment</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
                     @forelse($records as $record)
-                    <tr>
-                        <td class="ps-4 text-muted">{{ $loop->iteration }}</td>
-                        <td>
-                            <span class="badge bg-info-subtle text-info px-2 py-1">
-                                <i class="bi bi-building me-1"></i>{{ $record->department }}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-4 py-3 text-slate-400">{{ $records->firstItem() + $loop->index }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(59,130,246,0.10); color:rgba(59,130,246,0.9);">
+                                <i class="fas fa-building mr-1 text-[10px]"></i>{{ $record->department }}
                             </span>
                         </td>
-                        <td>{{ $record->income_type }}</td>
-                        <td class="fw-semibold text-info">{{ number_format($record->amount) }}</td>
-                        <td>{{ \Carbon\Carbon::parse($record->received_date)->format('d M Y') }}</td>
-                        <td>
+                        <td class="px-4 py-3 text-slate-700">{{ $record->income_type }}</td>
+                        <td class="px-4 py-3 font-semibold" style="color:rgba(59,130,246,0.9);">{{ number_format($record->amount) }}</td>
+                        <td class="px-4 py-3 text-slate-500">{{ \Carbon\Carbon::parse($record->received_date)->format('d M Y') }}</td>
+                        <td class="px-4 py-3">
                             @if($record->attachment_url)
-                                <a href="{{ $record->attachment_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-paperclip"></i>
+                                <a href="{{ $record->attachment_url }}" target="_blank" class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
+                                    <i class="fas fa-paperclip mr-1 text-[10px]"></i>View
                                 </a>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-slate-300">—</span>
                             @endif
                         </td>
-                        <td class="text-center">
-                            <a href="{{ route('department-income.edit', $record) }}" class="btn btn-sm btn-outline-primary me-1">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <form action="{{ route('department-income.destroy', $record) }}" method="POST" class="d-inline"
-                                onsubmit="return confirm('Delete this record?')">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </form>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-1">
+                                <a href="{{ route('department-income.edit', $record) }}" class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
+                                    <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
+                                </a>
+                                <form method="POST" action="{{ route('department-income.destroy', $record) }}" data-confirm="Delete this record?">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">
+                                        <i class="fas fa-trash mr-1 text-[10px]"></i>Delete
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center py-4 text-muted">
-                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>No income records found.
-                    </td></tr>
+                    <tr>
+                        <td colspan="7" class="px-4 py-12 text-center">
+                            <i class="fas fa-building-columns mb-3 block text-3xl text-slate-300"></i>
+                            <p class="text-sm text-slate-400">No income records found. <a href="{{ route('department-income.create') }}" class="text-blue-600 underline">Add the first one</a>.</p>
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+    </article>
+    @if($records->hasPages())
+    <div class="surface-card px-5 py-4">
+        {{ $records->links() }}
     </div>
+    @endif
 </div>
-@endsection
+</x-layouts.app>

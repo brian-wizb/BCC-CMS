@@ -63,7 +63,7 @@
                                         @endif
                                     </td>
                                     <td class="px-5 py-3.5 text-right">
-                                        <form method="POST" action="{{ route('payroll-categories.destroy', $cat) }}" onsubmit="return confirm('Delete this category?')">
+                                        <form method="POST" action="{{ route('payroll-categories.destroy', $cat) }}" data-confirm="Delete this category?">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">
                                                 <i class="fas fa-trash mr-1 text-[10px]"></i>Delete

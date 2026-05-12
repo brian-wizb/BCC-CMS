@@ -9,10 +9,20 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $employees = \App\Models\Employee::all();
-        return view('employees.index', compact('employees'));
+        $search = $request->input('search');
+        $query  = \App\Models\Employee::query();
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('designation', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $employees = $query->orderBy('name')->paginate($perPage)->withQueryString();
+        return view('employees.index', compact('employees', 'search', 'perPage'));
     }
 
     /**

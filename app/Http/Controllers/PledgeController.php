@@ -10,10 +10,20 @@ class PledgeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $pledges = \App\Models\Pledge::with('campaign')->orderByDesc('pledge_date')->get();
-        return view('pledges.index', compact('pledges'));
+        $search = $request->input('search');
+        $query  = \App\Models\Pledge::with('campaign', 'payments');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('pledger_name',  'like', "%{$search}%")
+                  ->orWhere('pledger_phone', 'like', "%{$search}%")
+                  ->orWhereHas('campaign',  fn($c) => $c->where('name', 'like', "%{$search}%"));
+            });
+        }
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $pledges = $query->orderByDesc('pledge_date')->paginate($perPage)->withQueryString();
+        return view('pledges.index', compact('pledges', 'search', 'perPage'));
     }
 
     /**
@@ -31,12 +41,14 @@ class PledgeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'pledger_name' => 'nullable|string',
+            'pledger_name'  => 'nullable|string',
+            'pledger_phone' => 'nullable|string|max:30',
             'pledger_email' => 'nullable|email',
-            'amount' => 'required|numeric',
-            'pledge_date' => 'required|date',
-            'campaign_id' => 'nullable|exists:campaigns,id',
-            'notes' => 'nullable|string',
+            'amount'        => 'required|numeric',
+            'pledge_date'   => 'required|date',
+            'due_date'      => 'nullable|date|after_or_equal:pledge_date',
+            'campaign_id'   => 'nullable|exists:campaigns,id',
+            'notes'         => 'nullable|string',
         ]);
         \App\Models\Pledge::create($data);
         return redirect()->route('pledges.index')->with('success', 'Pledge recorded.');
@@ -66,9 +78,11 @@ class PledgeController extends Controller
     {
         $data = $request->validate([
             'pledger_name'  => 'nullable|string',
+            'pledger_phone' => 'nullable|string|max:30',
             'pledger_email' => 'nullable|email',
             'amount'        => 'required|numeric',
             'pledge_date'   => 'required|date',
+            'due_date'      => 'nullable|date|after_or_equal:pledge_date',
             'campaign_id'   => 'nullable|exists:campaigns,id',
             'notes'         => 'nullable|string',
         ]);

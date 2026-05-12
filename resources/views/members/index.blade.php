@@ -93,7 +93,7 @@
                                     <a href="{{ route('members.edit', $member) }}" class="btn-secondary flex items-center gap-1 py-1 px-2.5 text-xs">
                                         <i class="fas fa-pen text-[10px]"></i> Edit
                                     </a>
-                                    <form method="POST" action="{{ route('members.destroy', $member) }}" onsubmit="return confirm('Delete {{ addslashes($member->full_name) }}?');">
+                                    <form method="POST" action="{{ route('members.destroy', $member) }}" data-confirm="Delete {{ $member->full_name }}?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn-secondary flex items-center gap-1 py-1 px-2.5 text-xs text-red-500 hover:bg-red-50">

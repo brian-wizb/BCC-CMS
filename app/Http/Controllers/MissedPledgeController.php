@@ -12,7 +12,17 @@ class MissedPledgeController extends Controller
      */
     public function index()
     {
-        $missedPledges = \App\Models\MissedPledge::with('pledge')->orderByDesc('missed_date')->get();
+        // Auto-compute: pledges whose due_date has passed and are not fully paid
+        $missedPledges = \App\Models\Pledge::with('campaign', 'payments')
+            ->whereNotNull('due_date')
+            ->whereDate('due_date', '<', now())
+            ->orderBy('due_date')
+            ->get()
+            ->filter(function ($pledge) {
+                $paid = $pledge->payments->sum('amount');
+                return $paid < $pledge->amount;
+            })
+            ->values();
         return view('missed-pledges.index', compact('missedPledges'));
     }
 

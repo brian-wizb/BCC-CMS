@@ -90,7 +90,7 @@
                                         <i class="fas fa-pen text-[10px]"></i> Edit
                                     </a>
                                     <form method="POST" action="{{ route('leaders.destroy', $leader) }}"
-                                          onsubmit="return confirm('Delete this leader?');">
+                                          data-confirm="Delete this leader?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"

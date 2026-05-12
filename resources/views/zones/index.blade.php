@@ -45,7 +45,7 @@
                                 <div class="flex flex-wrap gap-2">
                                     <a href="{{ route('zones.show', $zone) }}" class="btn-secondary">View</a>
                                     <a href="{{ route('zones.edit', $zone) }}" class="btn-secondary">Edit</a>
-                                    <form method="POST" action="{{ route('zones.destroy', $zone) }}" onsubmit="return confirm('Delete this zone?');">
+                                    <form method="POST" action="{{ route('zones.destroy', $zone) }}" data-confirm="Delete this zone?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn-secondary text-red-600">Delete</button>

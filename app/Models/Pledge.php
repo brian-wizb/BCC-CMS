@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Pledge extends Model
 {
     protected $fillable = [
-        'pledger_name', 'pledger_email', 'amount', 'pledge_date', 'campaign_id', 'notes',
+        'member_id', 'pledger_name', 'pledger_phone', 'pledger_email', 'pledge_type',
+        'amount', 'pledge_date', 'due_date', 'campaign_id', 'notes',
     ];
 
     public function campaign()

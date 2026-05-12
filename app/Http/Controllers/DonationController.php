@@ -16,13 +16,21 @@ class DonationController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $donations = Donation::with('member')
-            ->latest('donation_date')
-            ->paginate(25);
-
-        return view('donations.index', compact('donations'));
+        $search = $request->input('search');
+        $query  = Donation::with('member')->latest('donation_date');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('donor_name',  'like', "%{$search}%")
+                  ->orWhere('type',       'like', "%{$search}%")
+                  ->orWhere('tithe_code', 'like', "%{$search}%")
+                  ->orWhere('reference',  'like', "%{$search}%");
+            });
+        }
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 25;
+        $donations = $query->paginate($perPage)->withQueryString();
+        return view('donations.index', compact('donations', 'search', 'perPage'));
     }
 
     /**

@@ -66,12 +66,14 @@
                 </div>
             </div>
 
-            <x-ui.department-zone-filters
+            <x-ui.report-filters
                 :action="route('reports.volunteers')"
                 :departments="$departments"
                 :zones="$zones"
                 :department-id="$departmentId"
                 :zone="$zone"
+                :date-from="$dateFrom"
+                :date-to="$dateTo"
             />
 
             <div class="mt-6 overflow-x-auto">

@@ -20,13 +20,19 @@ use App\Http\Controllers\ScorecardController;
 use App\Http\Controllers\VisitorController;
 use App\Http\Controllers\VolunteerController;
 use App\Http\Controllers\ZoneController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check()
-        ? redirect()->route('dashboard.index')
-        : redirect()->route('login');
+    if (auth()->check()) {
+        return auth()->user()->hasPermission('dashboard.read')
+            ? redirect()->route('dashboard.index')
+            : redirect()->route('attendance.scan');
+    }
+    return redirect()->route('login');
 })->name('home');
 
 Route::middleware('guest')->group(function () {
@@ -446,6 +452,77 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/reports/volunteers/export', [ReportController::class, 'volunteersExport'])
         ->middleware('permission:reports.export')
         ->name('reports.volunteers.export');
+    Route::get('/reports/members', [ReportController::class, 'members'])
+        ->middleware('permission:reports.read')
+        ->name('reports.members');
+    Route::get('/reports/members/export', [ReportController::class, 'membersExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.members.export');
+    Route::get('/reports/finance', [ReportController::class, 'finance'])
+        ->middleware('permission:reports.read')
+        ->name('reports.finance');
+    Route::get('/reports/finance/export', [ReportController::class, 'financeExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.finance.export');
+    Route::get('/reports/visitors', [ReportController::class, 'visitors'])
+        ->middleware('permission:reports.read')
+        ->name('reports.visitors');
+    Route::get('/reports/visitors/export', [ReportController::class, 'visitorsExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.visitors.export');
+    Route::get('/reports/pledges', [ReportController::class, 'pledges'])
+        ->middleware('permission:reports.read')
+        ->name('reports.pledges');
+    Route::get('/reports/pledges/export', [ReportController::class, 'pledgesExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.pledges.export');
+    Route::get('/reports/followup', [ReportController::class, 'followup'])
+        ->middleware('permission:reports.read')
+        ->name('reports.followup');
+    Route::get('/reports/followup/export', [ReportController::class, 'followupExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.followup.export');
+    Route::get('/reports/pastoral', [ReportController::class, 'pastoral'])
+        ->middleware('permission:reports.read')
+        ->name('reports.pastoral');
+    Route::get('/reports/pastoral/export', [ReportController::class, 'pastoralExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.pastoral.export');
+    Route::get('/reports/communications', [ReportController::class, 'communications'])
+        ->middleware('permission:reports.read')
+        ->name('reports.communications');
+    Route::get('/reports/communications/export', [ReportController::class, 'communicationsExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.communications.export');
+    Route::get('/reports/payroll', [ReportController::class, 'payroll'])
+        ->middleware('permission:reports.read')
+        ->name('reports.payroll');
+    Route::get('/reports/payroll/export', [ReportController::class, 'payrollExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.payroll.export');
+
+    // Profile (self-service)
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
+
+    // Roles & permission matrix
+    Route::get('/roles', [RolePermissionController::class, 'index'])
+        ->middleware('permission:roles.read')
+        ->name('roles.index');
+    Route::post('/roles/{role}/permissions', [RolePermissionController::class, 'toggle'])
+        ->middleware('permission:roles.update')
+        ->name('roles.permissions.toggle');
+
+    // Audit log
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])
+        ->middleware('permission:audit_logs.read')
+        ->name('audit-logs.index');
+
+    // User restore (soft-deleted)
+    Route::post('/users/{user}/restore', [UserManagementController::class, 'restore'])
+        ->middleware('permission:users.update')
+        ->name('users.restore');
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

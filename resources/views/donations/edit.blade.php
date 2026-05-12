@@ -1,9 +1,19 @@
 <x-layouts.app title="Edit Donation">
 
-    <div class="mx-auto max-w-2xl">
-        <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-2xl font-bold text-[var(--color-ink-950)]">Edit Donation</h1>
-            <a href="{{ route('donations.index') }}" class="btn-secondary text-sm">← All Records</a>
+    <div class="mx-auto max-w-2xl space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(16,185,129,0.12);">
+                    <i class="fas fa-pen text-base" style="color:rgba(16,185,129,0.9);"></i>
+                </span>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Finance &rsaquo; Donations</p>
+                    <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Edit Donation</h3>
+                </div>
+            </div>
+            <a href="{{ route('donations.index') }}" class="btn-secondary flex items-center gap-1.5 text-sm">
+                <i class="fas fa-arrow-left text-xs"></i> Back
+            </a>
         </div>
 
         <article class="surface-card p-6">
@@ -14,7 +24,7 @@
                 {{-- Member --}}
                 <div>
                     <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Member</label>
-                    <select name="member_id" id="member_id" class="form-input w-full" onchange="fillTitheCode(this)">
+                    <select name="member_id" id="member_id" class="form-input w-full" data-tom-select data-placeholder="— Anonymous / unlisted —">
                         <option value="">— Anonymous / unlisted —</option>
                         @foreach ($members as $m)
                             <option value="{{ $m->id }}"
@@ -108,9 +118,9 @@
                     @error('notes')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
 
-                <div class="flex justify-end gap-3">
+                <div class="flex items-center justify-end gap-3 pt-2">
                     <a href="{{ route('donations.index') }}" class="btn-secondary">Cancel</a>
-                    <button type="submit" class="btn-primary px-8">Update Donation</button>
+                    <button type="submit" class="btn-primary flex items-center gap-1.5"><i class="fas fa-save text-xs"></i> Update Donation</button>
                 </div>
             </form>
         </article>
@@ -118,10 +128,15 @@
 
     @push('scripts')
     <script>
-        function fillTitheCode(select) {
-            const opt = select.options[select.selectedIndex];
-            document.getElementById('tithe_code').value = opt.dataset.titheCode || '';
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            var sel = document.getElementById('member_id');
+            if (sel && sel.tomselect) {
+                sel.tomselect.on('change', function(value) {
+                    var opt = sel.querySelector('option[value="' + value + '"]');
+                    document.getElementById('tithe_code').value = opt ? (opt.dataset.titheCode || '') : '';
+                });
+            }
+        });
     </script>
     @endpush
 

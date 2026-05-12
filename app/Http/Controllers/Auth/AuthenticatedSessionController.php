@@ -20,7 +20,9 @@ class AuthenticatedSessionController extends Controller
     public function create(): View|RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->route('dashboard.index');
+            return Auth::user()?->hasPermission('dashboard.read')
+                ? redirect()->route('dashboard.index')
+                : redirect()->route('attendance.scan');
         }
 
         return view('auth.login');
@@ -57,7 +59,11 @@ class AuthenticatedSessionController extends Controller
             user: $user,
         );
 
-        return redirect()->intended(route('dashboard.index'));
+        return redirect()->intended(
+            Auth::user()?->hasPermission('dashboard.read')
+                ? route('dashboard.index')
+                : route('attendance.scan')
+        );
     }
 
     public function destroy(): RedirectResponse

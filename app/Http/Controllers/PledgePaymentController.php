@@ -10,10 +10,19 @@ class PledgePaymentController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $pledgePayments = \App\Models\PledgePayment::with('pledge')->orderByDesc('payment_date')->get();
-        return view('pledge-payments.index', compact('pledgePayments'));
+        $search = $request->input('search');
+        $query  = \App\Models\PledgePayment::with('pledge.campaign');
+        if ($search) {
+            $query->whereHas('pledge', fn($q) => $q
+                ->where('pledger_name',  'like', "%{$search}%")
+                ->orWhere('pledger_phone', 'like', "%{$search}%")
+            );
+        }
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $pledgePayments = $query->orderByDesc('payment_date')->paginate($perPage)->withQueryString();
+        return view('pledge-payments.index', compact('pledgePayments', 'search', 'perPage'));
     }
 
     /**

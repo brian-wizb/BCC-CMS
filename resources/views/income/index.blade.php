@@ -16,22 +16,29 @@
         </div>
 
         {{-- Search --}}
-        <div class="flex gap-2">
-            <form method="GET" action="{{ route('income.index') }}" class="flex flex-1 gap-2 lg:max-w-sm">
-                <div class="relative flex-1">
-                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
-                        <i class="fas fa-search text-xs"></i>
-                    </span>
-                    <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Search by type or contributor...">
-                </div>
-                <button type="submit" class="btn-secondary flex items-center gap-1.5">Search</button>
-            </form>
+        <form method="GET" action="{{ route('income.index') }}" class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-[180px] flex-1">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                    <i class="fas fa-search text-xs"></i>
+                </span>
+                <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Search by type or contributor...">
+            </div>
+            <button type="submit" class="btn-secondary flex items-center gap-1.5">Search</button>
             @if(!empty($search))
                 <a href="{{ route('income.index') }}" class="btn-secondary flex items-center gap-1.5">
                     <i class="fas fa-times text-xs"></i> Clear
                 </a>
             @endif
-        </div>
+            <div class="ml-auto flex items-center gap-2 text-sm text-slate-500">
+                <span class="whitespace-nowrap">Show</span>
+                <select name="per_page" onchange="this.form.submit()" class="form-input py-1.5 text-sm w-auto">
+                    @foreach([10, 25, 50, 100] as $n)
+                        <option value="{{ $n }}" @selected(($perPage ?? 20) == $n)>{{ $n }}</option>
+                    @endforeach
+                </select>
+                <span>entries</span>
+            </div>
+        </form>
 
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">
@@ -51,7 +58,7 @@
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
                         @forelse($records as $income)
                         <tr class="hover:bg-slate-50 transition">
-                            <td class="px-5 py-3.5 text-slate-400">{{ $loop->iteration }}</td>
+                            <td class="px-5 py-3.5 text-slate-400">{{ $records->firstItem() + $loop->index }}</td>
                             <td class="px-5 py-3.5">
                                 <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(16,185,129,0.1); color:rgba(16,185,129,0.9);">
                                     {{ $income->incomeType->type ?? '—' }}
@@ -90,7 +97,7 @@
                                     <a href="{{ route('income.edit', $income) }}" class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                                         <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
                                     </a>
-                                    <form method="POST" action="{{ route('income.destroy', $income) }}" onsubmit="return confirm('Delete this income record?')">
+                                    <form method="POST" action="{{ route('income.destroy', $income) }}" data-confirm="Delete this income record?">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">
                                             <i class="fas fa-trash mr-1 text-[10px]"></i>Delete

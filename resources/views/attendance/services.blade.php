@@ -130,7 +130,7 @@
                             <i class="fa-solid fa-pen mr-1"></i>Edit
                         </a>
                         <form method="POST" action="{{ route('attendance.services.destroy', $service) }}"
-                              onsubmit="return confirm('Delete \'{{ addslashes($service->name) }}\' and all {{ $service->attendance_records_count ?? 0 }} attendance record(s)?');">
+                              data-confirm="Delete '{{ $service->name }}' and all {{ $service->attendance_records_count ?? 0 }} attendance record(s)?">
                             @csrf
                             @method('DELETE')
                             <button class="btn-secondary text-xs px-3 py-1.5 text-red-600 hover:bg-red-50" type="submit">

@@ -66,6 +66,8 @@
         'Pledges' => 'gift',
         'Missed Pledges' => 'bell',
         'Pledge Payments' => 'wallet',
+        'Role Permissions' => 'shield',
+        'Audit Log' => 'folder',
     ];
 
     $renderIcon = function (string $key) use ($iconPaths) {

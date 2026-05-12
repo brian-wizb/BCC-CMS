@@ -281,7 +281,7 @@
                                         </form>
                                         <form method="POST" action="{{ route('alerts.destroy', $alert) }}"
                                               class="mt-3 pt-3 border-t border-[var(--color-surface-200)]"
-                                              onsubmit="return confirm('Permanently delete this alert?');">
+                                              data-confirm="Permanently delete this alert?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-100 transition-colors">

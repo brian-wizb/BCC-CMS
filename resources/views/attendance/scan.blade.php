@@ -193,7 +193,7 @@
         // Start camera
         startBtn.addEventListener('click', () => {
             if (! serviceEl.value) {
-                alert('Please select a service before starting the camera.');
+                window.showToast('warning', 'Please select a service before starting the camera.');
                 return;
             }
             html5QrCode = new Html5Qrcode('reader');
@@ -205,7 +205,7 @@
             ).then(() => {
                 startBtn.classList.add('hidden');
                 stopBtn.classList.remove('hidden');
-            }).catch(err => alert('Camera error: ' + err));
+            }).catch(err => window.showToast('error', 'Camera error: ' + err));
         });
 
         // Stop camera

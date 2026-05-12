@@ -12,24 +12,23 @@ class DepartmentExpenseController extends Controller
         $department = $request->input('department');
         $from       = $request->input('from');
         $to         = $request->input('to');
+        $search     = $request->input('search');
 
         $query = DepartmentExpense::query();
+        if ($department) $query->where('department', $department);
+        if ($from)       $query->whereDate('expense_date', '>=', $from);
+        if ($to)         $query->whereDate('expense_date', '<=', $to);
+        if ($search)     $query->where(function($q) use ($search) {
+            $q->where('expense', 'like', "%{$search}%")
+              ->orWhere('comment', 'like', "%{$search}%")
+              ->orWhere('reference_no', 'like', "%{$search}%");
+        });
 
-        if ($department) {
-            $query->where('department', $department);
-        }
-        if ($from) {
-            $query->whereDate('expense_date', '>=', $from);
-        }
-        if ($to) {
-            $query->whereDate('expense_date', '<=', $to);
-        }
-
-        $records    = $query->orderByDesc('expense_date')->get();
-        $total      = $records->sum('amount');
+        $total      = (clone $query)->sum('amount');
+        $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
+        $records    = $query->orderByDesc('expense_date')->paginate($perPage)->withQueryString();
         $departments = ['CMF', 'WWK', "Youth (CA's)"];
-
-        return view('department-expenses.index', compact('records', 'total', 'departments', 'department', 'from', 'to'));
+        return view('department-expenses.index', compact('records', 'total', 'departments', 'department', 'from', 'to', 'search', 'perPage'));
     }
 
     public function create()

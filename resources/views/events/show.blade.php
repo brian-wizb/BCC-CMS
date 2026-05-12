@@ -24,7 +24,7 @@
                                 <td class="px-4 py-4">
                                     <div class="flex items-center gap-2">
                                         <x-ui.status-badge :status="$registration->status" />
-                                        <form method="POST" action="{{ route('events.registrations.destroy', [$event, $registration]) }}" onsubmit="return confirm('Remove this registration?');">
+                                        <form method="POST" action="{{ route('events.registrations.destroy', [$event, $registration]) }}" data-confirm="Remove this registration?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-xs font-semibold text-red-600">Remove</button>
@@ -39,7 +39,7 @@
                 </table>
             </div>
 
-            <form method="POST" action="{{ route('events.destroy', $event) }}" class="mt-5" onsubmit="return confirm('Delete this event?');">
+            <form method="POST" action="{{ route('events.destroy', $event) }}" class="mt-5" data-confirm="Delete this event?">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn-secondary text-red-600">Delete event</button>
