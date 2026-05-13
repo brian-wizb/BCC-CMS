@@ -17,8 +17,8 @@
 
         /* ── Animations ── */
         @keyframes loginFadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; visibility: hidden; transform: translateY(20px); }
+            to   { opacity: 1; visibility: visible; transform: translateY(0); }
         }
         @keyframes loginFadeIn {
             from { opacity: 0; }
@@ -37,9 +37,65 @@
             100% { background-position: 200% center; }
         }
 
-        .login-panel { animation: loginFadeIn  0.7s ease-out both; height: 100%; }
-        .login-card  { animation: loginFadeUp  0.65s cubic-bezier(.22,.61,.36,1) both; }
-        .login-form  { animation: loginFadeUp  0.75s cubic-bezier(.22,.61,.36,1) 0.1s both; }
+        @keyframes wordmarkReveal {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) rotate(-6.8deg) scale(0.985);
+                filter: blur(6px) saturate(95%);
+            }
+            55% {
+                opacity: 0.34;
+                transform: translateY(10px) rotate(-5.8deg) scale(1);
+                filter: blur(2px) saturate(108%);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) rotate(-4.8deg) scale(1);
+                filter: blur(0) saturate(118%);
+            }
+        }
+
+        @keyframes wordmarkSettleBlur {
+            0% {
+                opacity: 0.3;
+                filter: blur(0) saturate(118%);
+            }
+            100% {
+                opacity: 0.23;
+                filter: blur(1.8px) saturate(110%);
+            }
+        }
+
+        @keyframes cardRiseIn {
+            0% {
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(26px) scale(0.986);
+                filter: blur(6px);
+            }
+            1% {
+                visibility: visible;
+            }
+            100% {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        .login-panel {
+            height: 100%;
+            animation: cardRiseIn 0.9s cubic-bezier(.22,.61,.36,1) 2s both;
+        }
+
+        .login-card {
+            animation: cardRiseIn 0.9s cubic-bezier(.22,.61,.36,1) 2.26s both;
+        }
+
+        .login-form {
+            animation: loginFadeUp 0.75s cubic-bezier(.22,.61,.36,1) 2.26s both;
+        }
 
         .login-orb-1 {
             position:absolute; width:300px; height:300px; border-radius:50%; pointer-events:none;
@@ -156,10 +212,446 @@
             transition: color 0.2s;
         }
         .toggle-pwd:hover { color:rgba(36,184,255,0.85); }
+
+        .login-theme-picker .theme-picker-trigger {
+            min-width: 9.6rem;
+            min-height: 2.65rem;
+            padding: 0.44rem 0.68rem;
+        }
+
+        .login-theme-picker .theme-picker-trigger-icon {
+            width: 1.85rem;
+            height: 1.85rem;
+        }
+
+        .login-theme-picker .theme-picker-kicker {
+            font-size: 0.57rem;
+            letter-spacing: 0.12em;
+        }
+
+        .login-theme-picker .theme-picker-label {
+            font-size: 0.79rem;
+        }
+
+        .login-theme-floating {
+            position: fixed;
+            top: 0.85rem;
+            right: 0.95rem;
+            z-index: 120;
+            animation: cardRiseIn 0.82s cubic-bezier(.22,.61,.36,1) 2.18s both;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .login-bg-wordmark-track,
+            .login-panel,
+            .login-card,
+            .login-form,
+            .login-theme-floating {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+                filter: none !important;
+            }
+        }
+
+        .login-bg-wordmark {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(2.2rem, 6vh, 4.8rem) clamp(0.6rem, 1.6vw, 1.6rem) clamp(1rem, 2.4vh, 2.1rem);
+        }
+
+        .login-bg-wordmark-track {
+            position: relative;
+            transform: translateY(2%) rotate(-4.8deg);
+            display: grid;
+            gap: clamp(0.32rem, 0.8vh, 0.62rem);
+            padding-top: clamp(0.7rem, 1.8vh, 1.25rem);
+            opacity: 0.34;
+            filter: saturate(118%);
+            animation:
+                wordmarkReveal 2s cubic-bezier(.22,.61,.36,1) both,
+                wordmarkSettleBlur 1.1s ease-out 3.3s forwards;
+        }
+
+        .login-bg-wordmark-line {
+            font-family: "Cinzel", "Trajan Pro", "Cormorant Garamond", "Times New Roman", serif;
+            font-size: clamp(2rem, 6.2vw, 5rem);
+            line-height: 1.14;
+            font-weight: 900;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            background: linear-gradient(135deg, rgba(198, 224, 255, 0.32), rgba(133, 177, 238, 0.14) 45%, rgba(228, 240, 255, 0.3));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(196, 221, 255, 0.24);
+            text-shadow:
+                0 0 52px rgba(36, 184, 255, 0.16),
+                0 14px 36px rgba(3, 10, 28, 0.26),
+                0 1px 0 rgba(255, 255, 255, 0.12);
+            font-variation-settings: "wght" 700;
+        }
+
+        .login-bg-wordmark-line-accent {
+            background: linear-gradient(135deg, rgba(255, 233, 178, 0.38), rgba(247, 201, 104, 0.31) 34%, rgba(174, 231, 207, 0.29) 66%, rgba(214, 239, 255, 0.24));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(242, 248, 255, 0.28);
+            letter-spacing: 0.13em;
+            filter: saturate(112%) brightness(1.05);
+        }
+
+        .login-bg-wordmark-oasis {
+            display: inline-block;
+            padding: 0 0.08em;
+            margin: 0 0.04em;
+            background: linear-gradient(135deg, rgba(255, 248, 225, 0.95) 0%, rgba(255, 212, 120, 0.96) 44%, rgba(160, 233, 206, 0.92) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(252, 243, 225, 0.55);
+            text-shadow:
+                0 0 26px rgba(255, 212, 120, 0.38),
+                0 0 12px rgba(160, 233, 206, 0.26);
+            filter: saturate(124%) brightness(1.14);
+        }
+
+        .login-bg-wordmark-love {
+            display: inline-block;
+            padding: 0 0.08em;
+            margin-left: 0.04em;
+            background: linear-gradient(135deg, rgba(255, 242, 214, 0.98) 0%, rgba(255, 192, 137, 0.97) 44%, rgba(247, 150, 129, 0.94) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 224, 195, 0.64);
+            text-shadow:
+                0 0 28px rgba(255, 176, 122, 0.42),
+                0 0 12px rgba(247, 150, 129, 0.34);
+            filter: saturate(128%) brightness(1.16);
+        }
+
+        .login-panel,
+        .login-card {
+            position: relative;
+            z-index: 2;
+        }
+
+        .login-theme-floating .theme-picker-menu {
+            right: 0;
+            left: auto;
+            min-width: 14rem;
+        }
+
+        @media (max-width: 900px) {
+            .login-bg-wordmark {
+                padding: 2.55rem 0.45rem 0.9rem;
+            }
+
+            .login-bg-wordmark-track {
+                transform: translateY(3%) rotate(-3.2deg);
+            }
+
+            .login-bg-wordmark-line {
+                font-size: clamp(1.52rem, 7vw, 2.85rem);
+                line-height: 1.2;
+                letter-spacing: 0.125em;
+            }
+
+            .login-theme-floating {
+                top: 0.55rem;
+                right: 0.55rem;
+            }
+
+            .login-theme-floating .theme-picker-trigger {
+                min-width: 8.4rem;
+                padding: 0.4rem 0.56rem;
+            }
+
+            .login-theme-floating .theme-picker-menu {
+                min-width: 12rem;
+            }
+        }
+
+        @media (max-height: 780px) {
+            .login-bg-wordmark {
+                padding-top: 2.8rem;
+            }
+
+            .login-bg-wordmark-line {
+                font-size: clamp(1.45rem, 5.1vw, 3.6rem);
+            }
+        }
+
+        /* ── Theme-specific login color overrides ── */
+        [data-theme='solarized'] .login-panel {
+            border-color: rgba(196, 146, 86, 0.32) !important;
+            background: linear-gradient(148deg, rgba(37, 23, 10, 0.99) 0%, rgba(68, 41, 18, 0.98) 40%, rgba(49, 31, 14, 0.99) 72%, rgba(61, 38, 16, 1) 100%) !important;
+            box-shadow: 0 30px 80px rgba(28, 17, 8, 0.58), inset 0 1px 0 rgba(255, 245, 224, 0.06) !important;
+        }
+
+        [data-theme='solarized'] .login-bg-wordmark-line {
+            background: linear-gradient(135deg, rgba(246, 203, 138, 0.34), rgba(240, 160, 0, 0.16) 44%, rgba(255, 240, 214, 0.3));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(240, 160, 0, 0.26);
+            text-shadow:
+                0 0 34px rgba(240, 160, 0, 0.12),
+                0 8px 24px rgba(42, 31, 15, 0.28);
+        }
+
+        [data-theme='solarized'] .login-bg-wordmark-line-accent {
+            background: linear-gradient(135deg, rgba(255, 240, 206, 0.38), rgba(237, 191, 84, 0.29) 40%, rgba(255, 248, 230, 0.29));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(241, 198, 104, 0.31);
+        }
+
+        [data-theme='solarized'] .login-bg-wordmark-oasis {
+            background: linear-gradient(135deg, rgba(255, 249, 232, 0.98) 0%, rgba(255, 208, 112, 0.98) 52%, rgba(245, 176, 66, 0.95) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 219, 145, 0.62);
+            text-shadow: 0 0 28px rgba(244, 179, 77, 0.44);
+        }
+
+        [data-theme='solarized'] .login-bg-wordmark-love {
+            background: linear-gradient(135deg, rgba(255, 246, 225, 0.98) 0%, rgba(248, 190, 96, 0.98) 50%, rgba(231, 139, 67, 0.95) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 208, 138, 0.66);
+            text-shadow: 0 0 28px rgba(236, 164, 72, 0.48);
+        }
+
+        [data-theme='forest'] .login-panel {
+            border-color: rgba(102, 122, 92, 0.34) !important;
+            background: linear-gradient(148deg, rgba(17, 24, 18, 0.99) 0%, rgba(29, 40, 31, 0.98) 40%, rgba(23, 32, 25, 0.99) 72%, rgba(30, 40, 31, 1) 100%) !important;
+            box-shadow: 0 30px 80px rgba(11, 16, 13, 0.62), inset 0 1px 0 rgba(236, 253, 245, 0.05) !important;
+        }
+
+        [data-theme='forest'] .login-bg-wordmark-line {
+            background: linear-gradient(135deg, rgba(184, 219, 197, 0.3), rgba(95, 124, 94, 0.17) 44%, rgba(215, 225, 212, 0.24));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(102, 122, 92, 0.28);
+            text-shadow:
+                0 0 30px rgba(134, 167, 124, 0.12),
+                0 8px 24px rgba(15, 24, 20, 0.3);
+        }
+
+        [data-theme='forest'] .login-bg-wordmark-line-accent {
+            background: linear-gradient(135deg, rgba(223, 234, 218, 0.31), rgba(148, 182, 136, 0.24) 44%, rgba(206, 228, 213, 0.26));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(149, 172, 140, 0.3);
+        }
+
+        [data-theme='forest'] .login-bg-wordmark-oasis {
+            background: linear-gradient(135deg, rgba(240, 251, 244, 0.96) 0%, rgba(168, 228, 191, 0.95) 48%, rgba(129, 199, 159, 0.92) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(208, 236, 220, 0.58);
+            text-shadow: 0 0 24px rgba(129, 199, 159, 0.34);
+        }
+
+        [data-theme='forest'] .login-bg-wordmark-love {
+            background: linear-gradient(135deg, rgba(241, 251, 244, 0.97) 0%, rgba(177, 228, 176, 0.95) 48%, rgba(128, 190, 144, 0.92) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(203, 233, 205, 0.62);
+            text-shadow: 0 0 24px rgba(128, 190, 144, 0.36);
+        }
+
+        [data-theme='solarized'] .login-orb-1 {
+            background: radial-gradient(circle, rgba(240, 160, 0, 0.24) 0%, transparent 70%);
+        }
+
+        [data-theme='solarized'] .login-orb-2 {
+            background: radial-gradient(circle, rgba(232, 184, 77, 0.2) 0%, transparent 70%);
+        }
+
+        [data-theme='solarized'] .login-orb-3 {
+            background: radial-gradient(circle, rgba(196, 146, 86, 0.18) 0%, transparent 70%);
+        }
+
+        [data-theme='forest'] .login-orb-1 {
+            background: radial-gradient(circle, rgba(110, 231, 183, 0.16) 0%, transparent 70%);
+        }
+
+        [data-theme='forest'] .login-orb-2 {
+            background: radial-gradient(circle, rgba(88, 104, 69, 0.2) 0%, transparent 70%);
+        }
+
+        [data-theme='forest'] .login-orb-3 {
+            background: radial-gradient(circle, rgba(148, 163, 184, 0.14) 0%, transparent 70%);
+        }
+
+        [data-theme='solarized'] .brand-shimmer {
+            background: linear-gradient(120deg, rgba(240, 160, 0, 0.92) 0%, rgba(232, 184, 77, 0.98) 30%, rgba(255, 245, 224, 0.95) 50%, rgba(232, 184, 77, 0.98) 70%, rgba(240, 160, 0, 0.92) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        [data-theme='forest'] .brand-shimmer {
+            background: linear-gradient(120deg, rgba(167, 243, 208, 0.9) 0%, rgba(134, 239, 172, 0.96) 30%, rgba(236, 253, 245, 0.95) 50%, rgba(134, 239, 172, 0.96) 70%, rgba(167, 243, 208, 0.9) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        [data-theme='solarized'] .login-panel .text-cyan-300,
+        [data-theme='solarized'] .login-panel .text-cyan-400\/80 {
+            color: #f6cb8a !important;
+        }
+
+        [data-theme='forest'] .login-panel .text-cyan-300,
+        [data-theme='forest'] .login-panel .text-cyan-400\/80 {
+            color: #b8dbc5 !important;
+        }
+
+        [data-theme='solarized'] .feat-card:hover {
+            border-color: rgba(240, 160, 0, 0.3);
+            background: rgba(255, 241, 219, 0.1);
+        }
+
+        [data-theme='solarized'] .login-top-accent {
+            background: linear-gradient(90deg, #d97706, #f0a000 35%, #e8b84d 68%, #f6cb8a) !important;
+        }
+
+        [data-theme='solarized'] .login-feat-icon {
+            background: linear-gradient(135deg, rgba(240, 160, 0, 0.22), rgba(153, 68, 0, 0.12)) !important;
+            color: rgba(245, 199, 130, 0.96) !important;
+        }
+
+        [data-theme='forest'] .feat-card:hover {
+            border-color: rgba(102, 122, 92, 0.34);
+            background: rgba(217, 225, 207, 0.08);
+        }
+
+        [data-theme='forest'] .login-top-accent {
+            background: linear-gradient(90deg, #4c6b4f, #5f7c5e 35%, #86a77c 68%, #b8dbc5) !important;
+        }
+
+        [data-theme='forest'] .login-panel .text-emerald-300 {
+            color: #c6ddcf !important;
+        }
+
+        [data-theme='forest'] .login-feat-icon {
+            background: linear-gradient(135deg, rgba(88, 104, 69, 0.28), rgba(39, 52, 42, 0.18)) !important;
+            color: rgba(198, 221, 207, 0.96) !important;
+        }
+
+        [data-theme='solarized'] .login-card-accent {
+            background: linear-gradient(90deg, #d97706 0%, #f0a000 35%, #e8b84d 68%, #f6cb8a 100%);
+        }
+
+        [data-theme='forest'] .login-card-accent {
+            background: linear-gradient(90deg, #4c6b4f 0%, #5f7c5e 35%, #86a77c 68%, #b8dbc5 100%);
+        }
+
+        [data-theme='solarized'] .login-input-wrap:focus-within .login-input-icon,
+        [data-theme='solarized'] .toggle-pwd:hover {
+            color: rgba(240, 160, 0, 0.9);
+        }
+
+        [data-theme='forest'] .login-input-wrap:focus-within .login-input-icon,
+        [data-theme='forest'] .toggle-pwd:hover {
+            color: rgba(134, 239, 172, 0.88);
+        }
+
+        [data-theme='solarized'] .remember-check:checked {
+            border-color: rgba(240, 160, 0, 0.75);
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.84), rgba(240, 160, 0, 0.74));
+        }
+
+        [data-theme='forest'] .remember-check:checked {
+            border-color: rgba(134, 239, 172, 0.74);
+            background: linear-gradient(135deg, rgba(76, 107, 79, 0.84), rgba(95, 124, 94, 0.74));
+        }
     </style>
 
     {{-- Two-column layout: welcome panel + login card, visible from md (768px) up --}}
-    <div class="w-full h-full" style="display:grid; grid-template-columns:1fr 390px; gap:1.25rem; align-items:stretch;">
+    <div class="relative w-full h-full" style="display:grid; grid-template-columns:1fr 390px; gap:1.25rem; align-items:stretch;">
+
+        <div class="login-bg-wordmark" aria-hidden="true">
+            <div class="login-bg-wordmark-track">
+                <div class="login-bg-wordmark-line">Bethel City Church</div>
+                <div class="login-bg-wordmark-line login-bg-wordmark-line-accent">The <span class="login-bg-wordmark-oasis">Oasis</span> of <span class="login-bg-wordmark-love">Love</span></div>
+            </div>
+        </div>
+
+        <div class="login-theme-floating">
+            <div class="login-theme-picker flex justify-end">
+                <div class="theme-picker">
+                    <button type="button" class="theme-picker-trigger" data-theme-picker-trigger
+                            aria-label="Theme Select" aria-expanded="false" aria-haspopup="menu" title="Theme Select">
+                        <span class="theme-picker-trigger-icon" aria-hidden="true">
+                            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3c-4.97 0-9 4.03-9 9a9 9 0 0 0 9 9c1.3 0 2.34-1.04 2.34-2.34 0-.58-.22-1.13-.61-1.55a2.2 2.2 0 0 1-.59-1.5c0-1.25 1.02-2.27 2.27-2.27h2.13A3.46 3.46 0 0 0 21 9.87C21 6.08 16.97 3 12 3Z"/>
+                                <circle cx="7.75" cy="10" r="1.15" fill="currentColor" stroke="none"/>
+                                <circle cx="11.2" cy="7.15" r="1.05" fill="currentColor" stroke="none"/>
+                                <circle cx="15.7" cy="8.7" r="1.05" fill="currentColor" stroke="none"/>
+                            </svg>
+                        </span>
+                        <span class="theme-picker-trigger-copy">
+                            <span class="theme-picker-kicker">Theme Select</span>
+                            <span class="theme-picker-label" data-theme-label>Dark</span>
+                        </span>
+                    </button>
+
+                    <div class="theme-picker-menu" data-hidden="true" role="menu">
+                        <div class="theme-option" data-theme="light" role="menuitem">
+                            <div class="theme-option-title">Light</div>
+                            <div class="theme-option-preview">Clean & bright</div>
+                        </div>
+                        <div class="theme-option" data-theme="dark" role="menuitem">
+                            <div class="theme-option-title">Dark</div>
+                            <div class="theme-option-preview">Classic dark</div>
+                        </div>
+                        <div class="theme-option" data-theme="solarized" role="menuitem">
+                            <div class="theme-option-title">Solarized</div>
+                            <div class="theme-option-preview">Warm amber & cream</div>
+                        </div>
+                        <div class="theme-option" data-theme="forest" role="menuitem">
+                            <div class="theme-option-title">Forest</div>
+                            <div class="theme-option-preview">Green & natural</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         {{-- ── Left welcome panel — visible md+ beside the login card ── --}}
         <div class="login-panel flex flex-col relative overflow-hidden rounded-[1.75rem] text-white"
@@ -173,7 +665,7 @@
             <div class="login-orb-3"></div>
 
             {{-- Decorative top accent line --}}
-            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1390ff,#1aafff 35%,#34d399 68%,#f4c15d);opacity:0.7;"></div>
+            <div class="login-top-accent" style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1390ff,#1aafff 35%,#34d399 68%,#f4c15d);opacity:0.7;"></div>
 
             <div class="relative z-10 flex h-full flex-col p-7">
 
@@ -211,7 +703,7 @@
                 {{-- Feature cards grid --}}
                 <div class="grid grid-cols-2 gap-2">
                     <div class="feat-card">
-                        <span class="feat-icon" style="background:linear-gradient(135deg,rgba(36,184,255,0.22),rgba(29,214,255,0.12)); color:rgba(36,184,255,0.95);">
+                        <span class="feat-icon login-feat-icon" style="background:linear-gradient(135deg,rgba(36,184,255,0.22),rgba(29,214,255,0.12)); color:rgba(36,184,255,0.95);">
                             <i class="fas fa-users"></i>
                         </span>
                         <div>
@@ -220,7 +712,7 @@
                         </div>
                     </div>
                     <div class="feat-card">
-                        <span class="feat-icon" style="background:linear-gradient(135deg,rgba(52,211,153,0.22),rgba(16,185,129,0.12)); color:rgba(52,211,153,0.95);">
+                        <span class="feat-icon login-feat-icon" style="background:linear-gradient(135deg,rgba(52,211,153,0.22),rgba(16,185,129,0.12)); color:rgba(52,211,153,0.95);">
                             <i class="fas fa-wallet"></i>
                         </span>
                         <div>
@@ -229,7 +721,7 @@
                         </div>
                     </div>
                     <div class="feat-card">
-                        <span class="feat-icon" style="background:linear-gradient(135deg,rgba(244,193,93,0.22),rgba(217,155,43,0.12)); color:rgba(244,193,93,0.95);">
+                        <span class="feat-icon login-feat-icon" style="background:linear-gradient(135deg,rgba(244,193,93,0.22),rgba(217,155,43,0.12)); color:rgba(244,193,93,0.95);">
                             <i class="fas fa-church"></i>
                         </span>
                         <div>
@@ -238,7 +730,7 @@
                         </div>
                     </div>
                     <div class="feat-card">
-                        <span class="feat-icon" style="background:linear-gradient(135deg,rgba(255,111,145,0.22),rgba(225,77,109,0.12)); color:rgba(255,111,145,0.95);">
+                        <span class="feat-icon login-feat-icon" style="background:linear-gradient(135deg,rgba(255,111,145,0.22),rgba(225,77,109,0.12)); color:rgba(255,111,145,0.95);">
                             <i class="fas fa-shield-alt"></i>
                         </span>
                         <div>
@@ -247,7 +739,7 @@
                         </div>
                     </div>
                     <div class="feat-card">
-                        <span class="feat-icon" style="background:linear-gradient(135deg,rgba(167,139,250,0.22),rgba(139,92,246,0.12)); color:rgba(167,139,250,0.95);">
+                        <span class="feat-icon login-feat-icon" style="background:linear-gradient(135deg,rgba(167,139,250,0.22),rgba(139,92,246,0.12)); color:rgba(167,139,250,0.95);">
                             <i class="fas fa-bell"></i>
                         </span>
                         <div>
@@ -256,7 +748,7 @@
                         </div>
                     </div>
                     <div class="feat-card">
-                        <span class="feat-icon" style="background:linear-gradient(135deg,rgba(34,211,238,0.22),rgba(6,182,212,0.12)); color:rgba(34,211,238,0.95);">
+                        <span class="feat-icon login-feat-icon" style="background:linear-gradient(135deg,rgba(34,211,238,0.22),rgba(6,182,212,0.12)); color:rgba(34,211,238,0.95);">
                             <i class="fas fa-chart-bar"></i>
                         </span>
                         <div>

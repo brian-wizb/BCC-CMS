@@ -87,11 +87,13 @@ function setTheme(theme) {
         window.localStorage.setItem(THEME_STORAGE_KEY, theme);
         applyTheme(theme);
 
-        // Close theme picker if open
-        const picker = document.querySelector('.theme-picker-menu');
-        if (picker) {
+        // Close all theme pickers if open
+        document.querySelectorAll('.theme-picker-menu').forEach((picker) => {
             picker.dataset.hidden = 'true';
-        }
+        });
+        document.querySelectorAll('[data-theme-picker-trigger]').forEach((trigger) => {
+            trigger.setAttribute('aria-expanded', 'false');
+        });
     }
 }
 
@@ -102,64 +104,85 @@ function cycleTheme() {
 }
 
 function initializeThemePicker() {
-    const trigger = document.querySelector('[data-theme-picker-trigger]');
-    const menu = document.querySelector('.theme-picker-menu');
+    const pickers = document.querySelectorAll('.theme-picker');
 
-    if (!trigger || !menu) {
-        console.warn('Theme picker elements not found');
+    if (!pickers.length) {
         return;
     }
 
-    // Toggle menu on trigger click
-    trigger.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const isHidden = menu.dataset.hidden === 'true';
-        menu.dataset.hidden = isHidden ? 'false' : 'true';
-        trigger.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-    });
+    pickers.forEach((pickerRoot) => {
+        const trigger = pickerRoot.querySelector('[data-theme-picker-trigger]');
+        const menu = pickerRoot.querySelector('.theme-picker-menu');
 
-    // Prevent menu close when clicking inside menu
-    menu.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!trigger.contains(e.target) && !menu.contains(e.target)) {
-            menu.dataset.hidden = 'true';
-            trigger.setAttribute('aria-expanded', 'false');
+        if (!trigger || !menu) {
+            return;
         }
-    });
 
-    // Handle theme option clicks
-    document.querySelectorAll('.theme-option').forEach((option) => {
-        option.addEventListener('click', (e) => {
+        // Toggle menu on trigger click
+        trigger.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const selectedTheme = option.dataset.theme;
-            if (selectedTheme) {
-                setTheme(selectedTheme);
+
+            const isHidden = menu.dataset.hidden === 'true';
+
+            // Close other picker menus first
+            document.querySelectorAll('.theme-picker-menu').forEach((m) => {
+                if (m !== menu) {
+                    m.dataset.hidden = 'true';
+                }
+            });
+            document.querySelectorAll('[data-theme-picker-trigger]').forEach((t) => {
+                if (t !== trigger) {
+                    t.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            menu.dataset.hidden = isHidden ? 'false' : 'true';
+            trigger.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        });
+
+        // Prevent menu close when clicking inside menu
+        menu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+                menu.dataset.hidden = 'true';
+                trigger.setAttribute('aria-expanded', 'false');
             }
         });
 
-        // Keyboard navigation
-        option.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+        // Handle theme option clicks (within this menu)
+        menu.querySelectorAll('.theme-option').forEach((option) => {
+            option.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                option.click();
+                const selectedTheme = option.dataset.theme;
+                if (selectedTheme) {
+                    setTheme(selectedTheme);
+                }
+            });
+
+            // Keyboard navigation
+            option.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    option.click();
+                }
+            });
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && menu.dataset.hidden === 'false') {
+                menu.dataset.hidden = 'true';
+                trigger.setAttribute('aria-expanded', 'false');
+                trigger.focus();
             }
         });
-    });
-
-    // Close on Escape
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && menu.dataset.hidden === 'false') {
-            menu.dataset.hidden = 'true';
-            trigger.setAttribute('aria-expanded', 'false');
-            trigger.focus();
-        }
     });
 
     // Set initial active theme on menu
