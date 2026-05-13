@@ -57,28 +57,44 @@
             </div>
 
             <div class="topbar-utility-stack">
-                <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme">
-                    <span class="theme-toggle-icon" aria-hidden="true">
-                        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="4.25"></circle>
-                            <path d="M12 2.75v2.5"></path>
-                            <path d="M12 18.75v2.5"></path>
-                            <path d="m5.46 5.46 1.77 1.77"></path>
-                            <path d="m16.77 16.77 1.77 1.77"></path>
-                            <path d="M2.75 12h2.5"></path>
-                            <path d="M18.75 12h2.5"></path>
-                            <path d="m5.46 18.54 1.77-1.77"></path>
-                            <path d="m16.77 7.23 1.77-1.77"></path>
-                        </svg>
-                        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 15.2A7.9 7.9 0 0 1 13.35 20 8 8 0 0 1 5 11.65 7.9 7.9 0 0 1 9.8 5 6.35 6.35 0 1 0 20 15.2Z"></path>
-                        </svg>
-                    </span>
-                    <span class="theme-toggle-copy">
-                        <span class="theme-toggle-kicker">Appearance</span>
-                        <span class="theme-toggle-label" data-theme-label>Light mode</span>
-                    </span>
-                </button>
+                <!-- Premium Theme Picker -->
+                <div class="theme-picker">
+                    <button type="button" class="theme-picker-trigger" data-theme-picker-trigger
+                            aria-label="Theme Select" aria-expanded="false" aria-haspopup="menu" title="Theme Select">
+                        <span class="theme-picker-trigger-icon" aria-hidden="true">
+                            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3c-4.97 0-9 4.03-9 9a9 9 0 0 0 9 9c1.3 0 2.34-1.04 2.34-2.34 0-.58-.22-1.13-.61-1.55a2.2 2.2 0 0 1-.59-1.5c0-1.25 1.02-2.27 2.27-2.27h2.13A3.46 3.46 0 0 0 21 9.87C21 6.08 16.97 3 12 3Z"/>
+                                <circle cx="7.75" cy="10" r="1.15" fill="currentColor" stroke="none"/>
+                                <circle cx="11.2" cy="7.15" r="1.05" fill="currentColor" stroke="none"/>
+                                <circle cx="15.7" cy="8.7" r="1.05" fill="currentColor" stroke="none"/>
+                            </svg>
+                        </span>
+                        <span class="theme-picker-trigger-copy">
+                            <span class="theme-picker-kicker">Theme Select</span>
+                            <span class="theme-picker-label" data-theme-label>Dark</span>
+                        </span>
+                    </button>
+
+                    <div class="theme-picker-menu" data-hidden="true" role="menu">
+                        <div class="theme-option" data-theme="light" role="menuitem">
+                            <div class="theme-option-title">Light</div>
+                            <div class="theme-option-preview">Clean & bright</div>
+                        </div>
+                        <div class="theme-option" data-theme="dark" role="menuitem">
+                            <div class="theme-option-title">Dark</div>
+                            <div class="theme-option-preview">Classic dark</div>
+                        </div>
+                        <div class="theme-option" data-theme="solarized" role="menuitem">
+                            <div class="theme-option-title">Solarized</div>
+                            <div class="theme-option-preview">Warm amber & cream</div>
+                        </div>
+                        <div class="theme-option" data-theme="forest" role="menuitem">
+                            <div class="theme-option-title">Forest</div>
+                            <div class="theme-option-preview">Green & natural</div>
+                        </div>
+                    </div>
+                </div>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

@@ -7,57 +7,175 @@ const SIDEBAR_SCROLL_KEY = 'bcc-sidebar-scroll';
 const themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 const desktopSidebarQuery = window.matchMedia('(min-width: 1024px)');
 
+// ── THEME SYSTEM (Classic + Premium) ──────────────────────────────────────
+const AVAILABLE_THEMES = ['light', 'dark', 'solarized', 'forest'];
+const DEFAULT_THEME = 'dark';
+
+const THEME_LABELS = {
+    light: { name: 'Light', preview: 'Clean & bright' },
+    dark: { name: 'Dark', preview: 'Classic dark' },
+    solarized: { name: 'Solarized', preview: 'Warm amber & cream' },
+    forest: { name: 'Forest', preview: 'Green & natural' },
+};
+
 function getStoredTheme() {
     const theme = window.localStorage.getItem(THEME_STORAGE_KEY);
-
-    return theme === 'light' || theme === 'dark' ? theme : null;
+    return AVAILABLE_THEMES.includes(theme) ? theme : null;
 }
 
 function getPreferredTheme() {
-    return getStoredTheme() ?? (themeQuery.matches ? 'dark' : 'light');
+    return getStoredTheme() ?? DEFAULT_THEME;
 }
 
-function updateThemeToggleUI(theme) {
+function updateThemeUI(theme) {
+    // Update any theme labels
     document.querySelectorAll('[data-theme-label]').forEach((node) => {
-        node.textContent = theme === 'dark' ? 'Dark mode' : 'Light mode';
+        node.textContent = THEME_LABELS[theme]?.name || theme;
     });
 
+    // Update theme toggle buttons
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-        button.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        button.setAttribute('aria-label', `Switch to ${THEME_LABELS[theme]?.name || theme} theme`);
         button.dataset.themeState = theme;
+    });
+
+    // Update theme picker trigger label
+    document.querySelectorAll('[data-theme-picker-trigger]').forEach((button) => {
+        const themeName = THEME_LABELS[theme]?.name || theme;
+        button.setAttribute('aria-label', `Theme Select (${themeName})`);
+        button.setAttribute('title', `Theme Select (${themeName})`);
+    });
+
+    // Update theme picker menu items
+    document.querySelectorAll('.theme-option').forEach((option) => {
+        const isActive = option.dataset.theme === theme;
+        option.dataset.active = isActive ? 'true' : 'false';
+        if (isActive) {
+            option.setAttribute('aria-current', 'page');
+        } else {
+            option.removeAttribute('aria-current');
+        }
     });
 }
 
 function applyTheme(theme) {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    updateThemeToggleUI(theme);
+    if (!AVAILABLE_THEMES.includes(theme)) {
+        theme = DEFAULT_THEME;
+    }
 
+    // Apply theme to document root
+    document.documentElement.dataset.theme = theme;
+
+    // Set color scheme based on theme
+    if (theme === 'light') {
+        document.documentElement.style.colorScheme = 'light';
+    } else {
+        document.documentElement.style.colorScheme = 'dark';
+    }
+
+    // Update UI elements
+    updateThemeUI(theme);
+
+    // Dispatch custom event for any theme-aware components
     window.dispatchEvent(new CustomEvent('bcc-theme-change', {
-        detail: { theme },
+        detail: { theme, label: THEME_LABELS[theme]?.name },
     }));
 }
 
-function toggleTheme() {
-    const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-    applyTheme(nextTheme);
+function setTheme(theme) {
+    if (AVAILABLE_THEMES.includes(theme)) {
+        window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+        applyTheme(theme);
+
+        // Close theme picker if open
+        const picker = document.querySelector('.theme-picker-menu');
+        if (picker) {
+            picker.dataset.hidden = 'true';
+        }
+    }
+}
+
+function cycleTheme() {
+    const currentTheme = getStoredTheme() || DEFAULT_THEME;
+    const nextIndex = (AVAILABLE_THEMES.indexOf(currentTheme) + 1) % AVAILABLE_THEMES.length;
+    setTheme(AVAILABLE_THEMES[nextIndex]);
+}
+
+function initializeThemePicker() {
+    const trigger = document.querySelector('[data-theme-picker-trigger]');
+    const menu = document.querySelector('.theme-picker-menu');
+
+    if (!trigger || !menu) {
+        console.warn('Theme picker elements not found');
+        return;
+    }
+
+    // Toggle menu on trigger click
+    trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isHidden = menu.dataset.hidden === 'true';
+        menu.dataset.hidden = isHidden ? 'false' : 'true';
+        trigger.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    });
+
+    // Prevent menu close when clicking inside menu
+    menu.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!trigger.contains(e.target) && !menu.contains(e.target)) {
+            menu.dataset.hidden = 'true';
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // Handle theme option clicks
+    document.querySelectorAll('.theme-option').forEach((option) => {
+        option.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const selectedTheme = option.dataset.theme;
+            if (selectedTheme) {
+                setTheme(selectedTheme);
+            }
+        });
+
+        // Keyboard navigation
+        option.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                option.click();
+            }
+        });
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && menu.dataset.hidden === 'false') {
+            menu.dataset.hidden = 'true';
+            trigger.setAttribute('aria-expanded', 'false');
+            trigger.focus();
+        }
+    });
+
+    // Set initial active theme on menu
+    updateThemeUI(getPreferredTheme());
 }
 
 function initializeTheme() {
     applyTheme(getPreferredTheme());
 
+    // Legacy theme toggle support (light/dark button)
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-        button.addEventListener('click', toggleTheme);
+        button.addEventListener('click', cycleTheme);
     });
 
-    themeQuery.addEventListener('change', (event) => {
-        if (getStoredTheme()) {
-            return;
-        }
-
-        applyTheme(event.matches ? 'dark' : 'light');
-    });
+    // Initialize advanced theme picker
+    initializeThemePicker();
 }
 
 function getStoredSectionState() {

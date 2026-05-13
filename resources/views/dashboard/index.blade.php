@@ -80,7 +80,7 @@
     </section>
 
     <section class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <article class="surface-card p-5">
+        <article class="surface-card dashboard-wood-panel p-5">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-xl font-semibold">Church Timetable</h2>
                 <span class="status-pill">Weekly Rhythm</span>
@@ -88,12 +88,12 @@
 
             <div class="space-y-2.5">
                 @foreach ($timetable as $item)
-                    <div class="glass-pane-soft flex flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:justify-between">
+                    <div class="dashboard-wood-row flex flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:justify-between">
                         <div>
                             <div class="text-xs uppercase tracking-[0.11em] text-slate-500">{{ $item['day'] }}</div>
                             <div class="text-[15px] font-semibold text-[var(--color-surface-900)]">{{ $item['session'] }}</div>
                         </div>
-                        <div class="glass-pane-soft rounded-xl px-3 py-1.5 text-sm font-semibold text-[var(--color-surface-900)]">
+                        <div class="dashboard-wood-chip rounded-xl px-3 py-1.5 text-sm font-semibold text-[var(--color-surface-900)]">
                             {{ $item['time'] }}
                         </div>
                     </div>
@@ -101,7 +101,7 @@
             </div>
         </article>
 
-        <article class="surface-card p-5">
+        <article class="surface-card dashboard-wood-panel p-5">
             <h2 class="text-xl font-semibold">Mission Focus</h2>
             <p class="mt-1 text-sm text-slate-500">
                 Align operations around measurable ministry outcomes and faithful stewardship.
@@ -114,7 +114,7 @@
                     'Drive cross-ministry participation via zone coordination',
                     'Measure and report pastoral care responsiveness',
                 ] as $focus)
-                    <div class="glass-pane-soft px-3 py-3 text-sm text-[var(--color-surface-900)]">
+                    <div class="dashboard-wood-row px-3 py-3 text-sm text-[var(--color-surface-900)]">
                         {{ $focus }}
                     </div>
                 @endforeach

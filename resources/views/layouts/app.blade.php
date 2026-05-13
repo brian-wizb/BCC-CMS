@@ -7,16 +7,17 @@
         (() => {
             const themeStorageKey = 'bcc-theme';
             const sidebarStorageKey = 'bcc-sidebar-collapsed';
+            const availableThemes = ['light', 'dark', 'solarized', 'forest'];
+            const defaultTheme = 'dark';
+
             const storedTheme = window.localStorage.getItem(themeStorageKey);
             const sidebarCollapsed = window.localStorage.getItem(sidebarStorageKey) === 'true';
-            const theme = storedTheme === 'light' || storedTheme === 'dark'
-                ? storedTheme
-                : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            const theme = availableThemes.includes(storedTheme) ? storedTheme : defaultTheme;
 
             document.documentElement.dataset.theme = theme;
             document.documentElement.dataset.sidebarCollapsed = sidebarCollapsed ? 'true' : 'false';
             document.documentElement.dataset.sidebarOpen = 'false';
-            document.documentElement.style.colorScheme = theme;
+            document.documentElement.style.colorScheme = theme === 'light' ? 'light' : 'dark';
         })();
     </script>
     @php
