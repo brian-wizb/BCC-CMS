@@ -18,11 +18,13 @@ class PastoralCareController extends Controller
     {
         $status = trim((string) $request->string('status'));
         $priority = trim((string) $request->string('priority'));
+        $caseType = trim((string) $request->string('case_type'));
 
         $cases = PastoralCase::query()
             ->with(['member', 'family', 'assignee'])
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($priority !== '', fn ($query) => $query->where('priority', $priority))
+            ->when($caseType !== '', fn ($query) => $query->where('case_type', $caseType))
             ->latest('id')
             ->paginate(10)
             ->withQueryString();
@@ -31,6 +33,7 @@ class PastoralCareController extends Controller
             'cases' => $cases,
             'status' => $status,
             'priority' => $priority,
+            'caseType' => $caseType,
         ]);
     }
 
@@ -50,7 +53,7 @@ class PastoralCareController extends Controller
             'family_id' => ['nullable', 'integer', Rule::exists('families', 'id')],
             'case_type' => ['required', 'string', 'max:255'],
             'priority' => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
-            'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'closed'])],
+            'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'answered', 'closed'])],
             'assigned_to' => ['nullable', 'integer', Rule::exists('leaders', 'id')],
             'summary' => ['nullable', 'string'],
         ]);
@@ -60,7 +63,7 @@ class PastoralCareController extends Controller
 
         $case = PastoralCase::query()->create($data);
 
-        return redirect()->route('pastoral-care.show', $case)->with('status', 'Pastoral case created successfully.');
+        return redirect()->route('pastoral-care.show', $case)->with('status', 'Care request created successfully.');
     }
 
     public function show(PastoralCase $pastoral_case): View
@@ -75,7 +78,7 @@ class PastoralCareController extends Controller
     {
         $data = $request->validate([
             'priority' => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
-            'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'closed'])],
+            'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'answered', 'closed'])],
             'assigned_to' => ['nullable', 'integer', Rule::exists('leaders', 'id')],
             'summary' => ['nullable', 'string'],
         ]);
@@ -83,21 +86,21 @@ class PastoralCareController extends Controller
         $data['closed_at'] = $data['status'] === 'closed' ? now() : null;
         $pastoral_case->update($data);
 
-        return back()->with('status', 'Pastoral case updated successfully.');
+        return back()->with('status', 'Care request updated successfully.');
     }
 
     public function destroy(PastoralCase $pastoral_case): RedirectResponse
     {
         $pastoral_case->delete();
 
-        return redirect()->route('pastoral-care.index')->with('status', 'Pastoral case deleted successfully.');
+        return redirect()->route('pastoral-care.index')->with('status', 'Care request deleted successfully.');
     }
 
     public function storeNote(Request $request, PastoralCase $pastoral_case): RedirectResponse
     {
         $data = $request->validate([
             'note' => ['required', 'string'],
-            'visibility' => ['required', 'string', Rule::in(['private', 'leadership', 'public'])],
+            'visibility' => ['required', 'string', Rule::in(['private', 'public'])],
         ]);
 
         PastoralCaseNote::query()->create([

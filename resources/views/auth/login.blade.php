@@ -312,7 +312,7 @@
         }
 
         .login-bg-wordmark-oasis {
-            display: inline-block;
+            display: inline-bloc
             padding: 0 0.08em;
             margin: 0 0.04em;
             background: linear-gradient(135deg, rgba(255, 248, 225, 0.95) 0%, rgba(255, 212, 120, 0.96) 44%, rgba(160, 233, 206, 0.92) 100%);

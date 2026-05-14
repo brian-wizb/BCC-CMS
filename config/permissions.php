@@ -7,7 +7,6 @@ return [
         'expenditures.update',
         'expenditures.delete',
         'dashboard.read',
-        'dashboard.admin_kpis',
         'dashboard.finance_kpis',
         'dashboard.membership_kpis',
         'members.read',
@@ -111,7 +110,6 @@ return [
         'communications.update',
         'communications.delete',
         'communications.send',
-        'scorecards.read',
         'users.read',
         'users.create',
         'users.update',
@@ -134,10 +132,8 @@ return [
             'permissions' => [
                 // Core
                 'dashboard.read',
-                'dashboard.admin_kpis',
                 'dashboard.finance_kpis',
                 'dashboard.membership_kpis',
-                'scorecards.read',
                 'reports.read',
                 'reports.financial.read',
                 'reports.membership.read',
@@ -262,7 +258,6 @@ return [
                 // Core
                 'dashboard.read',
                 'dashboard.membership_kpis',
-                'scorecards.read',
                 'reports.read',
                 'reports.membership.read',
                 'reports.export',
@@ -436,11 +431,6 @@ return [
             'permission' => 'pastoral_care.read',
         ],
         [
-            'label' => 'Prayer Requests',
-            'route' => 'prayer-requests.index',
-            'permission' => 'prayer_requests.read',
-        ],
-        [
             'label' => 'Alerts',
             'route' => 'alerts.index',
             'permission' => 'alerts.read',
@@ -461,19 +451,9 @@ return [
             'permission' => 'volunteers.read',
         ],
         [
-            'label' => 'Scorecards',
-            'route' => 'scorecards.index',
-            'permission' => 'scorecards.read',
-        ],
-        [
             'label' => 'Reports',
             'route' => 'reports.index',
             'permission' => 'reports.read',
-        ],
-        [
-            'label' => 'Executive',
-            'route' => 'dashboard.executive',
-            'permission' => 'dashboard.admin_kpis',
         ],
         // --- Phase 1: Core Finance Modules ---
         [

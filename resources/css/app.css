@@ -2727,6 +2727,41 @@
         color: white;
     }
 
+    .sidebar-hover-tooltip {
+        position: fixed;
+        z-index: 4000;
+        transform: translateY(-50%) translateX(-8px) scale(0.98);
+        transform-origin: left center;
+        opacity: 0;
+        pointer-events: none;
+        padding: 0.5rem 0.78rem;
+        border-radius: 0.72rem;
+        border: 1px solid color-mix(in srgb, var(--glass-stroke-strong) 74%, transparent);
+        background:
+            linear-gradient(130deg, color-mix(in srgb, var(--glass-surface-strong) 90%, white 10%), color-mix(in srgb, var(--glass-surface) 96%, transparent)),
+            linear-gradient(180deg, color-mix(in srgb, var(--color-brand-500) 24%, transparent), transparent 52%);
+        color: var(--nav-hover-text);
+        font-size: 0.76rem;
+        line-height: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.015em;
+        white-space: nowrap;
+        box-shadow:
+            inset 0 1px 0 color-mix(in srgb, var(--glass-highlight) 70%, transparent),
+            0 12px 24px rgba(3, 10, 28, 0.28),
+            0 0 0 1px color-mix(in srgb, var(--color-brand-500) 16%, transparent);
+        backdrop-filter: blur(12px) saturate(135%);
+        -webkit-backdrop-filter: blur(12px) saturate(135%);
+        transition:
+            opacity 170ms ease,
+            transform 210ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .sidebar-hover-tooltip[data-visible='true'] {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0) scale(1);
+    }
+
     .app-topbar {
         padding: 1rem 1.15rem;
     }
@@ -3082,6 +3117,10 @@
             grid-template-columns: 112px minmax(0, 1fr);
         }
 
+        [data-sidebar-collapsed='true'] .app-sidebar {
+            overflow: visible;
+        }
+
         [data-sidebar-collapsed='true'] .sidebar-brand-copy,
         [data-sidebar-collapsed='true'] .sidebar-role-card,
         [data-sidebar-collapsed='true'] .sidebar-section-copy,
@@ -3129,11 +3168,17 @@
 
         [data-sidebar-collapsed='true'] .sidebar-nav-list {
             padding: 0.2rem 0 0.55rem;
+            overflow: visible;
         }
 
         [data-sidebar-collapsed='true'] .nav-link {
             justify-content: center;
             padding: 0.52rem;
+            overflow: visible;
+        }
+
+        [data-sidebar-collapsed='true'] .nav-link[data-tooltip]::before {
+            content: none;
         }
 
         [data-sidebar-collapsed='true'] .sidebar-collapse-btn svg {

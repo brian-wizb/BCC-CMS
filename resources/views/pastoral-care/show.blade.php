@@ -1,9 +1,12 @@
-<x-layouts.app title="Pastoral Case Details">
+<x-layouts.app title="Care Request Details">
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <article class="surface-card p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h3 class="text-2xl font-semibold text-[var(--color-ink-950)]">{{ $case->case_type }}</h3>
-                <x-ui.status-badge :status="$case->status" />
+                <div class="flex flex-wrap items-center gap-3">
+                    <h3 class="text-2xl font-semibold text-[var(--color-ink-950)]">{{ str_replace('_', ' ', ucfirst($case->case_type)) }}</h3>
+                    <x-ui.status-badge :status="$case->status" />
+                </div>
+                <a href="{{ route('pastoral-care.index') }}" class="btn-secondary">Back to list</a>
             </div>
             <p class="mt-3 text-sm text-slate-600">{{ $case->summary ?: 'No summary available.' }}</p>
 
@@ -11,10 +14,10 @@
                 @csrf
                 @method('PUT')
                 <select name="priority" class="form-input" required>@foreach(['low','medium','high'] as $p)<option value="{{ $p }}" @selected($case->priority === $p)>{{ ucfirst($p) }}</option>@endforeach</select>
-                <select name="status" class="form-input" required>@foreach(['open','in_progress','closed'] as $s)<option value="{{ $s }}" @selected($case->status === $s)>{{ str_replace('_',' ',ucfirst($s)) }}</option>@endforeach</select>
+                <select name="status" class="form-input" required>@foreach(['open','in_progress','answered','closed'] as $s)<option value="{{ $s }}" @selected($case->status === $s)>{{ str_replace('_',' ',ucfirst($s)) }}</option>@endforeach</select>
                 <select name="assigned_to" class="form-input"><option value="">Unassigned</option>@foreach($leaders as $leader)<option value="{{ $leader->id }}" @selected((string)$case->assigned_to === (string)$leader->id)>{{ $leader->full_name }}{{ $leader->role ? ' - '.$leader->role : '' }}</option>@endforeach</select>
                 <input name="summary" class="form-input" value="{{ $case->summary }}">
-                <button type="submit" class="btn-secondary md:col-span-2">Update case</button>
+                <button type="submit" class="btn-secondary md:col-span-2">Update request</button>
             </form>
 
             <div class="mt-8 space-y-2">
@@ -35,20 +38,19 @@
         <aside class="surface-card p-6 space-y-4">
             <form method="POST" action="{{ route('pastoral-care.notes.store', $case) }}">
                 @csrf
-                <label class="form-label">New case note</label>
+                <label class="form-label">New request note</label>
                 <textarea name="note" rows="4" class="form-input" required></textarea>
                 <select name="visibility" class="form-input mt-3" required>
                     <option value="private">Private</option>
-                    <option value="leadership">Leadership</option>
                     <option value="public">Public</option>
                 </select>
                 <button class="btn-primary mt-3 w-full" type="submit">Add note</button>
             </form>
 
-            <form method="POST" action="{{ route('pastoral-care.destroy', $case) }}" data-confirm="Delete this pastoral case?">
+            <form method="POST" action="{{ route('pastoral-care.destroy', $case) }}" data-confirm="Delete this care request?">
                 @csrf
                 @method('DELETE')
-                <button class="btn-secondary w-full text-red-600" type="submit">Delete case</button>
+                <button class="btn-secondary w-full text-red-600" type="submit">Delete request</button>
             </form>
         </aside>
     </section>

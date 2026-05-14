@@ -503,7 +503,7 @@ class ReportController extends Controller
 
         $total    = (clone $base)->count();
         $open     = (clone $base)->where('status', 'open')->count();
-        $closed   = (clone $base)->where('status', 'closed')->count();
+        $closed   = (clone $base)->whereIn('status', ['closed', 'answered'])->count();
         $inProgress = (clone $base)->where('status', 'in_progress')->count();
 
         $byPriority = (clone $base)->select('priority', DB::raw('count(*) as total'))->groupBy('priority')->pluck('total', 'priority');
@@ -514,7 +514,7 @@ class ReportController extends Controller
             ->select(
                 'leaders.full_name',
                 DB::raw('count(*) as total'),
-                DB::raw("SUM(CASE WHEN pastoral_cases.status = 'closed' THEN 1 ELSE 0 END) as resolved_count")
+                DB::raw("SUM(CASE WHEN pastoral_cases.status IN ('closed', 'answered') THEN 1 ELSE 0 END) as resolved_count")
             )
             ->groupBy('leaders.full_name')->orderByDesc('total')->get();
 
@@ -527,7 +527,7 @@ class ReportController extends Controller
             ->groupBy('month')->orderBy('month')->get();
 
         $recentOpen = PastoralCase::query()->with(['member:id,full_name', 'assignee:id,full_name'])
-            ->where('status', '!=', 'closed')
+            ->whereNotIn('status', ['closed', 'answered'])
             ->when($dateFrom, fn ($q) => $q->where('opened_at', '>=', $dateFrom))
             ->when($dateTo,   fn ($q) => $q->where('opened_at', '<=', $dateTo . ' 23:59:59'))
             ->orderByDesc('opened_at')->limit(20)->get();

@@ -7,16 +7,13 @@ use App\Http\Controllers\CommunicationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EventController;
-use App\Http\Controllers\ExecutiveDashboardController;
 use App\Http\Controllers\FamilyController;
 use App\Http\Controllers\FollowUpController;
 use App\Http\Controllers\LeaderController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberTimelineController;
 use App\Http\Controllers\PastoralCareController;
-use App\Http\Controllers\PrayerRequestController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\ScorecardController;
 use App\Http\Controllers\VisitorController;
 use App\Http\Controllers\VolunteerController;
 use App\Http\Controllers\ZoneController;
@@ -48,9 +45,6 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/dashboard', DashboardController::class)
         ->middleware('permission:dashboard.read')
         ->name('dashboard.index');
-    Route::get('/dashboard/executive', ExecutiveDashboardController::class)
-        ->middleware('permission:dashboard.admin_kpis')
-        ->name('dashboard.executive');
 
     Route::get('/users', [UserManagementController::class, 'index'])
         ->middleware('permission:users.read')
@@ -323,20 +317,20 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->middleware('permission:pastoral_care.notes.create')
         ->name('pastoral-care.notes.store');
 
-    Route::get('/prayer-requests', [PrayerRequestController::class, 'index'])
-        ->middleware('permission:prayer_requests.read')
+    Route::get('/prayer-requests', fn () => redirect()->route('pastoral-care.index', ['case_type' => 'prayer_support']))
+        ->middleware('permission:pastoral_care.read')
         ->name('prayer-requests.index');
-    Route::post('/prayer-requests', [PrayerRequestController::class, 'store'])
-        ->middleware('permission:prayer_requests.create')
+    Route::post('/prayer-requests', fn () => redirect()->route('pastoral-care.create')->with('status', 'Prayer requests are now handled inside Care Requests.'))
+        ->middleware('permission:pastoral_care.create')
         ->name('prayer-requests.store');
-    Route::get('/prayer-requests/{prayer_request}', [PrayerRequestController::class, 'show'])
-        ->middleware('permission:prayer_requests.read')
+    Route::get('/prayer-requests/{prayer_request}', fn () => redirect()->route('pastoral-care.index', ['case_type' => 'prayer_support']))
+        ->middleware('permission:pastoral_care.read')
         ->name('prayer-requests.show');
-    Route::put('/prayer-requests/{prayer_request}', [PrayerRequestController::class, 'update'])
-        ->middleware('permission:prayer_requests.update')
+    Route::put('/prayer-requests/{prayer_request}', fn () => redirect()->route('pastoral-care.index', ['case_type' => 'prayer_support'])->with('status', 'Update this record from Care Requests.'))
+        ->middleware('permission:pastoral_care.update')
         ->name('prayer-requests.update');
-    Route::delete('/prayer-requests/{prayer_request}', [PrayerRequestController::class, 'destroy'])
-        ->middleware('permission:prayer_requests.delete')
+    Route::delete('/prayer-requests/{prayer_request}', fn () => redirect()->route('pastoral-care.index', ['case_type' => 'prayer_support'])->with('status', 'Delete this record from Care Requests.'))
+        ->middleware('permission:pastoral_care.delete')
         ->name('prayer-requests.destroy');
 
     Route::get('/alerts', [AlertController::class, 'index'])
@@ -414,16 +408,6 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::delete('/volunteers/assignments/{assignment}', [VolunteerController::class, 'destroy'])
         ->middleware('permission:volunteers.delete')
         ->name('volunteers.assignments.destroy');
-
-    Route::get('/scorecards', [ScorecardController::class, 'index'])
-        ->middleware('permission:scorecards.read')
-        ->name('scorecards.index');
-    Route::get('/scorecards/zones', [ScorecardController::class, 'zones'])
-        ->middleware('permission:scorecards.read')
-        ->name('scorecards.zones');
-    Route::get('/scorecards/departments', [ScorecardController::class, 'departments'])
-        ->middleware('permission:scorecards.read')
-        ->name('scorecards.departments');
 
     Route::get('/reports', [ReportController::class, 'index'])
         ->middleware('permission:reports.read')

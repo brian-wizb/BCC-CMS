@@ -57,9 +57,8 @@ class PhaseFourLeadershipTest extends TestCase
             'status' => 'assigned',
         ])->assertRedirect();
 
-        $this->actingAs($admin)->get(route('scorecards.zones'))->assertOk();
-        $this->actingAs($admin)->get(route('scorecards.departments'))->assertOk();
-        $this->actingAs($admin)->get(route('dashboard.executive'))->assertOk();
+        $this->actingAs($admin)->get(route('reports.zones'))->assertOk();
+        $this->actingAs($admin)->get(route('reports.departments'))->assertOk();
 
         $this->assertDatabaseHas('communications', ['subject' => 'Phase 4', 'status' => 'sent']);
         $this->assertDatabaseHas('communication_deliveries', ['recipient_type' => 'member', 'recipient_id' => $member->id]);
@@ -67,13 +66,6 @@ class PhaseFourLeadershipTest extends TestCase
         $this->assertDatabaseHas('events', ['title' => 'Leadership Gathering']);
         $this->assertDatabaseHas('event_registrations', ['event_id' => $event->id, 'member_id' => $member->id]);
         $this->assertDatabaseHas('volunteer_assignments', ['member_id' => $member->id, 'event_id' => $event->id]);
-    }
-
-    public function test_member_admin_cannot_open_executive_dashboard(): void
-    {
-        $memberAdmin = $this->actingAsRole('member_admin');
-
-        $this->actingAs($memberAdmin)->get(route('dashboard.executive'))->assertForbidden();
     }
 
     public function test_system_admin_can_update_and_delete_phase_four_records(): void

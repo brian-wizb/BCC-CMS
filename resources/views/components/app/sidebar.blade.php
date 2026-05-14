@@ -36,9 +36,7 @@
 
     $moduleIconMap = [
         'Dashboard' => 'home',
-        'Executive' => 'chart',
         'Reports' => 'folder',
-        'Scorecards' => 'spark',
         'Users' => 'users',
         'Members' => 'users',
         'Families' => 'home',
@@ -49,7 +47,6 @@
         'Leaders' => 'shield',
         'Attendance' => 'check',
         'Pastoral Care' => 'heart',
-        'Prayer Requests' => 'heart',
         'Alerts' => 'bell',
         'Events' => 'calendar',
         'Volunteers' => 'users',
@@ -79,9 +76,9 @@
     };
 
     $sectionMap = [
-        'Core' => ['Dashboard', 'Executive', 'Reports', 'Scorecards'],
+        'Core' => ['Dashboard', 'Reports'],
         'People' => ['Users', 'Members', 'Families', 'Departments', 'Zones', 'Visitors', 'Follow-Up', 'Leaders'],
-        'Ministry' => ['Attendance', 'Pastoral Care', 'Prayer Requests', 'Alerts', 'Events', 'Volunteers', 'Communications'],
+        'Ministry' => ['Attendance', 'Pastoral Care', 'Alerts', 'Events', 'Volunteers', 'Communications'],
         'Finance' => ['Payroll', 'Payroll Categories', 'Expenditures', 'Department Income', 'Department Expenses', 'Income Records', 'Income Types', 'Donations', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
     ];
 
@@ -168,7 +165,8 @@
                                 @endphp
                                 <a
                                     href="{{ route($item['route']) }}"
-                                    title="{{ $item['label'] }}"
+                                    aria-label="{{ $item['label'] }}"
+                                    data-tooltip="{{ $item['label'] }}"
                                     data-sidebar-close
                                     style="--stagger-index: {{ ($loop->parent->index * 10) + $loop->index }};"
                                     @class([

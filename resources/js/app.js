@@ -274,7 +274,118 @@ function setSectionExpanded(section, expanded, state, persist = true) {
     }
 }
 
+function initializeSidebarHoverTooltips() {
+    const links = document.querySelectorAll('.app-sidebar .nav-link[data-tooltip]');
+
+    if (!links.length) {
+        return;
+    }
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'sidebar-hover-tooltip';
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.dataset.visible = 'false';
+    document.body.appendChild(tooltip);
+
+    let activeLink = null;
+
+    const canShow = () => {
+        return desktopSidebarQuery.matches && document.documentElement.dataset.sidebarCollapsed === 'true';
+    };
+
+    const hideTooltip = () => {
+        tooltip.dataset.visible = 'false';
+        tooltip.textContent = '';
+        activeLink = null;
+    };
+
+    const positionTooltip = (link) => {
+        const rect = link.getBoundingClientRect();
+        const gap = 12;
+        const top = rect.top + (rect.height / 2);
+        const maxWidth = Math.min(300, window.innerWidth - rect.right - gap - 16);
+
+        tooltip.style.maxWidth = `${Math.max(160, maxWidth)}px`;
+        tooltip.style.left = `${rect.right + gap}px`;
+        tooltip.style.top = `${top}px`;
+    };
+
+    const showTooltip = (link) => {
+        if (!canShow()) {
+            hideTooltip();
+            return;
+        }
+
+        const text = link.getAttribute('data-tooltip');
+        if (!text) {
+            hideTooltip();
+            return;
+        }
+
+        activeLink = link;
+        tooltip.textContent = text;
+        positionTooltip(link);
+        tooltip.dataset.visible = 'true';
+    };
+
+    links.forEach((link) => {
+        link.addEventListener('mouseenter', () => showTooltip(link));
+        link.addEventListener('focus', () => showTooltip(link));
+        link.addEventListener('mouseleave', hideTooltip);
+        link.addEventListener('blur', hideTooltip);
+        link.addEventListener('click', hideTooltip);
+    });
+
+    document.querySelector('.sidebar-scroll')?.addEventListener('scroll', () => {
+        if (!activeLink) {
+            return;
+        }
+
+        if (!canShow()) {
+            hideTooltip();
+            return;
+        }
+
+        positionTooltip(activeLink);
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+        if (!activeLink) {
+            return;
+        }
+
+        if (!canShow()) {
+            hideTooltip();
+            return;
+        }
+
+        positionTooltip(activeLink);
+    });
+
+    window.addEventListener('scroll', () => {
+        if (!activeLink) {
+            return;
+        }
+
+        if (!canShow()) {
+            hideTooltip();
+            return;
+        }
+
+        positionTooltip(activeLink);
+    }, { passive: true });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            hideTooltip();
+        }
+    });
+}
+
 function initializeSidebar() {
+    const storedCollapsed = window.localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === 'true';
+    document.documentElement.dataset.sidebarCollapsed = storedCollapsed ? 'true' : 'false';
+
     const sectionState = getStoredSectionState();
 
     document.querySelectorAll('[data-nav-section]').forEach((section) => {
@@ -351,6 +462,8 @@ function initializeSidebar() {
             }, 80);
         });
     }
+
+    initializeSidebarHoverTooltips();
 }
 
 // ── Toast notification system ─────────────────────────────────────────────

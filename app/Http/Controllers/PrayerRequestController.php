@@ -69,7 +69,7 @@ class PrayerRequestController extends Controller
             'visitor_id' => ['nullable', 'integer', Rule::exists('visitors', 'id')],
             'request_type' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'request_text' => [$isUpdate ? 'sometimes' : 'required', 'string'],
-            'visibility' => ['required', 'string', Rule::in(['private', 'leadership', 'public'])],
+            'visibility' => ['required', 'string', Rule::in(['private', 'public'])],
             'status' => ['required', 'string', Rule::in(['open', 'in_progress', 'answered', 'closed'])],
             'assigned_to' => ['nullable', 'integer', Rule::exists('leaders', 'id')],
         ]);

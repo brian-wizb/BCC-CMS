@@ -16,7 +16,7 @@
                 @endforeach
             </select>
             <select name="visibility" class="form-input" required>
-                @foreach(['private','leadership','public'] as $visibility)
+                @foreach(['private','public'] as $visibility)
                     <option value="{{ $visibility }}" @selected($requestItem->visibility === $visibility)>{{ ucfirst($visibility) }}</option>
                 @endforeach
             </select>

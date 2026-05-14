@@ -10,7 +10,6 @@ use App\Models\Member;
 use App\Models\MemberTimelineEvent;
 use App\Models\FollowUpTask;
 use App\Models\PastoralCase;
-use App\Models\PrayerRequest;
 use App\Models\Visitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -100,13 +99,14 @@ class AlertController extends Controller
             }
         }
 
-        // prayer_request_stale: check whether request is still unresolved
+        // prayer_request_stale: check whether prayer-support care request is still unresolved
         $prayerAlerts = $alertsByType->get('prayer_request_stale', collect());
         if ($prayerAlerts->isNotEmpty()) {
             $prIds  = $prayerAlerts->pluck('reference_id')->map(fn ($id) => (int) $id);
-            $openPR = PrayerRequest::query()
+            $openPR = PastoralCase::query()
                 ->whereIn('id', $prIds)
-                ->whereIn('status', ['open', 'pending'])
+                ->where('case_type', 'prayer_support')
+                ->whereIn('status', ['open', 'in_progress'])
                 ->pluck('status', 'id');
 
             foreach ($prayerAlerts as $alert) {
@@ -114,8 +114,8 @@ class AlertController extends Controller
                 $active = $openPR->has($prid);
                 $conditionActive[$alert->id] = $active;
                 $conditionDetail[$alert->id] = $active
-                    ? 'Prayer request is still open/pending.'
-                    : 'Prayer request has been answered or closed — condition resolved.';
+                    ? 'Prayer support request is still open/in-progress.'
+                    : 'Prayer support request has been answered or closed — condition resolved.';
             }
         }
 
@@ -355,27 +355,28 @@ class AlertController extends Controller
                 }
             });
 
-        // 4. Stale prayer requests — open/pending and older than 30 days
-        PrayerRequest::query()
-            ->whereIn('status', ['open', 'pending'])
-            ->where('created_at', '<=', now()->subDays(30))
-            ->each(function (PrayerRequest $pr) use (&$created, $alertExists) {
+        // 4. Stale prayer support requests — open/in-progress and older than 30 days
+        PastoralCase::query()
+            ->where('case_type', 'prayer_support')
+            ->whereIn('status', ['open', 'in_progress'])
+            ->where('opened_at', '<=', now()->subDays(30))
+            ->each(function (PastoralCase $pr) use (&$created, $alertExists) {
                 if ($alertExists('prayer_request_stale', 'prayer_request', (string) $pr->id)) {
                     return;
                 }
                 Alert::create([
                     'alert_type'     => 'prayer_request_stale',
-                    'reference_type' => 'prayer_request',
+                    'reference_type' => 'pastoral_case',
                     'reference_id'   => (string) $pr->id,
-                    'title'          => 'Stale prayer request #' . $pr->id,
-                    'message'        => 'A prayer request has had no response or status update in over 30 days.',
+                    'title'          => 'Stale prayer support request #' . $pr->id,
+                    'message'        => 'A prayer support request has had no response or status update in over 30 days.',
                     'severity'       => 'medium',
                     'status'         => 'open',
                     'due_at'         => now()->addDays(7),
                 ]);
                 $created++;
                 if ($pr->member_id) {
-                    $this->writeTimeline($pr->member_id, 'alert_created', 'Stale prayer request alert', 'Prayer request #' . $pr->id . ' has been open for over 30 days.');
+                    $this->writeTimeline($pr->member_id, 'alert_created', 'Stale prayer request alert', 'Prayer support request #' . $pr->id . ' has been open for over 30 days.');
                 }
             });
 
