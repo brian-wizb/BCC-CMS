@@ -55,6 +55,19 @@
             <input id="email" name="email" type="email" class="form-input" placeholder="leader@example.com"
                    value="{{ old('email', $leader->email) }}">
         </div>
+        <div>
+            <label class="form-label" for="user_id">
+                <i class="fas fa-user-circle mr-1 opacity-50 text-xs"></i> Linked system user
+            </label>
+            <select id="user_id" name="user_id" class="form-input">
+                <option value="">— No linked user —</option>
+                @foreach ($users as $user)
+                    <option value="{{ $user->id }}" @selected(old('user_id', $leader->user_id) == $user->id)>
+                        {{ $user->full_name }} @if($user->email) ({{ $user->email }}) @endif
+                    </option>
+                @endforeach
+            </select>
+        </div>
     </div>
 </div>
 

@@ -336,9 +336,6 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/alerts', [AlertController::class, 'index'])
         ->middleware('permission:alerts.read')
         ->name('alerts.index');
-    Route::post('/alerts/run', [AlertController::class, 'run'])
-        ->middleware('permission:alerts.run')
-        ->name('alerts.run');
     Route::put('/alerts/{alert}', [AlertController::class, 'update'])
         ->middleware('permission:alerts.update')
         ->name('alerts.update');
@@ -520,6 +517,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->middleware('permission:expenditures.read');
     Route::resource('department-income', App\Http\Controllers\DepartmentIncomeController::class);
     Route::resource('department-expenses', App\Http\Controllers\DepartmentExpenseController::class);
+    Route::get('income/export', [App\Http\Controllers\IncomeController::class, 'export'])
+        ->name('income.export');
     Route::resource('income', App\Http\Controllers\IncomeController::class);
     // Income Types — full CRUD inline
     Route::resource('income-types', App\Http\Controllers\IncomeTypeController::class)

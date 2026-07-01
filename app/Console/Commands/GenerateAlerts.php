@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\AlertController;
+use App\Services\AlertService;
 use Illuminate\Console\Command;
 
 class GenerateAlerts extends Command
@@ -10,11 +10,11 @@ class GenerateAlerts extends Command
     protected $signature   = 'alerts:generate';
     protected $description = 'Auto-generate alerts for inactive members, overdue pastoral cases, and stale prayer requests';
 
-    public function handle(AlertController $alertController): int
+    public function handle(AlertService $alertService): int
     {
-        $this->info('Running alert generator…');
+        $this->info('Generating alerts…');
 
-        $created = $alertController->generateAlerts();
+        $created = $alertService->generateAlerts();
 
         $this->info("Done. Created {$created} new alert(s).");
 

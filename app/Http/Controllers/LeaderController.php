@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Leader;
 use App\Models\Member;
+use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,6 +50,7 @@ class LeaderController extends Controller
         return view('leaders.create', [
             'leader'  => new Leader(['status' => 'active']),
             'members' => Member::orderBy('full_name')->get(['id', 'full_name']),
+            'users'   => User::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'email']),
         ]);
     }
 
@@ -80,6 +82,7 @@ class LeaderController extends Controller
         return view('leaders.edit', [
             'leader'  => $leader,
             'members' => Member::orderBy('full_name')->get(['id', 'full_name']),
+            'users'   => User::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'email']),
         ]);
     }
 
@@ -121,6 +124,7 @@ class LeaderController extends Controller
     {
         return $request->validate([
             'member_id' => ['nullable', 'integer', 'exists:members,id'],
+            'user_id'   => ['nullable', 'integer', 'exists:users,id', Rule::unique('leaders', 'user_id')->ignore($request->route('leader'))],
             'full_name' => ['required', 'string', 'max:255'],
             'phone'     => ['nullable', 'string', 'max:50'],
             'email'     => ['nullable', 'email', 'max:255'],

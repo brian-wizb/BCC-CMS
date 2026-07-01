@@ -10,9 +10,17 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Income Records</h3>
                 </div>
             </div>
-            <a href="{{ route('income.create') }}" class="btn-primary flex items-center gap-1.5">
-                <i class="fas fa-plus text-xs"></i> Add Income
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('income.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
+                <a href="{{ route('income.create') }}" class="btn-primary flex items-center gap-1.5">
+                    <i class="fas fa-plus text-xs"></i> Add Income
+                </a>
+            </div>
         </div>
 
         {{-- Search --}}
@@ -21,7 +29,7 @@
                 <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
                     <i class="fas fa-search text-xs"></i>
                 </span>
-                <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Search by type or contributor...">
+                <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Search by type, contributor, or member...">
             </div>
             <button type="submit" class="btn-secondary flex items-center gap-1.5">Search</button>
             @if(!empty($search))
@@ -39,6 +47,8 @@
                 <span>entries</span>
             </div>
         </form>
+
+        <x-ui.date-range-filters :action="route('income.index')" :date-from="$dateFrom" :date-to="$dateTo" />
 
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">

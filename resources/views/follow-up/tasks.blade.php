@@ -1,5 +1,10 @@
 <x-layouts.app title="Follow-Up Tasks">
     <section class="space-y-6">
+        @php
+            $canCreate = auth()->user()->hasPermission('follow_up.create');
+            $canUpdate = auth()->user()->hasPermission('follow_up.update');
+            $canDelete = auth()->user()->hasPermission('follow_up.delete');
+        @endphp
 
         {{-- ── Page header ───────────────────────────────────────────── --}}
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -16,14 +21,15 @@
             </a>
         </div>
 
-        {{-- ── Create task form ───────────────────────────────────────── --}}
-        <article class="surface-card p-6">
-            <h4 class="mb-5 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">
-                <i class="fa-solid fa-plus-circle w-4 text-center"></i> New Follow-up Task
-            </h4>
-            <form class="grid gap-3 md:grid-cols-2 xl:grid-cols-3" method="POST"
-                  action="{{ route('follow-up.tasks.store') }}" id="task-create-form">
-                @csrf
+        @if ($canCreate)
+            {{-- ── Create task form ───────────────────────────────────────── --}}
+            <article class="surface-card p-6">
+                <h4 class="mb-5 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">
+                    <i class="fa-solid fa-plus-circle w-4 text-center"></i> New Follow-up Task
+                </h4>
+                <form class="grid gap-3 md:grid-cols-2 xl:grid-cols-3" method="POST"
+                      action="{{ route('follow-up.tasks.store') }}" id="task-create-form">
+                    @csrf
 
                 {{-- Person type selector --}}
                 <div>
@@ -122,6 +128,7 @@
                 </div>
             </form>
         </article>
+        @endif
 
         {{-- ── Filter bar ─────────────────────────────────────────────── --}}
         <form method="GET" action="{{ route('follow-up.tasks') }}"
@@ -204,6 +211,7 @@
                             <div class="flex items-center gap-2">
                                 <x-ui.status-badge :status="$task->status" />
                                 {{-- Delete --}}
+                                @if ($canDelete)
                                 <form method="POST" action="{{ route('follow-up.tasks.destroy', $task) }}"
                                       data-confirm="Delete this task?">
                                     @csrf
@@ -214,6 +222,7 @@
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </form>
+                            @endif
                             </div>
                         </div>
 

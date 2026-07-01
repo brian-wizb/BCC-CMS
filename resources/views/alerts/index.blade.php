@@ -9,14 +9,9 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Leadership Tools</p>
                 <h1 class="text-2xl font-bold text-[var(--color-ink-950)]">Alerts</h1>
+                <p class="text-xs text-slate-400 mt-1">Alerts are auto-generated as activities occur.</p>
             </div>
         </div>
-        <form method="POST" action="{{ route('alerts.run') }}">
-            @csrf
-            <button type="submit" class="btn-primary flex items-center gap-2">
-                <i class="fa-solid fa-rotate"></i> Run Alert Generator
-            </button>
-        </form>
     </div>
 
     {{-- ── Stat Cards ────────────────────────────────────────────────────────── --}}

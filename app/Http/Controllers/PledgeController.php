@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pledge;
+use App\Services\AlertService;
 use Illuminate\Http\Request;
 
 class PledgeController extends Controller
@@ -51,6 +52,7 @@ class PledgeController extends Controller
             'notes'         => 'nullable|string',
         ]);
         \App\Models\Pledge::create($data);
+        app(AlertService::class)->generateAlerts();
         return redirect()->route('pledges.index')->with('success', 'Pledge recorded.');
     }
 
@@ -87,6 +89,7 @@ class PledgeController extends Controller
             'notes'         => 'nullable|string',
         ]);
         $pledge->update($data);
+        app(AlertService::class)->generateAlerts();
         return redirect()->route('pledges.index')->with('success', 'Pledge updated.');
     }
 
@@ -96,6 +99,7 @@ class PledgeController extends Controller
     public function destroy(Pledge $pledge)
     {
         $pledge->delete();
+        app(AlertService::class)->generateAlerts();
         return redirect()->route('pledges.index')->with('success', 'Pledge deleted.');
     }
 }

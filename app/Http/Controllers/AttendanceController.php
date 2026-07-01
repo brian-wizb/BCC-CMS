@@ -12,6 +12,7 @@ use App\Models\Service;
 use App\Models\Visitor;
 use App\Models\Zone;
 use App\Services\AuditLogger;
+use App\Services\AlertService;
 use App\Services\WhatsAppService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,10 @@ use Illuminate\View\View;
 
 class AttendanceController extends Controller
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly AlertService $alertService,
+    ) {}
 
     // ── Dashboard ─────────────────────────────────────────────────────────
 
@@ -264,6 +268,9 @@ class AttendanceController extends Controller
             }
         });
 
+        // Trigger alert generation to update inactive/lapsed member alerts
+        $this->alertService->generateAlerts();
+
         return redirect()->route('attendance.bulk', ['service_id' => $serviceId])
             ->with('status', "Attendance saved for {$upserted} members.");
     }
@@ -348,6 +355,9 @@ class AttendanceController extends Controller
             }
         }
 
+        // Trigger alert generation to update inactive/lapsed member alerts
+        $this->alertService->generateAlerts();
+
         return back()->with('status', 'Attendance recorded successfully.');
     }
 
@@ -372,6 +382,9 @@ class AttendanceController extends Controller
         ]);
 
         $record->update($data);
+
+        // Trigger alert generation to update inactive/lapsed member alerts
+        $this->alertService->generateAlerts();
 
         return redirect()->route('attendance.record', ['service_id' => $record->service_id])
             ->with('status', 'Record updated.');

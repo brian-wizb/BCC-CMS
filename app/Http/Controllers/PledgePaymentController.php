@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PledgePayment;
+use App\Services\AlertService;
 use Illuminate\Http\Request;
 
 class PledgePaymentController extends Controller
@@ -58,6 +59,7 @@ class PledgePaymentController extends Controller
             $data['attachment'] = '/storage/' . $path;
         }
         \App\Models\PledgePayment::create($data);
+        app(AlertService::class)->generateAlerts();
         return redirect()->route('pledge-payments.index')->with('success', 'Pledge payment recorded.');
     }
 
@@ -104,6 +106,7 @@ class PledgePaymentController extends Controller
             unset($data['attachment']);
         }
         $pledgePayment->update($data);
+        app(AlertService::class)->generateAlerts();
         return redirect()->route('pledge-payments.index')->with('success', 'Pledge payment updated.');
     }
 
@@ -113,6 +116,7 @@ class PledgePaymentController extends Controller
     public function destroy(PledgePayment $pledgePayment)
     {
         $pledgePayment->delete();
+        app(AlertService::class)->generateAlerts();
         return redirect()->route('pledge-payments.index')->with('success', 'Pledge payment deleted.');
     }
 }

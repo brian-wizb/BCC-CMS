@@ -23,6 +23,7 @@ class Leader extends Model
 
     protected $fillable = [
         'member_id',
+        'user_id',
         'full_name',
         'phone',
         'email',
@@ -35,6 +36,11 @@ class Leader extends Model
     public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function followUpTasks(): HasMany

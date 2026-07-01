@@ -12,6 +12,7 @@ use App\Models\Member;
 use App\Models\Payroll;
 use App\Models\Pledge;
 use App\Models\PledgePayment;
+use App\Models\FollowUpTask;
 use App\Models\User;
 use App\Models\Zone;
 use Carbon\Carbon;
@@ -140,6 +141,35 @@ class DashboardController extends Controller
 
         $openAlertsCount    = Alert::query()->where('status', 'open')->count();
         $criticalAlertsCount = Alert::query()->where('severity', 'critical')->where('status', '!=', 'resolved')->count();
+
+        if ($user?->hasRole('counsellor')) {
+            $leader = $user->leader;
+            $taskQuery = FollowUpTask::query()->with('leader')->when($leader, fn ($q) => $q->where('leader_id', $leader->id), fn ($q) => $q->whereRaw('0 = 1'));
+
+            $assignedTaskCount = $taskQuery->count();
+            $pendingTaskCount = (clone $taskQuery)->where('status', 'pending')->count();
+            $inProgressTaskCount = (clone $taskQuery)->where('status', 'in_progress')->count();
+            $completedTaskCount = (clone $taskQuery)->where('status', 'completed')->count();
+            $overdueTaskCount = (clone $taskQuery)->whereNotIn('status', ['completed'])->where('due_date', '<', Carbon::today())->count();
+
+            $recentTasks = (clone $taskQuery)
+                ->orderByRaw("CASE WHEN status = 'pending' THEN 0 WHEN status = 'in_progress' THEN 1 ELSE 2 END")
+                ->orderBy('due_date', 'asc')
+                ->limit(8)
+                ->get();
+
+            return view('dashboard.counsellor', [
+                'user' => $user,
+                'primaryRole' => $user->primaryRole(),
+                'leader' => $leader,
+                'assignedTaskCount' => $assignedTaskCount,
+                'pendingTaskCount' => $pendingTaskCount,
+                'inProgressTaskCount' => $inProgressTaskCount,
+                'completedTaskCount' => $completedTaskCount,
+                'overdueTaskCount' => $overdueTaskCount,
+                'recentTasks' => $recentTasks,
+            ]);
+        }
 
         return view('dashboard.index', [
             'user' => $user,

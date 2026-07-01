@@ -74,6 +74,7 @@ return [
         'follow_up.create',
         'follow_up.update',
         'follow_up.delete',
+        'follow_up.assigned_only',
         'attendance.read',
         'attendance.create',
         'attendance.update',
@@ -350,6 +351,7 @@ return [
                 'follow_up.read',
                 'follow_up.create',
                 'follow_up.update',
+                'follow_up.assigned_only',
                 // Ministry — scoped to their group
                 'attendance.read',
                 'attendance.create',
@@ -361,6 +363,16 @@ return [
                 'prayer_requests.update',
                 'events.read',
                 'alerts.read',
+            ],
+        ],
+        'counsellor' => [
+            'name' => 'Counsellor',
+            'description' => 'Follow-up counsellor — view and complete assigned follow-up tasks only.',
+            'permissions' => [
+                'dashboard.read',
+                'follow_up.read',
+                'follow_up.update',
+                'follow_up.assigned_only',
             ],
         ],
         'usher' => [

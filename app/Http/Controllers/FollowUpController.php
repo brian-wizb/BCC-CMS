@@ -41,11 +41,20 @@ class FollowUpController extends Controller
         $priority = trim((string) $request->string('priority'));
         $type     = trim((string) $request->string('type'));
 
+        $user = $request->user();
+        $leader = $user?->leader;
+
         $tasks = FollowUpTask::query()
             ->with(['leader', 'history'])
             ->when($status !== '',   fn ($q) => $q->where('status',    $status))
             ->when($priority !== '', fn ($q) => $q->where('priority',  $priority))
             ->when($type !== '',     fn ($q) => $q->where('task_type', $type))
+            ->when(
+                $user->hasRole('counsellor'),
+                fn ($q) => $leader
+                    ? $q->where('leader_id', $leader->id)
+                    : $q->whereRaw('0 = 1')
+            )
             ->latest('id')
             ->paginate(15)
             ->withQueryString();
@@ -75,6 +84,11 @@ class FollowUpController extends Controller
             'notes'       => ['nullable', 'string'],
         ]);
 
+        if (! empty($data['leader_id'])) {
+            $leader = Leader::query()->find($data['leader_id']);
+            $data['assigned_to'] = $leader?->user_id;
+        }
+
         if ($data['status'] === 'completed') {
             $data['completed_at'] = now();
         }
@@ -93,6 +107,13 @@ class FollowUpController extends Controller
             'notes'     => ['nullable', 'string'],
             'due_date'  => ['nullable', 'date'],
         ]);
+
+        if (! empty($data['leader_id'])) {
+            $leader = Leader::query()->find($data['leader_id']);
+            $data['assigned_to'] = $leader?->user_id;
+        } else {
+            $data['assigned_to'] = null;
+        }
 
         $data['completed_at'] = $data['status'] === 'completed' ? now() : null;
         $task->update($data);
