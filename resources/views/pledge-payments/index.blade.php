@@ -11,9 +11,17 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Pledge Payments</h3>
                 </div>
             </div>
-            <a href="{{ route('pledge-payments.create') }}" class="btn-primary flex items-center gap-1.5">
-                <i class="fas fa-plus text-xs"></i> New Payment
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('pledge-payments.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
+                <a href="{{ route('pledge-payments.create') }}" class="btn-primary flex items-center gap-1.5">
+                    <i class="fas fa-plus text-xs"></i> New Payment
+                </a>
+            </div>
         </div>
 
         {{-- Search --}}
@@ -39,21 +47,23 @@
             </div>
         </form>
 
+        <x-ui.date-range-filters :action="route('pledge-payments.index')" :date-from="$dateFrom" :date-to="$dateTo" />
+
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-[var(--color-surface-200)] text-sm">
                     <thead class="bg-[var(--color-surface-50)]">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">#</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Pledger</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Campaign</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Phone</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Invoice #</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Amount (Tsh.)</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Method</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Attachment</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Actions</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-user mr-1.5 opacity-60"></i>Pledger</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-bullhorn mr-1.5 opacity-60"></i>Campaign</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-phone mr-1.5 opacity-60"></i>Phone</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-file-invoice mr-1.5 opacity-60"></i>Invoice #</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-coins mr-1.5 opacity-60"></i>Amount (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-credit-card mr-1.5 opacity-60"></i>Method</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-calendar-alt mr-1.5 opacity-60"></i>Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-paperclip mr-1.5 opacity-60"></i>Attachment</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
@@ -86,8 +96,8 @@
                                     <span class="text-slate-400">—</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-1">
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex items-center justify-end gap-1">
                                     <a href="{{ route('pledge-payments.edit', $pp) }}" class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                                         <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
                                     </a>

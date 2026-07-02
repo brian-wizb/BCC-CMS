@@ -34,8 +34,7 @@
                 {{-- Person type selector --}}
                 <div>
                     <label class="form-label" for="person_type">Person type <span class="text-red-500">*</span></label>
-                    <select id="person_type" name="person_type" class="form-input" required
-                            onchange="switchPersonList(this.value)">
+                    <select id="person_type" name="person_type" class="form-input" required>
                         <option value="visitor">Visitor</option>
                         <option value="member">Member</option>
                         <option value="family">Family</option>
@@ -44,27 +43,9 @@
 
                 {{-- Dynamic person dropdown --}}
                 <div>
-                    <label class="form-label">Person <span class="text-red-500">*</span></label>
-
-                    <select id="person_id_visitor" name="person_id" class="form-input" required>
-                        <option value="">— select visitor —</option>
-                        @foreach ($visitors as $v)
-                            <option value="{{ $v->id }}">{{ $v->full_name }}</option>
-                        @endforeach
-                    </select>
-
-                    <select id="person_id_member" name="person_id" class="form-input hidden" disabled>
-                        <option value="">— select member —</option>
-                        @foreach ($members as $m)
-                            <option value="{{ $m->id }}">{{ $m->full_name }}</option>
-                        @endforeach
-                    </select>
-
-                    <select id="person_id_family" name="person_id" class="form-input hidden" disabled>
-                        <option value="">— select family —</option>
-                        @foreach ($families as $f)
-                            <option value="{{ $f->id }}">{{ $f->head_of_family }}</option>
-                        @endforeach
+                    <label class="form-label" for="person_id">Person <span class="text-red-500">*</span></label>
+                    <select id="person_id" name="person_id" class="form-input" required>
+                        <option value="">Loading people...</option>
                     </select>
                 </div>
 
@@ -299,23 +280,61 @@
         </article>
     </section>
 
-    {{-- JS: switch person dropdown based on person_type --}}
+    {{-- JS: fetch and update person dropdown based on person_type --}}
     <script>
-        function switchPersonList(type) {
-            ['visitor', 'member', 'family'].forEach(function (t) {
-                var el = document.getElementById('person_id_' + t);
-                if (t === type) {
-                    el.classList.remove('hidden');
-                    el.disabled = false;
-                    el.name = 'person_id';
-                } else {
-                    el.classList.add('hidden');
-                    el.disabled = true;
-                    el.name = '';
-                }
+        const personTypeSelect = document.getElementById('person_type');
+        const personSelect = document.getElementById('person_id');
+        const peopleEndpoint = '{{ route('follow-up.people') }}';
+
+        function personPlaceholder(type) {
+            return '— select ' + type + ' —';
+        }
+
+        function setPeopleOptions(type, people) {
+            personSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = personPlaceholder(type);
+            personSelect.appendChild(placeholder);
+
+            people.forEach(function (person) {
+                const option = document.createElement('option');
+                option.value = person.id;
+                option.textContent = person.name;
+                personSelect.appendChild(option);
             });
         }
-        // init on load
-        switchPersonList(document.getElementById('person_type').value);
+
+        async function loadPeopleByType(type) {
+            personSelect.disabled = true;
+            personSelect.innerHTML = '<option value="">Loading people...</option>';
+
+            try {
+                const response = await fetch(peopleEndpoint + '?person_type=' + encodeURIComponent(type), {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load people');
+                }
+
+                const payload = await response.json();
+                const people = Array.isArray(payload.data) ? payload.data : [];
+                setPeopleOptions(type, people);
+            } catch (error) {
+                personSelect.innerHTML = '<option value="">Unable to load people</option>';
+            } finally {
+                personSelect.disabled = false;
+            }
+        }
+
+        personTypeSelect.addEventListener('change', function () {
+            loadPeopleByType(personTypeSelect.value);
+        });
+
+        loadPeopleByType(personTypeSelect.value);
     </script>
 </x-layouts.app>

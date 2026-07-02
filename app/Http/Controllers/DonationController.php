@@ -13,24 +13,96 @@ use Illuminate\View\View;
 
 class DonationController extends Controller
 {
+    private function donationQuery(?string $search = null, ?string $dateFrom = null, ?string $dateTo = null)
+    {
+        $query = Donation::with('member');
+
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('donor_name', 'like', "%{$search}%")
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhere('tithe_code', 'like', "%{$search}%")
+                    ->orWhere('reference', 'like', "%{$search}%");
+            });
+        }
+
+        if (! empty($dateFrom)) {
+            $query->whereDate('donation_date', '>=', $dateFrom);
+        }
+
+        if (! empty($dateTo)) {
+            $query->whereDate('donation_date', '<=', $dateTo);
+        }
+
+        return $query;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request): View
     {
-        $search = $request->input('search');
-        $query  = Donation::with('member')->latest('donation_date');
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('donor_name',  'like', "%{$search}%")
-                  ->orWhere('type',       'like', "%{$search}%")
-                  ->orWhere('tithe_code', 'like', "%{$search}%")
-                  ->orWhere('reference',  'like', "%{$search}%");
-            });
-        }
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $query = $this->donationQuery($search, $dateFrom, $dateTo)->latest('donation_date');
+
         $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 25;
         $donations = $query->paginate($perPage)->withQueryString();
-        return view('donations.index', compact('donations', 'search', 'perPage'));
+
+        return view('donations.index', compact('donations', 'search', 'perPage', 'dateFrom', 'dateTo'));
+    }
+
+    public function export(Request $request)
+    {
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $records = $this->donationQuery($search, $dateFrom, $dateTo)
+            ->latest('donation_date')
+            ->get();
+
+        $filename = 'donations-report-' . now()->format('YmdHis') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        return response()->streamDownload(function () use ($records) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, [
+                'ID',
+                'Member',
+                'Tithe Code',
+                'Donation Type',
+                'Amount',
+                'Method',
+                'Reference',
+                'Date',
+                'Donor Email',
+                'Notes',
+            ]);
+
+            foreach ($records as $donation) {
+                fputcsv($file, [
+                    $donation->id,
+                    $donation->member?->full_name ?? $donation->donor_name ?? '—',
+                    $donation->tithe_code ?? '',
+                    $donation->type ?? '',
+                    $donation->amount,
+                    $donation->method ?? '',
+                    $donation->reference ?? '',
+                    $donation->donation_date ? \Carbon\Carbon::parse($donation->donation_date)->format('Y-m-d') : '',
+                    $donation->donor_email ?? '',
+                    $donation->notes ?? '',
+                ]);
+            }
+
+            fclose($file);
+        }, $filename, $headers);
     }
 
     /**

@@ -155,11 +155,19 @@
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
                         @foreach ($typeAlerts as $alert)
                             @php $isOverdue = $alert->due_at && $alert->due_at->isPast() && in_array($alert->status, ['open', 'acknowledged']); @endphp
+                            @php $canAssignFollowUp = in_array($alert->alert_type, ['inactive_member', 'pledge_due']); @endphp
+                            @php $linkedTask = $linkedFollowUpTasks[$alert->id] ?? null; @endphp
 
                             {{-- Data row --}}
                             <tr class="{{ $severityBorder[$alert->severity] ?? '' }} hover:bg-slate-50 transition-colors">
                                 <td class="px-5 py-4 max-w-xs">
                                     <p class="font-semibold text-[var(--color-ink-950)] leading-snug">{{ $alert->title }}</p>
+                                    @if($linkedTask)
+                                        <span class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                                            <i class="fa-solid fa-circle-check text-[9px]"></i>
+                                            Follow-up task #{{ $linkedTask->id }} assigned
+                                        </span>
+                                    @endif
                                     @if($alert->status === 'resolved')
                                         {{-- Resolved: title + status badge is enough. No stale message, no redundant badge. --}}
                                     @elseif(isset($conditionDetail[$alert->id]))
@@ -210,8 +218,9 @@
                                     <button type="button"
                                             onclick="toggleAlertEdit({{ $alert->id }})"
                                             id="btn-{{ $alert->id }}"
+                                            data-default-icon="{{ $canAssignFollowUp ? 'list-check' : 'pen-to-square' }}"
                                             class="btn-secondary inline-flex items-center gap-1.5 text-xs">
-                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                        <i class="fa-solid fa-list-check"></i> {{ $canAssignFollowUp ? 'Assign follow up task' : 'Edit' }}
                                     </button>
                                 </td>
                             </tr>
@@ -222,58 +231,129 @@
                                     <div class="rounded-xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
                                         <div class="mb-4 flex items-center justify-between">
                                             <p class="text-sm font-semibold text-[var(--color-ink-950)]">
-                                                <i class="fa-solid fa-pen-to-square mr-2 text-[var(--color-brand-600)]"></i>Edit Alert
+                                                <i class="fa-solid fa-{{ $canAssignFollowUp ? 'list-check' : 'pen-to-square' }} mr-2 text-[var(--color-brand-600)]"></i>{{ $canAssignFollowUp ? 'Assign follow up task' : 'Edit Alert' }}
                                             </p>
                                             <button type="button" onclick="toggleAlertEdit({{ $alert->id }})"
                                                     class="text-slate-400 hover:text-slate-600 transition-colors">
                                                 <i class="fa-solid fa-xmark text-base"></i>
                                             </button>
                                         </div>
-                                        <form method="POST" action="{{ route('alerts.update', $alert) }}"
-                                              class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                            @csrf
-                                            @method('PUT')
-                                            <div>
-                                                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Status</label>
-                                                <select name="status" class="form-input w-full" required>
-                                                    @foreach (['open', 'acknowledged', 'resolved'] as $opt)
-                                                        <option value="{{ $opt }}" @selected($alert->status === $opt)>{{ ucfirst($opt) }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Severity</label>
-                                                <select name="severity" class="form-input w-full" required>
-                                                    @foreach (['low', 'medium', 'high', 'critical'] as $opt)
-                                                        <option value="{{ $opt }}" @selected($alert->severity === $opt)>{{ ucfirst($opt) }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Assign to Leader</label>
-                                                <select name="assigned_to" class="form-input w-full">
-                                                    <option value="">Unassigned</option>
-                                                    @foreach ($leaders as $leader)
-                                                        <option value="{{ $leader->id }}" @selected((string) $alert->assigned_to === (string) $leader->id)>
-                                                            {{ $leader->full_name }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Due Date</label>
-                                                <input type="datetime-local" name="due_at" class="form-input w-full"
-                                                       value="{{ $alert->due_at ? $alert->due_at->format('Y-m-d\TH:i') : '' }}">
-                                            </div>
-                                            <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap gap-2 pt-1">
-                                                <button type="submit" class="btn-primary inline-flex items-center gap-2 text-sm">
-                                                    <i class="fa-solid fa-check"></i> Save changes
-                                                </button>
-                                                <button type="button" onclick="toggleAlertEdit({{ $alert->id }})" class="btn-secondary text-sm">
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </form>
+                                        @if($canAssignFollowUp)
+                                            <form method="POST" action="{{ route('alerts.assign-follow-up-task', $alert) }}"
+                                                  class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                                @csrf
+                                                @if($linkedTask)
+                                                    <div class="sm:col-span-2 lg:col-span-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                                        <div class="font-semibold">
+                                                            <i class="fa-solid fa-circle-check mr-1"></i> Follow-up already assigned
+                                                        </div>
+                                                        <div class="mt-1">
+                                                            Task #{{ $linkedTask->id }}
+                                                            @if($linkedTask->leader)
+                                                                • Leader: {{ $linkedTask->leader->full_name }}
+                                                            @endif
+                                                            • Status: {{ str_replace('_', ' ', ucfirst($linkedTask->status)) }}
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Leader</label>
+                                                    <select name="leader_id" class="form-input w-full" required>
+                                                        <option value="">Select leader</option>
+                                                        @foreach ($leaders as $leader)
+                                                            <option value="{{ $leader->id }}" @selected((string) optional($linkedTask)->leader_id === (string) $leader->id)>{{ $leader->full_name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Task type</label>
+                                                    <select name="task_type" class="form-input w-full" required>
+                                                        @foreach (['call' => 'Call', 'sms' => 'SMS', 'visit' => 'Visit', 'prayer' => 'Prayer', 'counseling' => 'Counseling', 'zone_assignment' => 'Zone Assignment'] as $val => $label)
+                                                            <option value="{{ $val }}" @selected(($linkedTask && $linkedTask->task_type === $val) || (! $linkedTask && $val === 'call'))>{{ $label }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Priority</label>
+                                                    <select name="priority" class="form-input w-full" required>
+                                                        <option value="low" @selected(optional($linkedTask)->priority === 'low')>Low</option>
+                                                        <option value="medium" @selected(($linkedTask && $linkedTask->priority === 'medium') || ! $linkedTask)>Medium</option>
+                                                        <option value="high" @selected(optional($linkedTask)->priority === 'high')>High</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Due date</label>
+                                                    <input type="date" name="due_date" class="form-input w-full"
+                                                           value="{{ $linkedTask?->due_date ? $linkedTask->due_date->format('Y-m-d') : ($alert->due_at ? $alert->due_at->format('Y-m-d') : '') }}">
+                                                </div>
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Task status</label>
+                                                    <select name="status" class="form-input w-full" required>
+                                                        <option value="pending" @selected(optional($linkedTask)->status === 'pending' || ! $linkedTask)>Pending</option>
+                                                        <option value="in_progress" @selected(optional($linkedTask)->status === 'in_progress')>In progress</option>
+                                                        <option value="completed" @selected(optional($linkedTask)->status === 'completed')>Completed</option>
+                                                    </select>
+                                                </div>
+                                                <div class="sm:col-span-2 lg:col-span-3">
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Notes (optional)</label>
+                                                    <input type="text" name="notes" class="form-input w-full" value="{{ $linkedTask ? trim(preg_replace('/\n?ALERT_REF:\d+.*$/s', '', (string) $linkedTask->notes)) : '' }}" placeholder="Add follow-up instructions for the leader">
+                                                </div>
+                                                <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap gap-2 pt-1">
+                                                    <button type="submit" class="btn-primary inline-flex items-center gap-2 text-sm">
+                                                        <i class="fa-solid fa-check"></i> {{ $linkedTask ? 'Update follow up task' : 'Assign follow up task' }}
+                                                    </button>
+                                                    <button type="button" onclick="toggleAlertEdit({{ $alert->id }})" class="btn-secondary text-sm">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('alerts.update', $alert) }}"
+                                                  class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                                @csrf
+                                                @method('PUT')
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Status</label>
+                                                    <select name="status" class="form-input w-full" required>
+                                                        @foreach (['open', 'acknowledged', 'resolved'] as $opt)
+                                                            <option value="{{ $opt }}" @selected($alert->status === $opt)>{{ ucfirst($opt) }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Severity</label>
+                                                    <select name="severity" class="form-input w-full" required>
+                                                        @foreach (['low', 'medium', 'high', 'critical'] as $opt)
+                                                            <option value="{{ $opt }}" @selected($alert->severity === $opt)>{{ ucfirst($opt) }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Assign to Leader</label>
+                                                    <select name="assigned_to" class="form-input w-full">
+                                                        <option value="">Unassigned</option>
+                                                        @foreach ($leaders as $leader)
+                                                            <option value="{{ $leader->id }}" @selected((string) $alert->assigned_to === (string) $leader->id)>
+                                                                {{ $leader->full_name }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Due Date</label>
+                                                    <input type="datetime-local" name="due_at" class="form-input w-full"
+                                                           value="{{ $alert->due_at ? $alert->due_at->format('Y-m-d\TH:i') : '' }}">
+                                                </div>
+                                                <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap gap-2 pt-1">
+                                                    <button type="submit" class="btn-primary inline-flex items-center gap-2 text-sm">
+                                                        <i class="fa-solid fa-check"></i> Save changes
+                                                    </button>
+                                                    <button type="button" onclick="toggleAlertEdit({{ $alert->id }})" class="btn-secondary text-sm">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        @endif
                                         <form method="POST" action="{{ route('alerts.destroy', $alert) }}"
                                               class="mt-3 pt-3 border-t border-[var(--color-surface-200)]"
                                               data-confirm="Permanently delete this alert?">
@@ -316,9 +396,14 @@
             if (btn) {
                 btn.innerHTML = isHidden
                     ? '<i class="fa-solid fa-xmark"></i> Close'
-                    : '<i class="fa-solid fa-pen-to-square"></i> Edit';
+                    : '<i class="fa-solid fa-' + (btn.dataset.defaultIcon || 'pen-to-square') + '"></i> ' + (btn.dataset.defaultLabel || 'Edit');
             }
         }
+
+        document.querySelectorAll('button[id^="btn-"]').forEach(function (btn) {
+            const text = btn.textContent.trim();
+            btn.dataset.defaultLabel = text.replace(/^\s+|\s+$/g, '');
+        });
     </script>
     @endpush
 

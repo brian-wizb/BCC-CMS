@@ -11,8 +11,30 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Missed Pledges</h3>
                 </div>
             </div>
-            {{-- Auto-computed from overdue pledges with outstanding balances --}}
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('missed-pledges.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
+            </div>
         </div>
+
+        <form method="GET" action="{{ route('missed-pledges.index') }}" class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-[180px] flex-1">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                    <i class="fas fa-search text-xs"></i>
+                </span>
+                <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Name, phone or campaign...">
+            </div>
+            <button type="submit" class="btn-secondary">Search</button>
+            @if(!empty($search))
+                <a href="{{ route('missed-pledges.index') }}" class="btn-secondary flex items-center gap-1"><i class="fas fa-times text-xs"></i></a>
+            @endif
+        </form>
+
+        <x-ui.date-range-filters :action="route('missed-pledges.index')" :date-from="$dateFrom" :date-to="$dateTo" />
 
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">
@@ -20,14 +42,14 @@
                     <thead class="bg-[var(--color-surface-50)]">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">#</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Name</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Phone</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Campaign</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Amount (Tsh.)</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Paid Amount (Tsh.)</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Due Amount (Tsh.)</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Start Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Due/End Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-user mr-1.5 opacity-60"></i>Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-phone mr-1.5 opacity-60"></i>Phone</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-bullhorn mr-1.5 opacity-60"></i>Campaign</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-coins mr-1.5 opacity-60"></i>Amount (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-check-circle mr-1.5 opacity-60"></i>Paid Amount (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-exclamation-circle mr-1.5 opacity-60"></i>Due Amount (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-calendar-alt mr-1.5 opacity-60"></i>Start Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-calendar-day mr-1.5 opacity-60"></i>Due/End Date</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">

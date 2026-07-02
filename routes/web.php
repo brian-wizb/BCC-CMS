@@ -221,6 +221,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/follow-up/tasks', [FollowUpController::class, 'tasks'])
         ->middleware('permission:follow_up.read')
         ->name('follow-up.tasks');
+    Route::get('/follow-up/people', [FollowUpController::class, 'peopleByType'])
+        ->middleware('permission:follow_up.read')
+        ->name('follow-up.people');
     Route::post('/follow-up/tasks', [FollowUpController::class, 'storeTask'])
         ->middleware('permission:follow_up.create')
         ->name('follow-up.tasks.store');
@@ -339,6 +342,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::put('/alerts/{alert}', [AlertController::class, 'update'])
         ->middleware('permission:alerts.update')
         ->name('alerts.update');
+    Route::post('/alerts/{alert}/assign-follow-up-task', [AlertController::class, 'assignFollowUpTask'])
+        ->middleware('permission:alerts.update')
+        ->name('alerts.assign-follow-up-task');
     Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])
         ->middleware('permission:alerts.delete')
         ->name('alerts.destroy');
@@ -509,22 +515,44 @@ Route::middleware(['auth', 'active'])->group(function () {
 });
 
     // Finance routes
+    Route::get('payroll/export', [App\Http\Controllers\PayrollController::class, 'export'])
+        ->name('payroll.export');
     Route::resource('payroll', App\Http\Controllers\PayrollController::class);
+    Route::get('payroll-categories/export', [App\Http\Controllers\PayrollCategoryController::class, 'export'])
+        ->name('payroll-categories.export');
     Route::resource('payroll-categories', App\Http\Controllers\PayrollCategoryController::class)
         ->only(['index', 'store', 'destroy']);
     Route::resource('employees', App\Http\Controllers\EmployeeController::class);
+    Route::get('expenditures/export', [App\Http\Controllers\ExpenditureController::class, 'export'])
+        ->name('expenditures.export');
     Route::resource('expenditures', App\Http\Controllers\ExpenditureController::class)
         ->middleware('permission:expenditures.read');
+    Route::get('department-income/export', [App\Http\Controllers\DepartmentIncomeController::class, 'export'])
+        ->name('department-income.export');
     Route::resource('department-income', App\Http\Controllers\DepartmentIncomeController::class);
+    Route::get('department-expenses/export', [App\Http\Controllers\DepartmentExpenseController::class, 'export'])
+        ->name('department-expenses.export');
     Route::resource('department-expenses', App\Http\Controllers\DepartmentExpenseController::class);
     Route::get('income/export', [App\Http\Controllers\IncomeController::class, 'export'])
         ->name('income.export');
     Route::resource('income', App\Http\Controllers\IncomeController::class);
     // Income Types — full CRUD inline
+    Route::get('income-types/export', [App\Http\Controllers\IncomeTypeController::class, 'export'])
+        ->name('income-types.export');
     Route::resource('income-types', App\Http\Controllers\IncomeTypeController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+    Route::get('donations/export', [App\Http\Controllers\DonationController::class, 'export'])
+        ->name('donations.export');
     Route::resource('donations', App\Http\Controllers\DonationController::class);
+    Route::get('campaigns/export', [App\Http\Controllers\CampaignController::class, 'export'])
+        ->name('campaigns.export');
     Route::resource('campaigns', App\Http\Controllers\CampaignController::class);
+    Route::get('pledges/export', [App\Http\Controllers\PledgeController::class, 'export'])
+        ->name('pledges.export');
     Route::resource('pledges', App\Http\Controllers\PledgeController::class);
+    Route::get('missed-pledges/export', [App\Http\Controllers\MissedPledgeController::class, 'export'])
+        ->name('missed-pledges.export');
     Route::resource('missed-pledges', App\Http\Controllers\MissedPledgeController::class);
+    Route::get('pledge-payments/export', [App\Http\Controllers\PledgePaymentController::class, 'export'])
+        ->name('pledge-payments.export');
     Route::resource('pledge-payments', App\Http\Controllers\PledgePaymentController::class);

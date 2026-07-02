@@ -1,14 +1,48 @@
 ﻿<x-layouts.app title="Income Types">
     <div class="space-y-6">
-        <div class="flex items-center gap-3">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(139,92,246,0.12);">
-                <i class="fas fa-tags text-base" style="color:rgba(139,92,246,0.9);"></i>
-            </span>
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Finance</p>
-                <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Income Types</h3>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(139,92,246,0.12);">
+                    <i class="fas fa-tags text-base" style="color:rgba(139,92,246,0.9);"></i>
+                </span>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Finance</p>
+                    <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Income Types</h3>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('income-types.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
             </div>
         </div>
+
+        <form method="GET" action="{{ route('income-types.index') }}" class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-[180px] flex-1">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                    <i class="fas fa-search text-xs"></i>
+                </span>
+                <input name="search" class="form-input w-full pl-8" value="{{ $search ?? '' }}" placeholder="Type or description...">
+            </div>
+            <button type="submit" class="btn-secondary">Search</button>
+            @if(!empty($search))
+                <a href="{{ route('income-types.index') }}" class="btn-secondary flex items-center gap-1"><i class="fas fa-times text-xs"></i></a>
+            @endif
+            <div class="ml-auto flex items-center gap-2 text-sm text-slate-500">
+                <span class="whitespace-nowrap">Show</span>
+                <select name="per_page" onchange="this.form.submit()" class="form-input py-1.5 text-sm w-auto">
+                    @foreach([10, 25, 50, 100] as $n)
+                        <option value="{{ $n }}" @selected(($perPage ?? 20) == $n)>{{ $n }}</option>
+                    @endforeach
+                </select>
+                <span>entries</span>
+            </div>
+        </form>
+
+        <x-ui.date-range-filters :action="route('income-types.index')" :date-from="$dateFrom" :date-to="$dateTo" />
 
         <div class="grid gap-6 lg:grid-cols-3">
             {{-- List --}}
@@ -28,7 +62,7 @@
                             <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
                                 @forelse($types as $type)
                                 <tr class="hover:bg-slate-50 transition">
-                                    <td class="px-5 py-3.5 text-slate-400">{{ $loop->iteration }}</td>
+                                    <td class="px-5 py-3.5 text-slate-400">{{ $types->firstItem() + $loop->index }}</td>
                                     <td class="px-5 py-3.5">
                                         <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style="background:rgba(139,92,246,0.1); color:rgba(139,92,246,0.9);">
                                             <i class="fas fa-bookmark text-[10px]"></i>{{ $type->type }}
@@ -69,6 +103,11 @@
                         </table>
                     </div>
                 </article>
+                @if($types->hasPages())
+                <div class="surface-card mt-3 px-5 py-4">
+                    {{ $types->links() }}
+                </div>
+                @endif
             </div>
 
             {{-- Add / Edit form --}}

@@ -12,9 +12,17 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Donation Records</h3>
                 </div>
             </div>
-            <a href="{{ route('donations.create') }}" class="btn-primary flex items-center gap-1.5">
-                <i class="fas fa-plus text-xs"></i> New Donation
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('donations.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
+                <a href="{{ route('donations.create') }}" class="btn-primary flex items-center gap-1.5">
+                    <i class="fas fa-plus text-xs"></i> New Donation
+                </a>
+            </div>
         </div>
 
         {{-- Search --}}
@@ -40,6 +48,8 @@
             </div>
         </form>
 
+        <x-ui.date-range-filters :action="route('donations.index')" :date-from="$dateFrom" :date-to="$dateTo" />
+
         {{-- Table --}}
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">
@@ -47,14 +57,14 @@
                     <thead class="bg-[var(--color-surface-50)] text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
                         <tr>
                             <th class="px-5 py-3">#</th>
-                            <th class="px-5 py-3">Member</th>
-                            <th class="px-5 py-3">Tithe Code</th>
-                            <th class="px-5 py-3">Donation Type</th>
-                            <th class="px-5 py-3">Amount (TZS)</th>
-                            <th class="px-5 py-3">Method</th>
-                            <th class="px-5 py-3">Reference</th>
-                            <th class="px-5 py-3">Date</th>
-                            <th class="px-5 py-3">Attachment</th>
+                            <th class="px-5 py-3"><i class="fas fa-user mr-1.5 opacity-60"></i>Member</th>
+                            <th class="px-5 py-3"><i class="fas fa-hashtag mr-1.5 opacity-60"></i>Tithe Code</th>
+                            <th class="px-5 py-3"><i class="fas fa-bookmark mr-1.5 opacity-60"></i>Donation Type</th>
+                            <th class="px-5 py-3"><i class="fas fa-coins mr-1.5 opacity-60"></i>Amount (TZS)</th>
+                            <th class="px-5 py-3"><i class="fas fa-credit-card mr-1.5 opacity-60"></i>Method</th>
+                            <th class="px-5 py-3"><i class="fas fa-receipt mr-1.5 opacity-60"></i>Reference</th>
+                            <th class="px-5 py-3"><i class="fas fa-calendar-alt mr-1.5 opacity-60"></i>Date</th>
+                            <th class="px-5 py-3"><i class="fas fa-paperclip mr-1.5 opacity-60"></i>Attachment</th>
                             <th class="px-5 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -97,7 +107,7 @@
                                     <div class="flex items-center justify-end gap-2">
                                         <a href="{{ route('donations.edit', $donation) }}"
                                            class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
-                                            Edit
+                                            <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
                                         </a>
                                         <form method="POST" action="{{ route('donations.destroy', $donation) }}"
                                               data-confirm="Delete this donation record? This cannot be undone.">
@@ -105,7 +115,7 @@
                                             @method('DELETE')
                                             <button type="submit"
                                                     class="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">
-                                                Delete
+                                                <i class="fas fa-trash mr-1 text-[10px]"></i>Delete
                                             </button>
                                         </form>
                                     </div>

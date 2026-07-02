@@ -12,9 +12,17 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Campaigns</h3>
                 </div>
             </div>
-            <a href="{{ route('campaigns.create') }}" class="btn-primary flex items-center gap-1.5">
-                <i class="fas fa-plus text-xs"></i> New Campaign
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('campaigns.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
+                <a href="{{ route('campaigns.create') }}" class="btn-primary flex items-center gap-1.5">
+                    <i class="fas fa-plus text-xs"></i> New Campaign
+                </a>
+            </div>
         </div>
 
         {{-- Search --}}
@@ -40,6 +48,8 @@
             </div>
         </form>
 
+        <x-ui.date-range-filters :action="route('campaigns.index')" :date-from="$dateFrom" :date-to="$dateTo" />
+
         {{-- Table --}}
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">
@@ -47,13 +57,13 @@
                     <thead class="bg-[var(--color-surface-50)]">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">#</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Name</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Description</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Target (Tsh.)</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Start Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">End Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Status</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Actions</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-bullhorn mr-1.5 opacity-60"></i>Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-align-left mr-1.5 opacity-60"></i>Description</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-coins mr-1.5 opacity-60"></i>Target (Tsh.)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-calendar-alt mr-1.5 opacity-60"></i>Start Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-calendar-check mr-1.5 opacity-60"></i>End Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"><i class="fas fa-signal mr-1.5 opacity-60"></i>Status</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
@@ -88,8 +98,8 @@
                             <td class="px-4 py-3">
                                 <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold {{ $statusClass }}">{{ $statusLabel }}</span>
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-1">
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex items-center justify-end gap-1">
                                     <a href="{{ route('campaigns.edit', $campaign) }}" class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                                         <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
                                     </a>

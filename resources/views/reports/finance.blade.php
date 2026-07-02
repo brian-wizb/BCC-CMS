@@ -74,7 +74,7 @@
                     <thead class="text-left text-xs uppercase text-slate-500">
                         <tr>
                             <th class="pb-3">Type</th>
-                            <th class="pb-3 text-right">Amount (KES)</th>
+                            <th class="pb-3 text-right">Amount (TSH)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)]">
@@ -107,7 +107,7 @@
                     <thead class="text-left text-xs uppercase text-slate-500">
                         <tr>
                             <th class="pb-3">Category</th>
-                            <th class="pb-3 text-right">Amount (KES)</th>
+                            <th class="pb-3 text-right">Amount (TSH)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)]">
@@ -140,7 +140,7 @@
                     <thead class="text-left text-xs uppercase text-slate-500">
                         <tr>
                             <th class="pb-3">Type</th>
-                            <th class="pb-3 text-right">Amount (KES)</th>
+                            <th class="pb-3 text-right">Amount (TSH)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)]">
@@ -209,7 +209,7 @@
                         <thead class="text-left text-xs uppercase text-slate-500">
                             <tr>
                                 <th class="pb-3">Month</th>
-                                <th class="pb-3 text-right">Income (KES)</th>
+                                <th class="pb-3 text-right">Income (TSH)</th>
                                 <th class="pb-3 w-2/5">Trend</th>
                             </tr>
                         </thead>

@@ -10,9 +10,17 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Payroll Records</h3>
                 </div>
             </div>
-            <a href="{{ route('payroll.create') }}" class="btn-primary flex items-center gap-1.5">
-                <i class="fas fa-plus text-xs"></i> Add Payroll
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('payroll.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
+                <a href="{{ route('payroll.create') }}" class="btn-primary flex items-center gap-1.5">
+                    <i class="fas fa-plus text-xs"></i> Add Payroll
+                </a>
+            </div>
         </div>
 
         {{-- Search --}}
@@ -37,6 +45,8 @@
                 <span>entries</span>
             </div>
         </form>
+
+        <x-ui.date-range-filters :action="route('payroll.index')" :date-from="$dateFrom" :date-to="$dateTo" />
 
         <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">

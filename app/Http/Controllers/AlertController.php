@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\MemberTimelineEvent;
 use App\Models\FollowUpTask;
 use App\Models\PastoralCase;
+use App\Models\Pledge;
 use App\Models\Visitor;
 use App\Services\AlertService;
 use Carbon\Carbon;
@@ -206,6 +207,18 @@ class AlertController extends Controller
 
         $now = now();
 
+        $linkedFollowUpTasks = [];
+        $followUpEligibleAlerts = collect($alertsByType)
+            ->filter(fn ($group, $type) => in_array($type, ['inactive_member', 'pledge_due'], true))
+            ->flatten(1);
+
+        foreach ($followUpEligibleAlerts as $alert) {
+            $task = $this->findLinkedFollowUpTask($alert);
+            if ($task) {
+                $linkedFollowUpTasks[$alert->id] = $task;
+            }
+        }
+
         return view('alerts.index', [
             'alertsByType'      => $alertsByType,
             'status'            => $status,
@@ -217,6 +230,7 @@ class AlertController extends Controller
             'overdueCount'      => Alert::query()->where('due_at', '<', $now)->whereIn('status', ['open', 'acknowledged'])->count(),
             'conditionActive'   => $conditionActive,
             'conditionDetail'   => $conditionDetail,
+            'linkedFollowUpTasks' => $linkedFollowUpTasks,
         ]);
     }
 
@@ -267,6 +281,137 @@ class AlertController extends Controller
         $alert->delete();
 
         return redirect()->route('alerts.index')->with('status', 'Alert deleted successfully.');
+    }
+
+    public function assignFollowUpTask(Request $request, Alert $alert): RedirectResponse
+    {
+        $data = $request->validate([
+            'leader_id' => ['required', 'integer', Rule::exists('leaders', 'id')],
+            'task_type' => ['required', 'string', Rule::in(['call', 'sms', 'visit', 'prayer', 'counseling', 'zone_assignment'])],
+            'priority'  => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
+            'due_date'  => ['nullable', 'date'],
+            'status'    => ['required', 'string', Rule::in(['pending', 'in_progress', 'completed'])],
+            'notes'     => ['nullable', 'string'],
+        ]);
+
+        if (! in_array($alert->alert_type, ['inactive_member', 'pledge_due'], true)) {
+            return back()->withErrors(['alert' => 'Follow-up tasks can only be assigned for inactive member and pledge due alerts.']);
+        }
+
+        $person = $this->resolveFollowUpPerson($alert);
+        if ($person === null) {
+            return back()->withErrors(['alert' => 'This alert cannot be mapped to a follow-up person record.']);
+        }
+
+        $leader = Leader::query()->find($data['leader_id']);
+
+        $existingTask = $this->findLinkedFollowUpTask($alert);
+
+        $taskData = [
+            'person_type'  => $person['person_type'],
+            'person_id'    => $person['person_id'],
+            'leader_id'    => $leader?->id,
+            'assigned_to'  => $leader?->user_id,
+            'task_type'    => $data['task_type'],
+            'priority'     => $data['priority'],
+            'due_date'     => $data['due_date'] ?? null,
+            'status'       => $data['status'],
+            'notes'        => $this->buildAlertTaskNotes($alert, $data['notes'] ?? null),
+            'completed_at' => $data['status'] === 'completed' ? now() : null,
+        ];
+
+        if ($existingTask) {
+            $existingTask->update($taskData);
+        } else {
+            FollowUpTask::query()->create($taskData);
+        }
+
+        if ($alert->status === 'open') {
+            $alert->update(['status' => 'acknowledged']);
+        }
+
+        return back()->with('status', $existingTask ? 'Follow-up task updated successfully.' : 'Follow-up task assigned successfully.');
+    }
+
+    private function findLinkedFollowUpTask(Alert $alert): ?FollowUpTask
+    {
+        return FollowUpTask::query()
+            ->with('leader:id,full_name')
+            ->where(function ($query) use ($alert) {
+                $query->where('notes', 'like', '%ALERT_REF:' . $alert->id . '%')
+                    ->orWhere('notes', 'like', '%From alert #' . $alert->id . ':%');
+            })
+            ->latest('id')
+            ->first();
+    }
+
+    private function buildAlertTaskNotes(Alert $alert, ?string $userNotes): string
+    {
+        $parts = [];
+
+        $cleaned = trim((string) $userNotes);
+        if ($cleaned !== '') {
+            $parts[] = $cleaned;
+        }
+
+        $parts[] = 'ALERT_REF:' . $alert->id;
+        $parts[] = 'From alert #' . $alert->id . ': ' . $alert->title;
+
+        return implode("\n", $parts);
+    }
+
+    private function resolveFollowUpPerson(Alert $alert): ?array
+    {
+        if ($alert->alert_type === 'inactive_member') {
+            $memberId = (int) $alert->reference_id;
+            $memberExists = Member::query()->whereKey($memberId)->exists();
+
+            return $memberExists
+                ? ['person_type' => 'member', 'person_id' => $memberId]
+                : null;
+        }
+
+        if ($alert->alert_type === 'pledge_due') {
+            $pledge = Pledge::query()->find((int) $alert->reference_id);
+            if (! $pledge) {
+                return null;
+            }
+
+            if ($pledge->member_id) {
+                $memberExists = Member::query()->whereKey((int) $pledge->member_id)->exists();
+                if ($memberExists) {
+                    return ['person_type' => 'member', 'person_id' => (int) $pledge->member_id];
+                }
+            }
+
+            // Fallback for legacy pledges that were created without member_id.
+            // Try to resolve by exact phone first, then by exact full name.
+            if (! empty($pledge->pledger_phone)) {
+                $matchedByPhone = Member::query()
+                    ->where('phone', trim((string) $pledge->pledger_phone))
+                    ->orderByDesc('id')
+                    ->first(['id']);
+
+                if ($matchedByPhone) {
+                    return ['person_type' => 'member', 'person_id' => (int) $matchedByPhone->id];
+                }
+            }
+
+            if (! empty($pledge->pledger_name)) {
+                $matchedByName = Member::query()
+                    ->whereRaw('LOWER(full_name) = ?', [mb_strtolower(trim((string) $pledge->pledger_name))])
+                    ->orderByDesc('id')
+                    ->first(['id']);
+
+                if ($matchedByName) {
+                    return ['person_type' => 'member', 'person_id' => (int) $matchedByName->id];
+                }
+            }
+
+            return null;
+        }
+
+        return null;
     }
 
     private function writeTimeline(int $memberId, string $eventType, string $title, string $details): void

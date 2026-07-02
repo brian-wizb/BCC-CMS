@@ -8,22 +8,80 @@ use Illuminate\Http\Request;
 
 class PledgePaymentController extends Controller
 {
+    private function pledgePaymentQuery(?string $search = null, ?string $dateFrom = null, ?string $dateTo = null)
+    {
+        $query = \App\Models\PledgePayment::with('pledge.campaign');
+
+        if (! empty($search)) {
+            $query->whereHas('pledge', fn($q) => $q
+                ->where('pledger_name', 'like', "%{$search}%")
+                ->orWhere('pledger_phone', 'like', "%{$search}%")
+            );
+        }
+
+        if (! empty($dateFrom)) {
+            $query->whereDate('payment_date', '>=', $dateFrom);
+        }
+
+        if (! empty($dateTo)) {
+            $query->whereDate('payment_date', '<=', $dateTo);
+        }
+
+        return $query;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $search = $request->input('search');
-        $query  = \App\Models\PledgePayment::with('pledge.campaign');
-        if ($search) {
-            $query->whereHas('pledge', fn($q) => $q
-                ->where('pledger_name',  'like', "%{$search}%")
-                ->orWhere('pledger_phone', 'like', "%{$search}%")
-            );
-        }
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $query = $this->pledgePaymentQuery($search, $dateFrom, $dateTo);
+
         $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
         $pledgePayments = $query->orderByDesc('payment_date')->paginate($perPage)->withQueryString();
-        return view('pledge-payments.index', compact('pledgePayments', 'search', 'perPage'));
+        return view('pledge-payments.index', compact('pledgePayments', 'search', 'perPage', 'dateFrom', 'dateTo'));
+    }
+
+    public function export(Request $request)
+    {
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $records = $this->pledgePaymentQuery($search, $dateFrom, $dateTo)
+            ->orderByDesc('payment_date')
+            ->get();
+
+        $filename = 'pledge-payments-report-' . now()->format('YmdHis') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        return response()->streamDownload(function () use ($records) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Pledger', 'Campaign', 'Phone', 'Invoice', 'Amount', 'Method', 'Payment Date', 'Notes']);
+
+            foreach ($records as $payment) {
+                fputcsv($file, [
+                    $payment->id,
+                    $payment->pledge?->pledger_name ?? '',
+                    $payment->pledge?->campaign?->name ?? '',
+                    $payment->phone ?? '',
+                    $payment->invoice_number ?? '',
+                    $payment->amount,
+                    $payment->method ?? '',
+                    $payment->payment_date ? \Carbon\Carbon::parse($payment->payment_date)->format('Y-m-d') : '',
+                    $payment->notes ?? '',
+                ]);
+            }
+
+            fclose($file);
+        }, $filename, $headers);
     }
 
     /**

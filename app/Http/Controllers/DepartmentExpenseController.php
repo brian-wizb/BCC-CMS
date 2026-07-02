@@ -7,28 +7,85 @@ use Illuminate\Http\Request;
 
 class DepartmentExpenseController extends Controller
 {
+    private function departmentExpenseQuery(?string $department = null, ?string $search = null, ?string $dateFrom = null, ?string $dateTo = null)
+    {
+        $query = DepartmentExpense::query();
+
+        if ($department) {
+            $query->where('department', $department);
+        }
+
+        if ($dateFrom) {
+            $query->whereDate('expense_date', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->whereDate('expense_date', '<=', $dateTo);
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('expense', 'like', "%{$search}%")
+                  ->orWhere('comment', 'like', "%{$search}%")
+                  ->orWhere('reference_no', 'like', "%{$search}%");
+            });
+        }
+
+        return $query;
+    }
+
     public function index(Request $request)
     {
         $department = $request->input('department');
-        $from       = $request->input('from');
-        $to         = $request->input('to');
-        $search     = $request->input('search');
+        $dateFrom   = $request->input('date_from', $request->input('from'));
+        $dateTo     = $request->input('date_to', $request->input('to'));
+        $search     = trim((string) $request->input('search'));
 
-        $query = DepartmentExpense::query();
-        if ($department) $query->where('department', $department);
-        if ($from)       $query->whereDate('expense_date', '>=', $from);
-        if ($to)         $query->whereDate('expense_date', '<=', $to);
-        if ($search)     $query->where(function($q) use ($search) {
-            $q->where('expense', 'like', "%{$search}%")
-              ->orWhere('comment', 'like', "%{$search}%")
-              ->orWhere('reference_no', 'like', "%{$search}%");
-        });
+        $query = $this->departmentExpenseQuery($department, $search, $dateFrom, $dateTo);
 
         $total      = (clone $query)->sum('amount');
         $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
         $records    = $query->orderByDesc('expense_date')->paginate($perPage)->withQueryString();
         $departments = ['CMF', 'WWK', "Youth (CA's)"];
-        return view('department-expenses.index', compact('records', 'total', 'departments', 'department', 'from', 'to', 'search', 'perPage'));
+        return view('department-expenses.index', compact('records', 'total', 'departments', 'department', 'dateFrom', 'dateTo', 'search', 'perPage'));
+    }
+
+    public function export(Request $request)
+    {
+        $department = $request->input('department');
+        $dateFrom   = $request->input('date_from', $request->input('from'));
+        $dateTo     = $request->input('date_to', $request->input('to'));
+        $search     = trim((string) $request->input('search'));
+
+        $records = $this->departmentExpenseQuery($department, $search, $dateFrom, $dateTo)
+            ->orderByDesc('expense_date')
+            ->get();
+
+        $filename = 'department-expenses-report-' . now()->format('YmdHis') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        return response()->streamDownload(function () use ($records) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Department', 'Expense', 'Payment Method', 'Amount', 'Expense Date', 'Reference', 'Comment']);
+
+            foreach ($records as $record) {
+                fputcsv($file, [
+                    $record->id,
+                    $record->department,
+                    $record->expense,
+                    $record->payment_method,
+                    $record->amount,
+                    $record->expense_date ? \Carbon\Carbon::parse($record->expense_date)->format('Y-m-d') : '',
+                    $record->reference_no ?? '',
+                    $record->comment ?? '',
+                ]);
+            }
+
+            fclose($file);
+        }, $filename, $headers);
     }
 
     public function create()

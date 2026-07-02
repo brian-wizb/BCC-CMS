@@ -35,6 +35,17 @@ return [
         'sms_from'       => env('TWILIO_SMS_FROM'),
     ],
 
+    'sms' => [
+        'provider' => env('SMS_PROVIDER', 'beem'),
+    ],
+
+    'beem' => [
+        'api_key' => env('BEEM_API_KEY'),
+        'secret_key' => env('BEEM_SECRET_KEY'),
+        'sender_id' => env('BEEM_SENDER_ID', 'INFO'),
+        'base_url' => env('BEEM_BASE_URL', 'https://apisms.beem.africa'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

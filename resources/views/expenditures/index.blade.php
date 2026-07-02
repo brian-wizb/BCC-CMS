@@ -10,9 +10,17 @@
                     <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Expense Records</h3>
                 </div>
             </div>
-            <a href="{{ route('expenditures.create') }}" class="btn-primary flex items-center gap-1.5">
-                <i class="fas fa-plus text-xs"></i> New Expense
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('expenditures.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-download text-xs"></i> Export CSV
+                </a>
+                <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i> Print
+                </button>
+                <a href="{{ route('expenditures.create') }}" class="btn-primary flex items-center gap-1.5">
+                    <i class="fas fa-plus text-xs"></i> New Expense
+                </a>
+            </div>
         </div>
 
         {{-- Search --}}
@@ -37,6 +45,10 @@
                 <span>entries</span>
             </div>
         </form>
+
+        <x-ui.date-range-filters :action="route('expenditures.index')" :date-from="$dateFrom" :date-to="$dateTo" />
+
+        <article class="surface-card overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-[var(--color-surface-200)] text-sm">
                     <thead class="bg-[var(--color-surface-50)] text-left text-xs font-semibold uppercase tracking-wide text-slate-400">

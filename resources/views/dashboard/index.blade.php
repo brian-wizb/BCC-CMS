@@ -68,14 +68,18 @@
                 <h3 class="text-lg font-semibold">Age Group Dynamics</h3>
                 <span class="status-pill">Demographics</span>
             </div>
-            <canvas id="agePieChart" height="260"></canvas>
+            <div class="mx-auto w-[70%] max-w-[320px]">
+                <canvas id="agePieChart" height="182"></canvas>
+            </div>
         </article>
         <article class="surface-card p-6">
             <div class="mb-3 flex items-center justify-between">
                 <h3 class="text-lg font-semibold">Gender Distribution</h3>
                 <span class="status-pill">Inclusion View</span>
             </div>
-            <canvas id="genderPieChart" height="260"></canvas>
+            <div class="mx-auto w-[70%] max-w-[320px]">
+                <canvas id="genderPieChart" height="182"></canvas>
+            </div>
         </article>
     </section>
 

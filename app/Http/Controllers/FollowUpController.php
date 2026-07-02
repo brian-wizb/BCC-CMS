@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\User;
 use App\Models\Visitor;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -69,6 +70,33 @@ class FollowUpController extends Controller
             'visitors' => Visitor::query()->orderBy('full_name')->get(['id', 'full_name']),
             'families' => Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']),
         ]);
+    }
+
+    public function peopleByType(Request $request): JsonResponse
+    {
+        $type = (string) $request->query('person_type', '');
+
+        if (! in_array($type, ['visitor', 'member', 'family'], true)) {
+            return response()->json(['data' => []]);
+        }
+
+        $people = match ($type) {
+            'visitor' => Visitor::query()
+                ->orderBy('full_name')
+                ->get(['id', 'full_name'])
+                ->map(fn ($person) => ['id' => $person->id, 'name' => $person->full_name]),
+            'member' => Member::query()
+                ->orderBy('full_name')
+                ->get(['id', 'full_name'])
+                ->map(fn ($person) => ['id' => $person->id, 'name' => $person->full_name]),
+            'family' => Family::query()
+                ->orderBy('head_of_family')
+                ->get(['id', 'head_of_family'])
+                ->map(fn ($person) => ['id' => $person->id, 'name' => $person->head_of_family]),
+            default => collect(),
+        };
+
+        return response()->json(['data' => $people->values()]);
     }
 
     public function storeTask(Request $request): RedirectResponse

@@ -10,20 +10,105 @@ class MissedPledgeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
         // Auto-compute: pledges whose due_date has passed and are not fully paid
-        $missedPledges = \App\Models\Pledge::with('campaign', 'payments')
+        $query = \App\Models\Pledge::with('campaign', 'payments')
             ->whereNotNull('due_date')
             ->whereDate('due_date', '<', now())
-            ->orderBy('due_date')
-            ->get()
+            ->orderBy('due_date');
+
+        if (! empty($dateFrom)) {
+            $query->whereDate('due_date', '>=', $dateFrom);
+        }
+
+        if (! empty($dateTo)) {
+            $query->whereDate('due_date', '<=', $dateTo);
+        }
+
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('pledger_name', 'like', "%{$search}%")
+                  ->orWhere('pledger_phone', 'like', "%{$search}%")
+                  ->orWhereHas('campaign', fn($c) => $c->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        $missedPledges = $query->get()
             ->filter(function ($pledge) {
                 $paid = $pledge->payments->sum('amount');
                 return $paid < $pledge->amount;
             })
             ->values();
-        return view('missed-pledges.index', compact('missedPledges'));
+
+        return view('missed-pledges.index', compact('missedPledges', 'search', 'dateFrom', 'dateTo'));
+    }
+
+    public function export(Request $request)
+    {
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $query = \App\Models\Pledge::with('campaign', 'payments')
+            ->whereNotNull('due_date')
+            ->whereDate('due_date', '<', now())
+            ->orderBy('due_date');
+
+        if (! empty($dateFrom)) {
+            $query->whereDate('due_date', '>=', $dateFrom);
+        }
+
+        if (! empty($dateTo)) {
+            $query->whereDate('due_date', '<=', $dateTo);
+        }
+
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('pledger_name', 'like', "%{$search}%")
+                  ->orWhere('pledger_phone', 'like', "%{$search}%")
+                  ->orWhereHas('campaign', fn($c) => $c->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        $records = $query->get()
+            ->filter(function ($pledge) {
+                $paid = $pledge->payments->sum('amount');
+                return $paid < $pledge->amount;
+            })
+            ->values();
+
+        $filename = 'missed-pledges-report-' . now()->format('YmdHis') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        return response()->streamDownload(function () use ($records) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Pledger Name', 'Phone', 'Campaign', 'Amount', 'Paid Amount', 'Due Amount', 'Pledge Date', 'Due Date']);
+
+            foreach ($records as $pledge) {
+                $paid = $pledge->payments->sum('amount');
+                fputcsv($file, [
+                    $pledge->id,
+                    $pledge->pledger_name ?? '',
+                    $pledge->pledger_phone ?? '',
+                    $pledge->campaign?->name ?? '',
+                    $pledge->amount,
+                    $paid,
+                    max(0, $pledge->amount - $paid),
+                    $pledge->pledge_date ? \Carbon\Carbon::parse($pledge->pledge_date)->format('Y-m-d') : '',
+                    $pledge->due_date ? \Carbon\Carbon::parse($pledge->due_date)->format('Y-m-d') : '',
+                ]);
+            }
+
+            fclose($file);
+        }, $filename, $headers);
     }
 
     /**

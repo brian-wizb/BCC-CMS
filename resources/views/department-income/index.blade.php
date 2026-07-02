@@ -10,22 +10,22 @@
                 <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Department Income</h3>
             </div>
         </div>
-        <a href="{{ route('department-income.create') }}" class="btn-primary flex items-center gap-1.5">
-            <i class="fas fa-plus text-xs"></i> Add Income
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('department-income.export', request()->only(['search', 'department', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                <i class="fas fa-download text-xs"></i> Export CSV
+            </a>
+            <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
+                <i class="fas fa-print text-xs"></i> Print
+            </button>
+            <a href="{{ route('department-income.create') }}" class="btn-primary flex items-center gap-1.5">
+                <i class="fas fa-plus text-xs"></i> Add Income
+            </a>
+        </div>
     </div>
 
     {{-- Filters --}}
     <article class="surface-card p-4">
         <form method="GET" action="{{ route('department-income.index') }}" class="flex flex-wrap items-end gap-3">
-            <div class="flex-1 min-w-[140px]">
-                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">From</label>
-                <input type="date" name="from" value="{{ request('from') }}" class="form-input w-full">
-            </div>
-            <div class="flex-1 min-w-[140px]">
-                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">To</label>
-                <input type="date" name="to" value="{{ request('to') }}" class="form-input w-full">
-            </div>
             <div class="flex-1 min-w-[160px]">
                 <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Department</label>
                 <select name="department" class="form-input w-full">
@@ -56,6 +56,8 @@
             </div>
         </form>
     </article>
+
+    <x-ui.date-range-filters :action="route('department-income.index')" :date-from="$dateFrom" :date-to="$dateTo" />
 
     {{-- Total stat --}}
     <div class="grid gap-4 sm:grid-cols-3">

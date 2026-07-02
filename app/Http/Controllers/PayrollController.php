@@ -7,22 +7,79 @@ use Illuminate\Http\Request;
 
 class PayrollController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+    private function payrollQuery(?string $search = null, ?string $dateFrom = null, ?string $dateTo = null)
     {
-        $search = $request->input('search');
-        $query  = \App\Models\Payroll::with('employee');
-        if ($search) {
+        $query = \App\Models\Payroll::with('employee');
+
+        if (! empty($search)) {
             $query->whereHas('employee', fn($q) => $q
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('designation', 'like', "%{$search}%")
             );
         }
+
+        if (! empty($dateFrom)) {
+            $query->whereDate('payment_date', '>=', $dateFrom);
+        }
+
+        if (! empty($dateTo)) {
+            $query->whereDate('payment_date', '<=', $dateTo);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $query = $this->payrollQuery($search, $dateFrom, $dateTo);
+
         $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 20;
         $payrolls = $query->orderByDesc('payment_date')->paginate($perPage)->withQueryString();
-        return view('payroll.index', compact('payrolls', 'search', 'perPage'));
+        return view('payroll.index', compact('payrolls', 'search', 'perPage', 'dateFrom', 'dateTo'));
+    }
+
+    public function export(Request $request)
+    {
+        $search = trim((string) $request->input('search'));
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $records = $this->payrollQuery($search, $dateFrom, $dateTo)
+            ->orderByDesc('payment_date')
+            ->get();
+
+        $filename = 'payroll-report-' . now()->format('YmdHis') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        return response()->streamDownload(function () use ($records) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Employee', 'Designation', 'Method', 'Gross Amount', 'Net Salary', 'PAYE', 'Payment Date']);
+
+            foreach ($records as $payroll) {
+                fputcsv($file, [
+                    $payroll->id,
+                    $payroll->employee?->name ?? '—',
+                    $payroll->employee?->designation ?? '—',
+                    $payroll->method ?? '',
+                    ($payroll->salary ?? 0) + ($payroll->church_staffs_addition ?? 0) + ($payroll->other_amount ?? 0),
+                    $payroll->net_salary ?? 0,
+                    $payroll->paye ?? 0,
+                    $payroll->payment_date ? \Carbon\Carbon::parse($payroll->payment_date)->format('Y-m-d') : '',
+                ]);
+            }
+
+            fclose($file);
+        }, $filename, $headers);
     }
 
     /**
