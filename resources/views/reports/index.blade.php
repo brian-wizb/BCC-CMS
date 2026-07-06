@@ -20,7 +20,7 @@
                 </span>
                 <h3 class="text-lg font-semibold text-[var(--color-ink-950)]">Members Report</h3>
             </div>
-            <p class="text-sm text-slate-500">Growth trends, gender/zone/marital breakdown, and spiritual milestones.</p>
+            <p class="text-sm text-slate-500">Growth trends, marital and employment filters, plus university student timelines.</p>
             <p class="mt-4 flex items-center gap-1.5 text-xs font-semibold" style="color:rgba(36,184,255,0.8);">Open report <i class="fas fa-arrow-right text-[10px]"></i></p>
         </a>
 
@@ -106,6 +106,18 @@
             </div>
             <p class="text-sm text-slate-500">Member count, attendance activity, and attendance rate by zone.</p>
             <p class="mt-4 flex items-center gap-1.5 text-xs font-semibold" style="color:rgba(52,211,153,0.8);">Open report <i class="fas fa-arrow-right text-[10px]"></i></p>
+        </a>
+
+        {{-- Groups --}}
+        <a href="{{ route('reports.groups') }}" class="surface-card p-6 block">
+            <div class="mb-3 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(99,102,241,0.14);">
+                    <i class="fas fa-users text-base" style="color:rgba(99,102,241,0.9);"></i>
+                </span>
+                <h3 class="text-lg font-semibold text-[var(--color-ink-950)]">Groups Report</h3>
+            </div>
+            <p class="text-sm text-slate-500">Registered vs guest composition and leadership distribution across groups.</p>
+            <p class="mt-4 flex items-center gap-1.5 text-xs font-semibold" style="color:rgba(99,102,241,0.8);">Open report <i class="fas fa-arrow-right text-[10px]"></i></p>
         </a>
 
         {{-- Events --}}

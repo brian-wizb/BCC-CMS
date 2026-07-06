@@ -57,7 +57,8 @@
     {{-- Trend chart --}}
     <article class="surface-card p-6 mb-6">
         <h3 class="mb-4 text-sm font-semibold text-[var(--color-ink-950)]">
-            <i class="fa-solid fa-chart-line mr-2 text-orange-500"></i>Monthly Attendance Trend (Last 12 Months)
+            <i class="fa-solid fa-chart-line mr-2 text-orange-500"></i>
+            Monthly Attendance Trend ({{ $trendRangeLabel }})
         </h3>
         <canvas id="trendChart" height="80"></canvas>
     </article>

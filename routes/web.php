@@ -17,6 +17,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VisitorController;
 use App\Http\Controllers\VolunteerController;
 use App\Http\Controllers\ZoneController;
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RolePermissionController;
@@ -161,6 +162,38 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::delete('/zones/{zone}/members/{membership}', [ZoneController::class, 'destroyMember'])
         ->middleware('permission:zones.update')
         ->name('zones.members.destroy');
+
+    // Groups
+    Route::get('/groups', [GroupController::class, 'index'])
+        ->middleware('permission:groups.read')
+        ->name('groups.index');
+    Route::get('/groups/create', [GroupController::class, 'create'])
+        ->middleware('permission:groups.create')
+        ->name('groups.create');
+    Route::post('/groups', [GroupController::class, 'store'])
+        ->middleware('permission:groups.create')
+        ->name('groups.store');
+    Route::get('/groups/{group}', [GroupController::class, 'show'])
+        ->middleware('permission:groups.read')
+        ->name('groups.show');
+    Route::get('/groups/{group}/edit', [GroupController::class, 'edit'])
+        ->middleware('permission:groups.update')
+        ->name('groups.edit');
+    Route::put('/groups/{group}', [GroupController::class, 'update'])
+        ->middleware('permission:groups.update')
+        ->name('groups.update');
+    Route::delete('/groups/{group}', [GroupController::class, 'destroy'])
+        ->middleware('permission:groups.delete')
+        ->name('groups.destroy');
+    Route::post('/groups/{group}/members', [GroupController::class, 'storeMember'])
+        ->middleware('permission:groups.update')
+        ->name('groups.members.store');
+    Route::post('/groups/{group}/members/bulk', [GroupController::class, 'storeMembersBulk'])
+        ->middleware('permission:groups.update')
+        ->name('groups.members.bulk');
+    Route::delete('/groups/{group}/members/{membership}', [GroupController::class, 'destroyMember'])
+        ->middleware('permission:groups.update')
+        ->name('groups.members.destroy');
 
     Route::get('/visitors', [VisitorController::class, 'index'])
         ->middleware('permission:visitors.read')
@@ -427,6 +460,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/reports/zones/export', [ReportController::class, 'zonesExport'])
         ->middleware('permission:reports.export')
         ->name('reports.zones.export');
+    Route::get('/reports/groups', [ReportController::class, 'groups'])
+        ->middleware('permission:reports.read')
+        ->name('reports.groups');
+    Route::get('/reports/groups/export', [ReportController::class, 'groupsExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.groups.export');
     Route::get('/reports/events', [ReportController::class, 'events'])
         ->middleware('permission:reports.read')
         ->name('reports.events');

@@ -22,12 +22,46 @@
                 {{-- Audience --}}
                 <div>
                     <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Audience</label>
-                    <select name="audience_type" class="form-input w-full" required>
+                    <select name="audience_type" id="audience-type" class="form-input w-full" required>
                         <option value="all_members" @selected(old('audience_type') === 'all_members')>All Members</option>
                         <option value="all_visitors" @selected(old('audience_type') === 'all_visitors')>All Visitors</option>
                         <option value="everyone" @selected(old('audience_type') === 'everyone')>Everyone (Members + Visitors)</option>
+                        <option value="individual_registered" @selected(old('audience_type') === 'individual_registered')>Individual (Registered)</option>
+                        <option value="individual_unregistered" @selected(old('audience_type') === 'individual_unregistered')>Individual (Unregistered)</option>
                     </select>
                     @error('audience_type')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            {{-- Individual registered recipient --}}
+            <div id="registered-individual-block" class="hidden grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient type</label>
+                    <select name="recipient_type" id="recipient-type" class="form-input w-full">
+                        <option value="member" @selected(old('recipient_type') === 'member')>Member</option>
+                        <option value="visitor" @selected(old('recipient_type') === 'visitor')>Visitor</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient</label>
+                    <select name="recipient_id" id="recipient-id" class="form-input w-full">
+                        <option value="">Select recipient</option>
+                    </select>
+                    @error('recipient_id')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            {{-- Individual unregistered recipient --}}
+            <div id="manual-individual-block" class="hidden grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient name</label>
+                    <input name="recipient_name" class="form-input w-full" value="{{ old('recipient_name') }}" placeholder="e.g. John Doe">
+                    @error('recipient_name')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Phone number</label>
+                    <input name="recipient_contact_phone" class="form-input w-full" value="{{ old('recipient_contact_phone') }}" placeholder="+2557XXXXXXXX">
+                    @error('recipient_contact_phone')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
             </div>
 
@@ -68,6 +102,15 @@
         const smsCounter    = document.getElementById('sms-counter');
         const charCount     = document.getElementById('char-count');
         const smsParts      = document.getElementById('sms-parts');
+        const audienceType  = document.getElementById('audience-type');
+        const recipientType = document.getElementById('recipient-type');
+        const recipientId   = document.getElementById('recipient-id');
+        const regBlock      = document.getElementById('registered-individual-block');
+        const manualBlock   = document.getElementById('manual-individual-block');
+
+        const members = @json(($members ?? collect())->map(fn($m) => ['id' => $m->id, 'name' => $m->full_name, 'phone' => $m->phone])->values());
+        const visitors = @json(($visitors ?? collect())->map(fn($v) => ['id' => $v->id, 'name' => $v->full_name, 'phone' => $v->phone])->values());
+        const oldRecipientId = @json(old('recipient_id'));
 
         function updateCounter() {
             const len = messageInput.value.length;
@@ -85,9 +128,38 @@
             }
         }
 
+        function populateRecipientOptions() {
+            if (!recipientId || !recipientType) return;
+            const source = recipientType.value === 'visitor' ? visitors : members;
+            recipientId.innerHTML = '<option value="">Select recipient</option>';
+            source.forEach((item) => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = `${item.name}${item.phone ? ' · ' + item.phone : ''}`;
+                if (String(oldRecipientId) === String(item.id)) {
+                    option.selected = true;
+                }
+                recipientId.appendChild(option);
+            });
+        }
+
+        function toggleAudienceBlocks() {
+            if (!audienceType || !regBlock || !manualBlock) return;
+            const isRegistered = audienceType.value === 'individual_registered';
+            const isManual = audienceType.value === 'individual_unregistered';
+            regBlock.classList.toggle('hidden', !isRegistered);
+            manualBlock.classList.toggle('hidden', !isManual);
+            if (isRegistered) {
+                populateRecipientOptions();
+            }
+        }
+
         channelSelect.addEventListener('change', updateCounter);
         messageInput.addEventListener('input', updateCounter);
+        audienceType?.addEventListener('change', toggleAudienceBlocks);
+        recipientType?.addEventListener('change', populateRecipientOptions);
         updateCounter(); // run on page load to handle old() values
+        toggleAudienceBlocks();
     </script>
     @endpush
 </x-layouts.app>

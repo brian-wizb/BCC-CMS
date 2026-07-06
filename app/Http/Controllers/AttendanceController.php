@@ -405,34 +405,36 @@ class AttendanceController extends Controller
     {
         $from = $request->date('from') ?? now()->startOfYear();
         $to   = $request->date('to')   ?? now();
+        $fromStart = $from->copy()->startOfDay();
+        $toEnd = $to->copy()->endOfDay();
 
         $statusCounts = AttendanceRecord::query()
             ->selectRaw('attendance_status, COUNT(*) as total')
-            ->whereBetween('recorded_at', [$from->startOfDay(), $to->endOfDay()])
+            ->whereBetween('recorded_at', [$fromStart, $toEnd])
             ->groupBy('attendance_status')
             ->pluck('total', 'attendance_status');
 
         $byService = Service::query()
             ->withCount([
                 'attendanceRecords as present_count' => fn ($q) => $q->where('attendance_status', 'present')
-                    ->whereBetween('recorded_at', [$from->startOfDay(), $to->endOfDay()]),
+                    ->whereBetween('recorded_at', [$fromStart, $toEnd]),
                 'attendanceRecords as absent_count'  => fn ($q) => $q->where('attendance_status', 'absent')
-                    ->whereBetween('recorded_at', [$from->startOfDay(), $to->endOfDay()]),
+                    ->whereBetween('recorded_at', [$fromStart, $toEnd]),
                 'attendanceRecords as excused_count' => fn ($q) => $q->where('attendance_status', 'excused')
-                    ->whereBetween('recorded_at', [$from->startOfDay(), $to->endOfDay()]),
+                    ->whereBetween('recorded_at', [$fromStart, $toEnd]),
                 'attendanceRecords as late_count'    => fn ($q) => $q->where('attendance_status', 'late')
-                    ->whereBetween('recorded_at', [$from->startOfDay(), $to->endOfDay()]),
+                    ->whereBetween('recorded_at', [$fromStart, $toEnd]),
             ])
             ->whereBetween('service_date', [$from->toDateString(), $to->toDateString()])
             ->orderByDesc('service_date')
             ->paginate(20)
             ->withQueryString();
 
-        // Trend: monthly present counts for chart (last 12 months)
+        // Trend: monthly present counts for chart in selected date range.
         $trend = AttendanceRecord::query()
             ->selectRaw("DATE_FORMAT(recorded_at, '%Y-%m') as month, COUNT(*) as total")
             ->where('attendance_status', 'present')
-            ->where('recorded_at', '>=', now()->subMonths(12)->startOfMonth())
+            ->whereBetween('recorded_at', [$fromStart, $toEnd])
             ->groupByRaw("DATE_FORMAT(recorded_at, '%Y-%m')")
             ->orderBy('month')
             ->get();
@@ -442,7 +444,7 @@ class AttendanceController extends Controller
             ->join('members', 'members.id', '=', 'attendance_records.member_id')
             ->selectRaw('members.id, members.full_name, COUNT(*) as times_present')
             ->where('attendance_records.attendance_status', 'present')
-            ->whereBetween('attendance_records.recorded_at', [$from, $to])
+            ->whereBetween('attendance_records.recorded_at', [$fromStart, $toEnd])
             ->groupBy('members.id', 'members.full_name')
             ->orderByDesc('times_present')
             ->limit(10)
@@ -455,6 +457,7 @@ class AttendanceController extends Controller
             'lateCount'    => $statusCounts->get('late', 0),
             'byService'    => $byService,
             'trend'        => $trend,
+            'trendRangeLabel' => $from->format('d M Y').' - '.$to->format('d M Y'),
             'topMembers'   => $topMembers,
             'from'         => $from,
             'to'           => $to,

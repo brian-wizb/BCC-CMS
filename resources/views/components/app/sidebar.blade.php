@@ -42,6 +42,7 @@
         'Families' => 'home',
         'Departments' => 'building',
         'Zones' => 'layers',
+        'Groups' => 'users',
         'Visitors' => 'users',
         'Follow-Up' => 'check',
         'Leaders' => 'shield',
@@ -77,7 +78,7 @@
 
     $sectionMap = [
         'Core' => ['Dashboard', 'Reports'],
-        'People' => ['Users', 'Members', 'Families', 'Departments', 'Zones', 'Visitors', 'Follow-Up', 'Leaders'],
+        'People' => ['Users', 'Members', 'Families', 'Departments', 'Zones', 'Groups', 'Visitors', 'Follow-Up', 'Leaders'],
         'Ministry' => ['Attendance', 'Pastoral Care', 'Alerts', 'Events', 'Volunteers', 'Communications'],
         'Finance' => ['Payroll', 'Payroll Categories', 'Expenditures', 'Department Income', 'Department Expenses', 'Income Records', 'Income Types', 'Donations', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
     ];

@@ -1,4 +1,4 @@
-﻿<x-layouts.app title="Communication Details">
+<x-layouts.app title="Communication Details">
     <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
 
         {{-- â”€â”€ Main panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
@@ -9,7 +9,7 @@
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                            {{ strtoupper($communication->channel) }} Â· {{ str_replace('_', ' ', $communication->audience_type) }}
+                               {{ strtoupper($communication->channel) }} | {{ str_replace('_', ' ', $communication->audience_type) }}
                         </p>
                         <h2 class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">
                             {{ $communication->subject ?: 'No subject' }}
@@ -88,6 +88,7 @@
                                     $recipientName = match ($delivery->recipient_type) {
                                         'member'  => $memberNames[$delivery->recipient_id]  ?? "Member #{$delivery->recipient_id}",
                                         'visitor' => $visitorNames[$delivery->recipient_id] ?? "Visitor #{$delivery->recipient_id}",
+                                        'manual'  => ($individual['recipient_name'] ?? 'Manual recipient'),
                                         default   => ucfirst($delivery->recipient_type) . " #{$delivery->recipient_id}",
                                     };
                                 @endphp
@@ -139,12 +140,31 @@
                         <div>
                             <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Audience</label>
                             <select name="audience_type" class="form-input w-full" required>
-                                @foreach (['all_members' => 'All Members', 'all_visitors' => 'All Visitors', 'everyone' => 'Everyone'] as $val => $label)
+                                @foreach ([
+                                    'all_members' => 'All Members',
+                                    'all_visitors' => 'All Visitors',
+                                    'everyone' => 'Everyone',
+                                    'individual_registered' => 'Individual (Registered)',
+                                    'individual_unregistered' => 'Individual (Unregistered)',
+                                ] as $val => $label)
                                     <option value="{{ $val }}" @selected($communication->audience_type === $val)>{{ $label }}</option>
                                 @endforeach
                             </select>
                             @error('audience_type')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
+
+                        @if ($communication->audience_type === 'individual_unregistered')
+                            <div class="rounded-xl bg-indigo-50 p-3 text-xs text-indigo-700">
+                                Recipient: {{ $individual['recipient_name'] ?? '—' }}
+                                @if (!empty($individual['recipient_contact_phone']))
+                                    · {{ $individual['recipient_contact_phone'] }}
+                                @endif
+                            </div>
+                        @elseif ($communication->audience_type === 'individual_registered')
+                            <div class="rounded-xl bg-indigo-50 p-3 text-xs text-indigo-700">
+                                Registered recipient: {{ ucfirst($individual['recipient_type'] ?? '—') }} #{{ $individual['recipient_id'] ?? '—' }}
+                            </div>
+                        @endif
 
                         <div>
                             <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Subject <span class="font-normal normal-case text-slate-400">(optional)</span></label>

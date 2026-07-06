@@ -13,12 +13,14 @@ use App\Models\Employee;
 use App\Models\Event;
 use App\Models\Expenditure;
 use App\Models\FollowUpTask;
+use App\Models\Group;
 use App\Models\Income;
 use App\Models\Member;
 use App\Models\PastoralCase;
 use App\Models\Payroll;
 use App\Models\Pledge;
 use App\Models\PledgePayment;
+use App\Models\University;
 use App\Models\Visitor;
 use App\Models\VolunteerAssignment;
 use App\Models\Zone;
@@ -84,6 +86,39 @@ class ReportController extends Controller
             }
             fclose($handle);
         }, 'zone-report.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    // ── Groups ───────────────────────────────────────────────────────────
+
+    public function groups(Request $request): View
+    {
+        ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
+        $groups = $this->groupReportRows($dateFrom, $dateTo);
+
+        return view('reports.groups', compact('groups', 'dateFrom', 'dateTo'));
+    }
+
+    public function groupsExport(Request $request): StreamedResponse
+    {
+        ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
+        $groups = $this->groupReportRows($dateFrom, $dateTo);
+
+        return response()->streamDownload(function () use ($groups): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['group', 'registered_members', 'guest_members', 'leaders', 'coordinators', 'members', 'total']);
+            foreach ($groups as $row) {
+                fputcsv($handle, [
+                    $row['name'],
+                    $row['registered'],
+                    $row['guests'],
+                    $row['leaders'],
+                    $row['coordinators'],
+                    $row['members'],
+                    $row['total'],
+                ]);
+            }
+            fclose($handle);
+        }, 'groups-report.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     // ── Events ────────────────────────────────────────────────────────────
@@ -184,11 +219,32 @@ class ReportController extends Controller
     {
         ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
 
+        $maritalStatus = trim((string) $request->string('marital_status'));
+        $employmentStatus = trim((string) $request->string('employment_status'));
+        $universityStudent = trim((string) $request->string('university_student'));
+        $universityId = $request->integer('university_id') ?: null;
+        $studyDateFrom = $request->filled('study_date_from') ? $request->string('study_date_from')->toString() : null;
+        $studyDateTo = $request->filled('study_date_to') ? $request->string('study_date_to')->toString() : null;
+
         $base = Member::query()
             ->when($dateFrom, fn ($q) => $q->where('membership_date', '>=', $dateFrom))
-            ->when($dateTo,   fn ($q) => $q->where('membership_date', '<=', $dateTo));
+            ->when($dateTo,   fn ($q) => $q->where('membership_date', '<=', $dateTo))
+            ->when($maritalStatus !== '', fn ($q) => $q->where('marital_status', $maritalStatus))
+            ->when($employmentStatus !== '', fn ($q) => $q->where('employment_status', $employmentStatus))
+            ->when($universityStudent !== '', function ($q) use ($universityStudent) {
+                if ($universityStudent === 'yes') {
+                    $q->where('is_university_student', true);
+                } elseif ($universityStudent === 'no') {
+                    $q->where('is_university_student', false);
+                }
+            })
+            ->when($universityId, fn ($q) => $q->where('university_id', $universityId))
+            ->when($studyDateFrom, fn ($q) => $q->where('university_start_date', '>=', $studyDateFrom))
+            ->when($studyDateTo, fn ($q) => $q->where('university_end_date', '<=', $studyDateTo));
 
         $total      = (clone $base)->count();
+        $marriedCount = (clone $base)->where('marital_status', 'Married')->count();
+        $singleCount = (clone $base)->where('marital_status', 'Single')->count();
         $bornAgain  = (clone $base)->where('is_born_again', true)->count();
         $baptized   = (clone $base)->where('is_baptized', true)->count();
         $holySpirit = (clone $base)->where('holy_spirit_baptised', true)->count();
@@ -196,6 +252,26 @@ class ReportController extends Controller
         $byGender  = (clone $base)->select('gender', DB::raw('count(*) as total'))->groupBy('gender')->pluck('total', 'gender');
         $byMarital = (clone $base)->select('marital_status', DB::raw('count(*) as total'))->groupBy('marital_status')->pluck('total', 'marital_status');
         $byZone    = (clone $base)->select('zone', DB::raw('count(*) as total'))->groupBy('zone')->orderByDesc('total')->get();
+        $byEmployment = (clone $base)->select('employment_status', DB::raw('count(*) as total'))->groupBy('employment_status')->pluck('total', 'employment_status');
+        $universityStudentsCount = (clone $base)->where('is_university_student', true)->count();
+
+        $universityRows = (clone $base)
+            ->with('university:id,name')
+            ->where('is_university_student', true)
+            ->orderBy('full_name')
+            ->get([
+                'id',
+                'full_name',
+                'university_id',
+                'university_start_date',
+                'university_end_date',
+                'employment_status',
+            ]);
+
+        $universities = University::query()
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get(['id', 'name', 'type']);
 
         $monthlyQ = Member::query()
             ->select(DB::raw("DATE_FORMAT(membership_date,'%Y-%m') as month"), DB::raw('count(*) as total'))
@@ -207,9 +283,11 @@ class ReportController extends Controller
         $monthlyGrowth = $monthlyQ->get();
 
         return view('reports.members', compact(
-            'total', 'bornAgain', 'baptized', 'holySpirit',
+            'total', 'marriedCount', 'singleCount', 'bornAgain', 'baptized', 'holySpirit',
             'byGender', 'byMarital', 'byZone', 'monthlyGrowth',
-            'dateFrom', 'dateTo'
+            'dateFrom', 'dateTo',
+            'maritalStatus', 'employmentStatus', 'universityStudent', 'universityId', 'studyDateFrom', 'studyDateTo',
+            'byEmployment', 'universityStudentsCount', 'universityRows', 'universities'
         ));
     }
 
@@ -217,19 +295,73 @@ class ReportController extends Controller
     {
         ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
 
+        $maritalStatus = trim((string) $request->string('marital_status'));
+        $employmentStatus = trim((string) $request->string('employment_status'));
+        $universityStudent = trim((string) $request->string('university_student'));
+        $universityId = $request->integer('university_id') ?: null;
+        $studyDateFrom = $request->filled('study_date_from') ? $request->string('study_date_from')->toString() : null;
+        $studyDateTo = $request->filled('study_date_to') ? $request->string('study_date_to')->toString() : null;
+
         $members = Member::query()
             ->when($dateFrom, fn ($q) => $q->where('membership_date', '>=', $dateFrom))
             ->when($dateTo,   fn ($q) => $q->where('membership_date', '<=', $dateTo))
+            ->when($maritalStatus !== '', fn ($q) => $q->where('marital_status', $maritalStatus))
+            ->when($employmentStatus !== '', fn ($q) => $q->where('employment_status', $employmentStatus))
+            ->when($universityStudent !== '', function ($q) use ($universityStudent) {
+                if ($universityStudent === 'yes') {
+                    $q->where('is_university_student', true);
+                } elseif ($universityStudent === 'no') {
+                    $q->where('is_university_student', false);
+                }
+            })
+            ->when($universityId, fn ($q) => $q->where('university_id', $universityId))
+            ->when($studyDateFrom, fn ($q) => $q->where('university_start_date', '>=', $studyDateFrom))
+            ->when($studyDateTo, fn ($q) => $q->where('university_end_date', '<=', $studyDateTo))
+            ->with('university:id,name')
             ->orderBy('full_name')
-            ->get(['full_name', 'gender', 'zone', 'marital_status', 'membership_date', 'is_born_again', 'is_baptized']);
+            ->get([
+                'full_name',
+                'gender',
+                'zone',
+                'marital_status',
+                'membership_date',
+                'is_born_again',
+                'is_baptized',
+                'employment_status',
+                'is_university_student',
+                'university_id',
+                'university_start_date',
+                'university_end_date',
+            ]);
 
         return response()->streamDownload(function () use ($members): void {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['name', 'gender', 'zone', 'marital_status', 'membership_date', 'born_again', 'baptized']);
+            fputcsv($handle, [
+                'name',
+                'gender',
+                'zone',
+                'marital_status',
+                'membership_date',
+                'employment_status',
+                'university_student',
+                'university',
+                'university_start_date',
+                'university_end_date',
+                'born_again',
+                'baptized',
+            ]);
             foreach ($members as $m) {
                 fputcsv($handle, [
-                    $m->full_name, $m->gender, $m->zone, $m->marital_status,
+                    $m->full_name,
+                    $m->gender,
+                    $m->zone,
+                    $m->marital_status,
                     optional($m->membership_date)->toDateString(),
+                    $m->employment_status,
+                    $m->is_university_student ? 'Yes' : 'No',
+                    $m->university?->name,
+                    optional($m->university_start_date)->toDateString(),
+                    optional($m->university_end_date)->toDateString(),
                     $m->is_born_again ? 'Yes' : 'No',
                     $m->is_baptized   ? 'Yes' : 'No',
                 ]);
@@ -811,5 +943,50 @@ class ReportController extends Controller
                 ];
             })
             ->sortByDesc('attendance')->values();
+    }
+
+    private function groupReportRows(?string $dateFrom, ?string $dateTo): \Illuminate\Support\Collection
+    {
+        return Group::query()
+            ->withCount([
+                'memberships as total_count' => fn ($q) => $q
+                    ->when($dateFrom, fn ($q2) => $q2->whereDate('joined_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($q2) => $q2->whereDate('joined_at', '<=', $dateTo)),
+                'memberships as registered_count' => fn ($q) => $q
+                    ->whereNotNull('member_id')
+                    ->when($dateFrom, fn ($q2) => $q2->whereDate('joined_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($q2) => $q2->whereDate('joined_at', '<=', $dateTo)),
+                'memberships as guest_count' => fn ($q) => $q
+                    ->whereNull('member_id')
+                    ->when($dateFrom, fn ($q2) => $q2->whereDate('joined_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($q2) => $q2->whereDate('joined_at', '<=', $dateTo)),
+                'memberships as leaders_count' => fn ($q) => $q
+                    ->where('role', 'leader')
+                    ->when($dateFrom, fn ($q2) => $q2->whereDate('joined_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($q2) => $q2->whereDate('joined_at', '<=', $dateTo)),
+                'memberships as coordinators_count' => fn ($q) => $q
+                    ->where('role', 'coordinator')
+                    ->when($dateFrom, fn ($q2) => $q2->whereDate('joined_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($q2) => $q2->whereDate('joined_at', '<=', $dateTo)),
+                'memberships as members_count' => fn ($q) => $q
+                    ->where('role', 'member')
+                    ->when($dateFrom, fn ($q2) => $q2->whereDate('joined_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($q2) => $q2->whereDate('joined_at', '<=', $dateTo)),
+            ])
+            ->orderByDesc('total_count')
+            ->orderBy('name')
+            ->get(['id', 'name', 'icon', 'color'])
+            ->map(fn (Group $group): array => [
+                'name' => $group->name,
+                'icon' => $group->icon,
+                'color' => $group->color,
+                'registered' => $group->registered_count,
+                'guests' => $group->guest_count,
+                'leaders' => $group->leaders_count,
+                'coordinators' => $group->coordinators_count,
+                'members' => $group->members_count,
+                'total' => $group->total_count,
+            ])
+            ->values();
     }
 }

@@ -6,10 +6,12 @@ use App\Http\Requests\Members\StoreMemberRequest;
 use App\Http\Requests\Members\UpdateMemberRequest;
 use App\Models\Family;
 use App\Models\Member;
+use App\Models\University;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -23,8 +25,25 @@ class MemberController extends Controller
     public function index(Request $request): View
     {
         $search = trim((string) $request->string('search'));
+        $dateFrom = $request->filled('date_from') ? $request->string('date_from')->toString() : null;
+        $dateTo = $request->filled('date_to') ? $request->string('date_to')->toString() : null;
+        $maritalStatus = trim((string) $request->string('marital_status'));
+        $employmentStatus = trim((string) $request->string('employment_status'));
+        $universityStudent = trim((string) $request->string('university_student'));
 
         $members = Member::query()
+            ->with('university:id,name')
+            ->when($dateFrom, fn ($q) => $q->where('membership_date', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->where('membership_date', '<=', $dateTo))
+            ->when($maritalStatus !== '', fn ($q) => $q->where('marital_status', $maritalStatus))
+            ->when($employmentStatus !== '', fn ($q) => $q->where('employment_status', $employmentStatus))
+            ->when($universityStudent !== '', function ($q) use ($universityStudent) {
+                if ($universityStudent === 'yes') {
+                    $q->where('is_university_student', true);
+                } elseif ($universityStudent === 'no') {
+                    $q->where('is_university_student', false);
+                }
+            })
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('full_name', 'like', "%{$search}%")
@@ -39,26 +58,47 @@ class MemberController extends Controller
         return view('members.index', [
             'members' => $members,
             'search' => $search,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'maritalStatus' => $maritalStatus,
+            'employmentStatus' => $employmentStatus,
+            'universityStudent' => $universityStudent,
         ]);
     }
 
     public function create(): View
     {
         $families = Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']);
+        $partners = Member::query()->orderBy('full_name')->get(['id', 'full_name', 'tithe_code']);
+        $universities = University::query()->orderBy('type')->orderBy('name')->get(['id', 'name', 'type', 'country']);
+        $nextTitheCode = Member::nextTitheCode();
 
         return view('members.create', [
             'member' => new Member([
                 'is_born_again' => false,
                 'is_baptized' => false,
                 'holy_spirit_baptised' => false,
+                'share_partner_tithe_code' => false,
+                'is_university_student' => false,
+                'tithe_code' => $nextTitheCode,
             ]),
             'families' => $families,
+            'partners' => $partners,
+            'universities' => $universities,
+            'nextTitheCode' => $nextTitheCode,
         ]);
     }
 
     public function store(StoreMemberRequest $request): RedirectResponse
     {
-        $member = Member::query()->create($this->normalizedMemberData($request->validated()));
+        $data = $request->validated();
+
+        $member = DB::transaction(function () use ($data) {
+            $member = Member::query()->create($this->normalizedMemberData($data, null));
+            $this->syncPartnerMarriageDetails($member, $data);
+
+            return $member->fresh('partnerMember');
+        });
 
         $this->auditLogger->log(
             request: $request,
@@ -73,20 +113,34 @@ class MemberController extends Controller
 
     public function show(Member $member): View
     {
+        $member->loadMissing('partnerMember', 'university');
+
         return view('members.show', compact('member'));
     }
 
     public function edit(Member $member): View
     {
         $families = Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']);
+        $partners = Member::query()
+            ->whereKeyNot($member->id)
+            ->orderBy('full_name')
+            ->get(['id', 'full_name', 'tithe_code']);
+        $universities = University::query()->orderBy('type')->orderBy('name')->get(['id', 'name', 'type', 'country']);
 
-        return view('members.edit', compact('member', 'families'));
+        return view('members.edit', compact('member', 'families', 'partners', 'universities'));
     }
 
     public function update(UpdateMemberRequest $request, Member $member): RedirectResponse
     {
+        $data = $request->validated();
         $before = Arr::only($member->toArray(), ['full_name', 'gender', 'phone', 'zone', 'residency']);
-        $member->update($this->normalizedMemberData($request->validated()));
+        $member = DB::transaction(function () use ($member, $data) {
+            $originalPartnerId = $member->partner_member_id;
+            $member->update($this->normalizedMemberData($data, $member));
+            $this->syncPartnerMarriageDetails($member, $data, $originalPartnerId);
+
+            return $member->fresh('partnerMember');
+        });
 
         $this->auditLogger->log(
             request: $request,
@@ -193,20 +247,45 @@ class MemberController extends Controller
         return redirect()->route('members.index')->with('status', $count.' member records imported successfully.');
     }
 
-    private function normalizedMemberData(array $data): array
+    private function normalizedMemberData(array $data, ?Member $member): array
     {
+        $isMarried = ($data['marital_status'] ?? null) === 'Married';
+        $partnerMemberId = $isMarried ? ($data['partner_member_id'] ?? null) : null;
+        $sharePartnerTitheCode = $isMarried && ($data['share_partner_tithe_code'] ?? false);
+
+        if ($partnerMemberId !== null && $member !== null && (int) $partnerMemberId === (int) $member->id) {
+            $partnerMemberId = null;
+            $sharePartnerTitheCode = false;
+        }
+
+        $partner = $partnerMemberId ? Member::query()->find($partnerMemberId, ['id', 'full_name', 'tithe_code']) : null;
+        $titheCode = $data['tithe_code'] ?? ($member?->tithe_code ?? null);
+
+        if ($member === null && blank($titheCode)) {
+            $titheCode = Member::nextTitheCode();
+        }
+
+        if ($sharePartnerTitheCode && $partner?->tithe_code) {
+            $titheCode = $partner->tithe_code;
+        }
+
         return [
+            'family_id' => $data['family_id'] ?? null,
             'full_name' => $data['full_name'],
             'gender' => $data['gender'],
             'phone' => $data['phone'] ?? null,
-            'tithe_code' => $data['tithe_code'] ?? null,
+            'tithe_code' => $titheCode,
+            'share_partner_tithe_code' => $sharePartnerTitheCode,
             'zone' => $data['zone'] ?? null,
             'residency' => $data['residency'] ?? null,
             'marital_status' => $data['marital_status'] ?? null,
             'profile_pic' => $data['profile_pic'] ?? null,
             'date_of_birth' => $data['date_of_birth'] ?? null,
-            'partner_name' => $data['partner_name'] ?? null,
-            'married_date' => $data['married_date'] ?? null,
+            'partner_member_id' => $partner?->id,
+            'partner_name' => $isMarried
+                ? ($partner?->full_name ?? ($data['partner_name'] ?? null))
+                : null,
+            'married_date' => $isMarried ? ($data['married_date'] ?? null) : null,
             'is_born_again' => $data['is_born_again'] ?? false,
             'born_again_date' => $data['born_again_date'] ?? null,
             'is_baptized' => $data['is_baptized'] ?? false,
@@ -217,6 +296,47 @@ class MemberController extends Controller
             'username' => $data['username'] ?? null,
             'email' => $data['email'] ?? null,
             'remarks' => $data['remarks'] ?? null,
+            'employment_status' => $data['employment_status'] ?? null,
+            'is_university_student' => $data['is_university_student'] ?? false,
+            'university_id' => ($data['is_university_student'] ?? false) ? ($data['university_id'] ?? null) : null,
+            'university_start_date' => ($data['is_university_student'] ?? false) ? ($data['university_start_date'] ?? null) : null,
+            'university_end_date' => ($data['is_university_student'] ?? false) ? ($data['university_end_date'] ?? null) : null,
         ];
+    }
+
+    private function syncPartnerMarriageDetails(Member $member, array $data, ?int $originalPartnerId = null): void
+    {
+        $currentPartnerId = $data['marital_status'] === 'Married' ? ($data['partner_member_id'] ?? null) : null;
+
+        if ($originalPartnerId && (int) $originalPartnerId !== (int) $currentPartnerId) {
+            Member::query()
+                ->whereKey($originalPartnerId)
+                ->where('partner_member_id', $member->id)
+                ->update([
+                    'partner_member_id' => null,
+                    'partner_name' => null,
+                    'married_date' => null,
+                    'marital_status' => null,
+                ]);
+        }
+
+        if (! $currentPartnerId) {
+            return;
+        }
+
+        $partner = Member::query()->find($currentPartnerId, ['id', 'full_name']);
+
+        if (! $partner) {
+            return;
+        }
+
+        Member::query()
+            ->whereKey($partner->id)
+            ->update([
+                'partner_member_id' => $member->id,
+                'partner_name' => $member->full_name,
+                'married_date' => $data['married_date'] ?? null,
+                'marital_status' => 'Married',
+            ]);
     }
 }

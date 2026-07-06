@@ -72,27 +72,42 @@ class SmsService
         $normalised = WhatsAppService::normalisePhone($toPhone);
         $destAddr = ltrim($normalised, '+');
 
-        $payload = [
-            'source_addr' => $sender,
-            'encoding' => 0,
-            'schedule_time' => '',
-            'message' => $body,
-            'recipients' => [
-                [
-                    'recipient_id' => '1',
-                    'dest_addr' => $destAddr,
+        $sendRequest = function (string $senderId) use ($apiKey, $secret, $baseUrl, $body, $destAddr) {
+            $payload = [
+                'source_addr' => $senderId,
+                'encoding' => 0,
+                'schedule_time' => '',
+                'message' => $body,
+                'recipients' => [
+                    [
+                        'recipient_id' => '1',
+                        'dest_addr' => $destAddr,
+                    ],
                 ],
-            ],
-        ];
+            ];
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . base64_encode($apiKey . ':' . $secret),
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ])->post($baseUrl . '/v1/send', $payload);
+            return Http::withHeaders([
+                'Authorization' => 'Basic ' . base64_encode($apiKey . ':' . $secret),
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])->post($baseUrl . '/v1/send', $payload);
+        };
+
+        $response = $sendRequest($sender);
 
         if (! $response->successful()) {
-            throw new \RuntimeException('Beem SMS request failed: ' . $response->status() . ' ' . $response->body());
+            $bodyText = (string) $response->body();
+            $looksLikeInvalidSender = $response->status() === 400
+                && str_contains(strtolower($bodyText), 'sender id');
+
+            // Fallback for unapproved/custom sender ids in Beem.
+            if ($looksLikeInvalidSender && strtoupper($sender) !== 'INFO') {
+                $response = $sendRequest('INFO');
+            }
+
+            if (! $response->successful()) {
+                throw new \RuntimeException('Beem SMS request failed: ' . $response->status() . ' ' . $response->body());
+            }
         }
 
         $json = $response->json();

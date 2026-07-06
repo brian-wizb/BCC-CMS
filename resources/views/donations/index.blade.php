@@ -96,8 +96,8 @@
                                 <td class="px-5 py-3">
                                     @if ($donation->attachment)
                                         <a href="{{ Storage::url($donation->attachment) }}" target="_blank"
-                                           class="text-xs text-blue-600 underline">
-                                            View
+                                           class="inline-flex items-center gap-1 text-xs text-blue-600 underline">
+                                            <i class="fas fa-paperclip text-[10px]"></i> View
                                         </a>
                                     @else
                                         <span class="text-slate-300">—</span>
