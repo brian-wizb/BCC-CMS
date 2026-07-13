@@ -13,6 +13,8 @@ use Illuminate\View\View;
 
 class DonationController extends Controller
 {
+    private const TITHE_KEYWORDS = ['tithe', 'zaka'];
+
     private function donationQuery(?string $search = null, ?string $dateFrom = null, ?string $dateTo = null)
     {
         $query = Donation::with('member');
@@ -145,27 +147,63 @@ class DonationController extends Controller
             }
         }
 
+        $isTithe = $this->isTitheDonationType((string) ($data['type'] ?? ''));
+        $hasMember = ! empty($data['member_id']);
+        $shouldAttemptSms = $isTithe && $hasMember;
+
+        $data['sms_delivery_status'] = $shouldAttemptSms ? 'pending' : 'not_applicable';
+        $data['sms_provider_response'] = null;
+        $data['sms_sent_at'] = null;
+
         $donation = Donation::create($data);
 
-        // Send SMS confirmation to member when a Tithe is recorded
-        if ($data['type'] === 'Tithe [Zaka]' && !empty($data['member_id'])) {
+        $smsBanner = null;
+
+        // Send SMS confirmation to member when a tithe is recorded.
+        if ($shouldAttemptSms) {
             $member = $member ?? Member::find($data['member_id']);
-            if ($member && filled($member->phone)) {
+
+            if (! $member || blank($member->phone)) {
+                $donation->update([
+                    'sms_delivery_status' => 'failed',
+                    'sms_provider_response' => 'No member phone number on file.',
+                ]);
+                $smsBanner = 'Donation saved, but receipt SMS was not sent (missing member phone).';
+            } else {
                 try {
-                    $amount = number_format((float) $data['amount'], 2);
-                    $date   = \Carbon\Carbon::parse($data['donation_date'])->format('d M Y');
-                    $code   = $data['tithe_code'] ?? $member->tithe_code ?? '';
-                    $msg    = "Ndugu {$member->full_name}, Zaka yako ya TZS {$amount} imepokelewa tarehe {$date}."
-                            . ($code ? " Nambari ya Zaka: {$code}." : '')
-                            . " Mungu akubariki. - BCC";
-                    app(SmsService::class)->send($member->phone, $msg);
+                    $amount = number_format((float) $data['amount'], 0, '.', ',');
+                    $date   = \Carbon\Carbon::parse($data['donation_date'])->format('d-m-Y');
+                    $msg    = "Mpendwa Mshirika wa TAG - Bethel City Church, Matoleo yako ya (Tithe [Zaka]) "
+                        . "TZS {$amount} imepokelewa {$date}. Mungu akubariki. "
+                        . "Kwa maelezo piga 0759-010263.";
+
+                    $providerResponse = app(SmsService::class)->send($member->phone, $msg);
+
+                    $donation->update([
+                        'sms_delivery_status' => 'sent',
+                        'sms_provider_response' => (string) $providerResponse,
+                        'sms_sent_at' => now(),
+                    ]);
+
+                    $smsBanner = 'Receipt SMS sent successfully.';
                 } catch (\Throwable $e) {
-                    Log::warning("Tithe SMS failed for member {$data['member_id']}: {$e->getMessage()}");
+                    $donation->update([
+                        'sms_delivery_status' => 'failed',
+                        'sms_provider_response' => $e->getMessage(),
+                    ]);
+
+                    Log::warning("Tithe SMS failed for donation {$donation->id}, member {$data['member_id']}: {$e->getMessage()}");
+                    $smsBanner = 'Donation saved, but receipt SMS failed to send.';
                 }
             }
         }
 
-        return redirect()->route('donations.index')->with('status', 'Donation recorded successfully.');
+        $status = 'Donation recorded successfully.';
+        if ($smsBanner) {
+            $status .= ' ' . $smsBanner;
+        }
+
+        return redirect()->route('donations.index')->with('status', $status);
     }
 
     /**
@@ -226,5 +264,22 @@ class DonationController extends Controller
         $donation->delete();
 
         return redirect()->route('donations.index')->with('status', 'Donation deleted.');
+    }
+
+    private function isTitheDonationType(string $type): bool
+    {
+        $normalized = strtolower(trim($type));
+
+        if ($normalized === '') {
+            return false;
+        }
+
+        foreach (self::TITHE_KEYWORDS as $keyword) {
+            if (str_contains($normalized, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

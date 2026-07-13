@@ -64,6 +64,7 @@
                             <th class="px-5 py-3"><i class="fas fa-credit-card mr-1.5 opacity-60"></i>Method</th>
                             <th class="px-5 py-3"><i class="fas fa-receipt mr-1.5 opacity-60"></i>Reference</th>
                             <th class="px-5 py-3"><i class="fas fa-calendar-alt mr-1.5 opacity-60"></i>Date</th>
+                            <th class="px-5 py-3"><i class="fas fa-comment-sms mr-1.5 opacity-60"></i>SMS Status</th>
                             <th class="px-5 py-3"><i class="fas fa-paperclip mr-1.5 opacity-60"></i>Attachment</th>
                             <th class="px-5 py-3 text-right">Actions</th>
                         </tr>
@@ -93,6 +94,24 @@
                                 <td class="px-5 py-3 text-slate-500">{{ $donation->method ?: '—' }}</td>
                                 <td class="px-5 py-3 text-slate-500">{{ $donation->reference ?: '—' }}</td>
                                 <td class="px-5 py-3 text-slate-400 whitespace-nowrap">{{ $donation->donation_date->format('d M Y') }}</td>
+                                <td class="px-5 py-3 text-xs">
+                                    @php
+                                        $smsStatus = $donation->sms_delivery_status ?: '—';
+                                        $smsClasses = match($donation->sms_delivery_status) {
+                                            'sent' => 'bg-emerald-100 text-emerald-700',
+                                            'failed' => 'bg-rose-100 text-rose-700',
+                                            'pending' => 'bg-amber-100 text-amber-700',
+                                            'not_applicable' => 'bg-slate-100 text-slate-600',
+                                            default => 'bg-slate-100 text-slate-600',
+                                        };
+                                    @endphp
+                                    <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold {{ $smsClasses }}" title="{{ $donation->sms_provider_response ?: 'No provider response recorded.' }}">
+                                        {{ str_replace('_', ' ', ucfirst($smsStatus)) }}
+                                    </span>
+                                    @if ($donation->sms_sent_at)
+                                        <p class="mt-1 text-[11px] text-slate-400">{{ $donation->sms_sent_at->format('d M Y H:i') }}</p>
+                                    @endif
+                                </td>
                                 <td class="px-5 py-3">
                                     @if ($donation->attachment)
                                         <a href="{{ Storage::url($donation->attachment) }}" target="_blank"
@@ -123,7 +142,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-5 py-12 text-center">
+                                <td colspan="11" class="px-5 py-12 text-center">
                                     <i class="fas fa-hand-holding-heart mb-3 block text-3xl text-slate-300"></i>
                                     <p class="text-sm text-slate-400">No donations recorded yet. <a href="{{ route('donations.create') }}" class="text-blue-600 underline">Add the first one</a>.</p>
                                 </td>

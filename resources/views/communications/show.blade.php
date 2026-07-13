@@ -184,10 +184,21 @@
 
                 {{-- Send --}}
                 <article class="surface-card p-5">
-                    <p class="mb-3 text-sm text-slate-500">Ready to send? This will queue a message for every recipient with a phone number on file.</p>
+                    <p class="mb-3 text-sm text-slate-500">Ready to send? Choose whether to queue in background or send immediately in this request.</p>
                     <form method="POST" action="{{ route('communications.send', $communication) }}"
-                          data-confirm="Send this communication to all recipients? This cannot be undone.">
+                          data-confirm="Send this communication to all recipients? This cannot be undone."
+                          class="space-y-3">
                         @csrf
+
+                        <div>
+                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Delivery mode</label>
+                            <select name="delivery_mode" class="form-input w-full">
+                                <option value="default" selected>Use system default ({{ strtoupper($defaultDeliveryMode) }})</option>
+                                <option value="queued">Queued (background worker)</option>
+                                <option value="immediate">Immediate (send now)</option>
+                            </select>
+                        </div>
+
                         <button type="submit" class="btn-primary w-full">
                             <i class="fa-solid fa-paper-plane mr-2"></i> Send now
                         </button>
@@ -205,9 +216,20 @@
                             <i class="fa-solid fa-triangle-exclamation mr-1"></i>
                             {{ $stats['failed'] }} delivery/deliveries failed.
                         </p>
-                        <form method="POST" action="{{ route('communications.retry', $communication) }}" class="mt-3"
-                              data-confirm="Re-queue all failed deliveries?">
+                        <form method="POST" action="{{ route('communications.retry', $communication) }}"
+                            data-confirm="Retry all failed deliveries now?"
+                            class="mt-3 space-y-3">
                             @csrf
+
+                            <div>
+                                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Retry mode</label>
+                                <select name="delivery_mode" class="form-input w-full">
+                                    <option value="default" selected>Use system default ({{ strtoupper($defaultDeliveryMode) }})</option>
+                                    <option value="queued">Queued (background worker)</option>
+                                    <option value="immediate">Immediate (send now)</option>
+                                </select>
+                            </div>
+
                             <button type="submit" class="btn-secondary w-full">
                                 <i class="fa-solid fa-rotate-right mr-2"></i> Retry failed
                             </button>

@@ -239,12 +239,40 @@
     <script>
         new QRCode(document.getElementById('visitorQrCode'), {
             text:         '{{ $visitor->qr_token }}',
-            width:        180,
-            height:       180,
+            width:        420,
+            height:       420,
             colorDark:    '#000',
             colorLight:   '#fff',
-            correctLevel: QRCode.CorrectLevel.H,
+            correctLevel: QRCode.CorrectLevel.M,
         });
+
+        setTimeout(() => {
+            const canvas = document.querySelector('#visitorQrCode canvas');
+            const img = document.querySelector('#visitorQrCode img');
+            if (canvas) {
+                canvas.style.width = '180px';
+                canvas.style.height = '180px';
+                canvas.style.imageRendering = 'pixelated';
+            }
+            if (img) {
+                img.style.width = '180px';
+                img.style.height = '180px';
+                img.style.imageRendering = 'pixelated';
+            }
+        }, 120);
+
+        function makePaddedQrDataUrl(canvas, padding = 56) {
+            const out = document.createElement('canvas');
+            out.width = canvas.width + (padding * 2);
+            out.height = canvas.height + (padding * 2);
+
+            const ctx = out.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, out.width, out.height);
+            ctx.drawImage(canvas, padding, padding);
+
+            return out.toDataURL('image/png');
+        }
 
         document.getElementById('downloadVisitorQr').addEventListener('click', () => {
             setTimeout(() => {
@@ -252,9 +280,11 @@
                 const img    = document.querySelector('#visitorQrCode img');
                 const a = document.createElement('a');
                 a.download = '{{ Str::slug($visitor->full_name) }}-qr.png';
-                a.href = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '#');
+                a.href = canvas
+                    ? makePaddedQrDataUrl(canvas)
+                    : (img ? img.src : '#');
                 a.click();
-            }, 100);
+            }, 140);
         });
 
         @if ($visitor->phone)

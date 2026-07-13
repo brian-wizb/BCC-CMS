@@ -11,12 +11,14 @@ class Donation extends Model
         'member_id', 'donor_name', 'donor_email',
         'type', 'tithe_code', 'amount', 'reference',
         'method', 'donation_date', 'campaign_id', 'notes', 'attachment',
+        'sms_delivery_status', 'sms_provider_response', 'sms_sent_at',
     ];
 
     protected function casts(): array
     {
         return [
             'donation_date' => 'date',
+            'sms_sent_at' => 'datetime',
         ];
     }
 

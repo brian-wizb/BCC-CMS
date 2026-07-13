@@ -85,6 +85,7 @@ class CommunicationController extends Controller
             'members' => Member::query()->orderBy('full_name')->get(['id', 'full_name', 'phone']),
             'visitors' => Visitor::query()->orderBy('full_name')->get(['id', 'full_name', 'phone']),
             'individual' => $individual,
+            'defaultDeliveryMode' => $this->configuredDeliveryMode(),
         ]);
     }
 
@@ -132,17 +133,24 @@ class CommunicationController extends Controller
             ->with('status', 'Communication deleted.');
     }
 
-    public function send(Communication $communication): RedirectResponse
+    public function send(Request $request, Communication $communication): RedirectResponse
     {
         if ($communication->status === 'sent') {
             return back()->with('error', 'This communication has already been sent.');
         }
 
+        $validated = $request->validate([
+            'delivery_mode' => ['nullable', 'string', Rule::in(['default', 'queued', 'immediate'])],
+        ]);
+
+        $deliveryMode = $this->resolveDeliveryModeFromRequest($validated['delivery_mode'] ?? 'default');
+        $immediateMode = $this->isImmediateDeliveryMode($deliveryMode);
+
         // Phone-based channels only — pick the phone field for contact.
         $dispatched = 0;
         $skipped    = 0;
 
-        $enqueue = function ($person, string $type) use ($communication, &$dispatched, &$skipped) {
+        $enqueue = function ($person, string $type) use ($communication, $deliveryMode, &$dispatched, &$skipped) {
             $contact = $person->phone ?? null;
             if (blank($contact)) {
                 $skipped++;
@@ -157,7 +165,7 @@ class CommunicationController extends Controller
                 'delivery_status'  => 'queued',
             ]);
 
-            SendCommunicationJob::dispatch($delivery);
+            $this->dispatchDelivery($delivery, $deliveryMode);
             $dispatched++;
         };
 
@@ -205,14 +213,16 @@ class CommunicationController extends Controller
                     'recipient_contact' => $contact,
                     'delivery_status' => 'queued',
                 ]);
-                SendCommunicationJob::dispatch($delivery);
+                $this->dispatchDelivery($delivery, $deliveryMode);
                 $dispatched++;
             }
         }
 
         $communication->update(['status' => 'sent', 'sent_at' => now()]);
 
-        $msg = "Queued {$dispatched} message(s) for delivery.";
+        $msg = $immediateMode
+            ? "Sent {$dispatched} message(s)."
+            : "Queued {$dispatched} message(s) for delivery.";
         if ($skipped > 0) {
             $msg .= " {$skipped} recipient(s) skipped — no phone number on file.";
         }
@@ -272,8 +282,14 @@ class CommunicationController extends Controller
         return $filters;
     }
 
-    public function retryFailed(Communication $communication): RedirectResponse
+    public function retryFailed(Request $request, Communication $communication): RedirectResponse
     {
+        $validated = $request->validate([
+            'delivery_mode' => ['nullable', 'string', Rule::in(['default', 'queued', 'immediate'])],
+        ]);
+
+        $deliveryMode = $this->resolveDeliveryModeFromRequest($validated['delivery_mode'] ?? 'default');
+
         $failed = $communication->deliveries()
             ->where('delivery_status', 'failed')
             ->get();
@@ -289,10 +305,60 @@ class CommunicationController extends Controller
                 'provider_response' => null,
                 'delivered_at'      => null,
             ]);
-            SendCommunicationJob::dispatch($delivery);
+            $this->dispatchDelivery($delivery, $deliveryMode);
             $count++;
         }
 
-        return back()->with('status', "Re-queued {$count} failed delivery/deliveries.");
+        $message = $this->isImmediateDeliveryMode($deliveryMode)
+            ? "Retried {$count} failed delivery/deliveries immediately."
+            : "Re-queued {$count} failed delivery/deliveries.";
+
+        return back()->with('status', $message);
+    }
+
+    private function dispatchDelivery(CommunicationDelivery $delivery, ?string $mode = null): void
+    {
+        if (! $this->isImmediateDeliveryMode($mode)) {
+            SendCommunicationJob::dispatch($delivery);
+            return;
+        }
+
+        try {
+            SendCommunicationJob::dispatchSync($delivery);
+        } catch (\Throwable) {
+            // Job already records failure details on the delivery row.
+        }
+    }
+
+    private function resolveDeliveryModeFromRequest(string $requested): string
+    {
+        return match ($requested) {
+            'queued', 'immediate' => $requested,
+            default => $this->configuredDeliveryMode(),
+        };
+    }
+
+    private function configuredDeliveryMode(): string
+    {
+        $mode = strtolower((string) config('communications.delivery_mode', 'queued'));
+
+        return in_array($mode, ['queued', 'immediate', 'auto', 'sync'], true)
+            ? $mode
+            : 'queued';
+    }
+
+    private function isImmediateDeliveryMode(?string $mode = null): bool
+    {
+        $mode = strtolower((string) ($mode ?? $this->configuredDeliveryMode()));
+
+        if (in_array($mode, ['immediate', 'sync'], true)) {
+            return true;
+        }
+
+        if ($mode === 'auto') {
+            return (string) config('queue.default') === 'sync';
+        }
+
+        return false;
     }
 }

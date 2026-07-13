@@ -577,12 +577,16 @@ class AttendanceController extends Controller
     public function processScan(Request $request): \Illuminate\Http\JsonResponse
     {
         $data = $request->validate([
-            'token'      => ['required', 'string', 'max:64'],
+            'token'      => ['required', 'string', 'max:1000'],
             'service_id' => ['required', 'integer', Rule::exists('services', 'id')],
         ]);
 
-        $token     = $data['token'];
+        $token     = $this->normaliseScannedToken((string) $data['token']);
         $serviceId = (int) $data['service_id'];
+
+        if ($token === '' || strlen($token) > 128) {
+            return response()->json(['error' => 'Invalid QR payload scanned.'], 422);
+        }
 
         // Find person across members, visitors, leaders
         $field  = null;
@@ -647,6 +651,40 @@ class AttendanceController extends Controller
             'status'  => $isLate ? 'late' : 'present',
             'time'    => now()->format('H:i'),
         ]);
+    }
+
+    private function normaliseScannedToken(string $raw): string
+    {
+        $value = trim($raw);
+        $value = trim($value, "\"' ");
+
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            $parts = parse_url($value);
+            $query = [];
+
+            if (! empty($parts['query'])) {
+                parse_str($parts['query'], $query);
+            }
+
+            foreach (['token', 'qr_token', 't'] as $key) {
+                if (! empty($query[$key]) && is_string($query[$key])) {
+                    return trim($query[$key]);
+                }
+            }
+
+            if (! empty($parts['path'])) {
+                $segments = explode('/', trim((string) $parts['path'], '/'));
+                $segment = trim((string) array_pop($segments));
+                if ($segment !== '' && strtolower($segment) !== 'checkin') {
+                    return $segment;
+                }
+            }
+        }
+
+        // Some scanners prepend labels such as "QR:" or include whitespace/newlines.
+        $value = preg_replace('/\s+/', '', $value) ?: '';
+
+        return $value;
     }
 
     // ── WhatsApp QR Sending ────────────────────────────────────────────────

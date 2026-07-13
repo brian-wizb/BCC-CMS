@@ -234,12 +234,40 @@
     <script>
         new QRCode(document.getElementById('memberQrCode'), {
             text:          '{{ $member->qr_token }}',
-            width:         200,
-            height:        200,
+            width:         420,
+            height:        420,
             colorDark:     '#000',
             colorLight:    '#fff',
-            correctLevel:  QRCode.CorrectLevel.H,
+            correctLevel:  QRCode.CorrectLevel.M,
         });
+
+        setTimeout(() => {
+            const canvas = document.querySelector('#memberQrCode canvas');
+            const img = document.querySelector('#memberQrCode img');
+            if (canvas) {
+                canvas.style.width = '200px';
+                canvas.style.height = '200px';
+                canvas.style.imageRendering = 'pixelated';
+            }
+            if (img) {
+                img.style.width = '200px';
+                img.style.height = '200px';
+                img.style.imageRendering = 'pixelated';
+            }
+        }, 120);
+
+        function makePaddedQrDataUrl(canvas, padding = 56) {
+            const out = document.createElement('canvas');
+            out.width = canvas.width + (padding * 2);
+            out.height = canvas.height + (padding * 2);
+
+            const ctx = out.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, out.width, out.height);
+            ctx.drawImage(canvas, padding, padding);
+
+            return out.toDataURL('image/png');
+        }
 
         document.getElementById('downloadMemberQr').addEventListener('click', () => {
             setTimeout(() => { // qrcodejs is async
@@ -247,9 +275,11 @@
                 const img    = document.querySelector('#memberQrCode img');
                 const a = document.createElement('a');
                 a.download = '{{ Str::slug($member->full_name) }}-qr.png';
-                a.href = canvas ? canvas.toDataURL('image/png') : (img ? img.src : '#');
+                a.href = canvas
+                    ? makePaddedQrDataUrl(canvas)
+                    : (img ? img.src : '#');
                 a.click();
-            }, 100);
+            }, 140);
         });
 
         @if ($member->phone)
