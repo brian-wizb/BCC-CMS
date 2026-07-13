@@ -1,5 +1,6 @@
 <x-layouts.app title="Bulk Attendance Sheet">
-    <div class="mb-6 flex items-center gap-4">
+    <div class="attendance-responsive">
+    <div class="mb-6 flex items-center gap-4 attendance-header">
         <a href="{{ route('attendance.index') }}" class="text-slate-400 hover:text-[var(--color-brand-600)] transition-colors">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
@@ -23,7 +24,7 @@
 
     {{-- Service selector --}}
     <article class="surface-card p-5 mb-6">
-        <form method="GET" action="{{ route('attendance.bulk') }}" class="flex flex-wrap gap-3 items-end">
+        <form method="GET" action="{{ route('attendance.bulk') }}" class="flex flex-wrap gap-3 items-end attendance-filter-form">
             <div class="flex-1 min-w-52">
                 <label class="block text-xs text-slate-500 mb-1">Select Service</label>
                 <select name="service_id" class="form-input w-full" required onchange="this.form.submit()">
@@ -103,7 +104,7 @@
                                 </td>
                                 <td class="px-4 py-2 text-slate-500 text-xs">{{ $member->zone ?: '—' }}</td>
                                 <td class="px-4 py-2">
-                                    <div class="flex gap-1 flex-wrap">
+                                    <div class="flex gap-1 flex-wrap bulk-status-group">
                                         @foreach ($statuses as $key => $label)
                                             <label class="status-btn cursor-pointer select-none">
                                                 <input type="radio"
@@ -197,4 +198,5 @@
         });
     </script>
     @endpush
+    </div>
 </x-layouts.app>

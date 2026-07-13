@@ -1,6 +1,7 @@
 <x-layouts.app :title="'Service: '.$service->name">
+    <div class="attendance-responsive">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 attendance-header">
             <a href="{{ route('attendance.services') }}" class="text-slate-400 hover:text-[var(--color-brand-600)] transition-colors">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
@@ -16,7 +17,7 @@
                 </p>
             </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 attendance-actions">
             <a href="{{ route('attendance.bulk', ['service_id' => $service->id]) }}" class="btn-secondary text-sm">
                 <i class="fa-solid fa-list-check mr-1.5"></i>Bulk Sheet
             </a>
@@ -139,4 +140,5 @@
         </div>
         <div class="mt-4">{{ $records->links() }}</div>
     </article>
+    </div>
 </x-layouts.app>

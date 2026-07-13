@@ -1,5 +1,6 @@
 <x-layouts.app title="Record Attendance">
-    <div class="mb-6 flex items-center gap-4">
+    <div class="attendance-responsive">
+    <div class="mb-6 flex items-center gap-4 attendance-header">
         <a href="{{ route('attendance.index') }}" class="text-slate-400 hover:text-[var(--color-brand-600)] transition-colors">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
@@ -116,7 +117,7 @@
 
     {{-- Filter + table --}}
     <article class="surface-card p-6">
-        <form method="GET" action="{{ route('attendance.record') }}" class="mb-5 flex flex-wrap gap-3 items-end">
+        <form method="GET" action="{{ route('attendance.record') }}" class="mb-5 flex flex-wrap gap-3 items-end attendance-filter-form">
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Filter by Service</label>
                 <select name="service_id" class="form-input">
@@ -191,5 +192,6 @@
         </div>
         <div class="mt-5">{{ $records->links() }}</div>
     </article>
+    </div>
 </x-layouts.app>
 

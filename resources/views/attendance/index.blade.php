@@ -1,6 +1,7 @@
 <x-layouts.app title="Attendance">
+    <div class="attendance-responsive">
     {{-- Icon header --}}
-    <div class="mb-6 flex items-center gap-4">
+    <div class="mb-6 flex items-center gap-4 attendance-header">
         <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-brand-600)] text-white shadow">
             <i class="fa-solid fa-calendar-check text-2xl"></i>
         </span>
@@ -105,5 +106,6 @@
         </a>
         @endif
     </section>
+    </div>
 </x-layouts.app>
 

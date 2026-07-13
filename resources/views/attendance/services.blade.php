@@ -1,6 +1,7 @@
 <x-layouts.app title="Attendance Services">
+    <div class="attendance-responsive">
     {{-- Icon header --}}
-    <div class="mb-6 flex items-center gap-4">
+    <div class="mb-6 flex items-center gap-4 attendance-header">
         <a href="{{ route('attendance.index') }}" class="text-slate-400 hover:text-[var(--color-brand-600)] transition-colors">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
@@ -116,7 +117,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-2 attendance-inline-actions">
                         <a href="{{ route('attendance.bulk', ['service_id' => $service->id]) }}"
                            class="btn-secondary text-xs px-3 py-1.5">
                             <i class="fa-solid fa-list-check mr-1"></i>Bulk Sheet
@@ -145,5 +146,6 @@
         </div>
         <div class="mt-5">{{ $services->links() }}</div>
     </article>
+    </div>
 </x-layouts.app>
 

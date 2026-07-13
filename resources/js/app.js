@@ -383,8 +383,10 @@ function initializeSidebarHoverTooltips() {
 }
 
 function initializeSidebar() {
+    const isDesktopAtInit = desktopSidebarQuery.matches;
     const storedCollapsed = window.localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === 'true';
-    document.documentElement.dataset.sidebarCollapsed = storedCollapsed ? 'true' : 'false';
+    document.documentElement.dataset.sidebarCollapsed = isDesktopAtInit && storedCollapsed ? 'true' : 'false';
+    document.documentElement.dataset.sidebarOpen = 'false';
 
     const sectionState = getStoredSectionState();
 
@@ -392,7 +394,9 @@ function initializeSidebar() {
         const sectionId = section.dataset.sectionId;
         const active = section.dataset.activeSection === 'true';
         const defaultOpen = section.dataset.defaultOpen === 'true';
-        const expanded = typeof sectionState[sectionId] === 'boolean' ? sectionState[sectionId] : (active || defaultOpen);
+        const expanded = isDesktopAtInit
+            ? (typeof sectionState[sectionId] === 'boolean' ? sectionState[sectionId] : (active || defaultOpen))
+            : false;
         const button = section.querySelector('[data-section-toggle]');
 
         setSectionExpanded(section, expanded, sectionState, false);
@@ -431,6 +435,9 @@ function initializeSidebar() {
     });
 
     desktopSidebarQuery.addEventListener('change', () => {
+        if (!desktopSidebarQuery.matches) {
+            setSidebarCollapsed(false);
+        }
         setSidebarOpen(false);
         updateSidebarToggleUI();
         syncSectionHeights();

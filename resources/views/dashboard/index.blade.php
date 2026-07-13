@@ -1,4 +1,5 @@
 <x-layouts.app title="Dashboard">
+    <div class="dashboard-responsive">
     <section class="dashboard-hero">
         <div class="dashboard-hero-orb dashboard-hero-orb-a"></div>
         <div class="dashboard-hero-orb dashboard-hero-orb-b"></div>
@@ -13,7 +14,7 @@
                     Ministry operations, governance metrics, and strategic momentum are visible from one orchestrated dashboard built for decision-making.
                 </p>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-3 dashboard-hero-stats-grid">
                 <div class="dashboard-hero-stat">
                     <div class="dashboard-hero-stat-label">Population Monitored</div>
                     <div class="text-xl font-bold">{{ number_format($stats['members']) }}</div>
@@ -68,7 +69,7 @@
                 <h3 class="text-lg font-semibold">Age Group Dynamics</h3>
                 <span class="status-pill">Demographics</span>
             </div>
-            <div class="mx-auto w-[70%] max-w-[320px]">
+            <div class="mx-auto w-[70%] max-w-[320px] dashboard-chart-wrap">
                 <canvas id="agePieChart" height="182"></canvas>
             </div>
         </article>
@@ -77,7 +78,7 @@
                 <h3 class="text-lg font-semibold">Gender Distribution</h3>
                 <span class="status-pill">Inclusion View</span>
             </div>
-            <div class="mx-auto w-[70%] max-w-[320px]">
+            <div class="mx-auto w-[70%] max-w-[320px] dashboard-chart-wrap">
                 <canvas id="genderPieChart" height="182"></canvas>
             </div>
         </article>
@@ -363,4 +364,5 @@
     });
     </script>
     @endpush
+    </div>
 </x-layouts.app>

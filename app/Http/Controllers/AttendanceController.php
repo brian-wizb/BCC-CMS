@@ -653,6 +653,108 @@ class AttendanceController extends Controller
         ]);
     }
 
+    public function searchScanPeople(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:80'],
+        ]);
+
+        $query = trim($data['q']);
+
+        $members = Member::query()
+            ->where('full_name', 'like', '%' . $query . '%')
+            ->orderBy('full_name')
+            ->limit(8)
+            ->get(['id', 'full_name', 'phone'])
+            ->map(fn (Member $m) => [
+                'id' => $m->id,
+                'type' => 'member',
+                'name' => $m->full_name,
+                'meta' => $m->phone ?: 'No phone',
+            ]);
+
+        $visitors = Visitor::query()
+            ->where('full_name', 'like', '%' . $query . '%')
+            ->orderBy('full_name')
+            ->limit(8)
+            ->get(['id', 'full_name', 'phone'])
+            ->map(fn (Visitor $v) => [
+                'id' => $v->id,
+                'type' => 'visitor',
+                'name' => $v->full_name,
+                'meta' => $v->phone ?: 'No phone',
+            ]);
+
+        $people = $members
+            ->concat($visitors)
+            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->take(12)
+            ->values();
+
+        return response()->json(['people' => $people]);
+    }
+
+    public function recordScanPerson(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'service_id' => ['required', 'integer', Rule::exists('services', 'id')],
+            'person_type' => ['required', 'string', Rule::in(['member', 'visitor'])],
+            'person_id' => ['required', 'integer'],
+        ]);
+
+        $serviceId = (int) $data['service_id'];
+        $personType = $data['person_type'];
+        $personId = (int) $data['person_id'];
+
+        $service = Service::find($serviceId);
+        $graceMins = config('attendance.late_grace_minutes', 15);
+        $isLate = false;
+
+        if ($service?->start_time) {
+            $isLate = now()->isAfter(
+                now()->setTimeFromTimeString($service->start_time)->addMinutes($graceMins)
+            );
+        }
+
+        $field = $personType === 'member' ? 'member_id' : 'visitor_id';
+        $person = $personType === 'member'
+            ? Member::find($personId)
+            : Visitor::find($personId);
+
+        if (! $person) {
+            return response()->json(['error' => ucfirst($personType) . ' not found.'], 404);
+        }
+
+        AttendanceRecord::query()->updateOrCreate(
+            ['service_id' => $serviceId, $field => $person->id],
+            [
+                'attendance_status' => $isLate ? 'late' : 'present',
+                'attendance_mode' => 'in_person',
+                'check_in_time' => now(),
+                'recorded_by' => auth()->id(),
+                'recorded_at' => now(),
+            ]
+        );
+
+        if ($field === 'visitor_id') {
+            $count = AttendanceRecord::query()->where('visitor_id', $person->id)->count();
+            if ($count === 1) {
+                FollowUpTask::query()->firstOrCreate(
+                    ['person_type' => 'visitor', 'person_id' => $person->id, 'task_type' => 'call'],
+                    ['priority' => 'high', 'status' => 'pending', 'notes' => 'Auto-generated: first visit via scan quick record.', 'due_date' => now()->addDays(3)]
+                );
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'name' => $person->full_name ?? 'Unknown',
+            'type' => $personType,
+            'status' => $isLate ? 'late' : 'present',
+            'time' => now()->format('H:i'),
+        ]);
+    }
+
     private function normaliseScannedToken(string $raw): string
     {
         $value = trim($raw);

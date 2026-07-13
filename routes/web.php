@@ -327,6 +327,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/attendance/scan/record', [AttendanceController::class, 'processScan'])
         ->middleware('permission:attendance.create')
         ->name('attendance.scan.record');
+    Route::get('/attendance/scan/search-people', [AttendanceController::class, 'searchScanPeople'])
+        ->middleware('permission:attendance.create')
+        ->name('attendance.scan.search-people');
+    Route::post('/attendance/scan/record-person', [AttendanceController::class, 'recordScanPerson'])
+        ->middleware('permission:attendance.create')
+        ->name('attendance.scan.record-person');
     Route::post('/attendance/qr/send', [AttendanceController::class, 'sendQr'])
         ->middleware('permission:attendance.create')
         ->name('attendance.qr.send');
