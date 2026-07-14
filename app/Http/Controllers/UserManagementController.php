@@ -37,6 +37,13 @@ class UserManagementController extends Controller
         ]);
     }
 
+    public function create(): View
+    {
+        return view('users.create', [
+            'roles' => Role::query()->orderBy('name')->get(),
+        ]);
+    }
+
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $data = $request->validated();

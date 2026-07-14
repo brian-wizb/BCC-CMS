@@ -1,4 +1,5 @@
 <x-layouts.app title="Counsellor Dashboard">
+    <div class="dashboard-responsive">
     <section class="dashboard-hero">
         <div class="dashboard-hero-orb dashboard-hero-orb-a"></div>
         <div class="dashboard-hero-orb dashboard-hero-orb-b"></div>
@@ -13,7 +14,7 @@
                     Your follow-up assignments and task progress are shown here. Focus on the activities assigned to you and update them as you complete them.
                 </p>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-3 dashboard-hero-stats-grid">
                 <div class="dashboard-hero-stat">
                     <div class="dashboard-hero-stat-label">Assigned Tasks</div>
                     <div class="text-xl font-bold">{{ number_format($assignedTaskCount) }}</div>
@@ -93,4 +94,5 @@
             </div>
         </article>
     </section>
+    </div>
 </x-layouts.app>

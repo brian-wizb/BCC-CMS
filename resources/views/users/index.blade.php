@@ -1,5 +1,67 @@
 <x-layouts.app title="Users">
-    <section class="space-y-5">
+    <style>
+        .users-create-modal {
+            align-items: center;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .users-modal-card {
+            width: min(100%, 52rem);
+            max-height: calc(100vh - 2rem);
+            display: flex;
+            flex-direction: column;
+            margin: auto;
+            overflow: hidden;
+        }
+
+        .users-modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .users-modal-actions {
+            position: sticky;
+            bottom: 0;
+            background: color-mix(in srgb, var(--color-surface-50) 74%, transparent);
+            backdrop-filter: blur(6px);
+        }
+
+        @media (max-width: 767px) {
+            .users-create-modal {
+                align-items: flex-start;
+                padding: 0.75rem;
+            }
+
+            .users-modal-card {
+                width: 100%;
+                max-height: none;
+                margin-top: 0.25rem;
+            }
+
+            .users-modal-body {
+                padding: 1rem;
+            }
+
+            #modal-create-user .form-input,
+            #modal-create-user .btn-primary,
+            #modal-create-user .btn-secondary {
+                min-height: 2.75rem;
+            }
+
+            #modal-create-user .users-modal-actions {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+
+    <section class="space-y-5 users-responsive">
 
         {{-- Header --}}
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -13,10 +75,10 @@
                 </div>
             </div>
             @if (auth()->user()->hasPermission('users.create'))
-                <button type="button" onclick="openModal('modal-create-user')"
+                <a href="{{ route('users.create') }}"
                     class="btn-primary flex items-center gap-2">
                     <i class="fas fa-user-plus text-sm"></i> New user
-                </button>
+                </a>
             @endif
         </div>
 
@@ -125,67 +187,6 @@
         </div>
 
     </section>
-
-    {{-- ── CREATE USER MODAL ───────────────────────────────────────────── --}}
-    @if (auth()->user()->hasPermission('users.create'))
-    <div id="modal-create-user" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="surface-card w-full max-w-lg rounded-2xl shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between border-b border-[var(--color-surface-200)] px-6 py-4">
-                <h4 class="text-base font-semibold text-[var(--color-ink-950)]">Create new user</h4>
-                <button type="button" onclick="closeModal('modal-create-user')" class="text-slate-400 hover:text-[var(--color-ink-950)] transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form method="POST" action="{{ route('users.store') }}" class="p-6 space-y-4">
-                @csrf
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label class="form-label" for="c_username">Username <span class="text-rose-400">*</span></label>
-                        <input id="c_username" name="username" class="form-input" value="{{ old('username') }}" required autocomplete="off">
-                        @error('username')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="form-label" for="c_full_name">Full Name</label>
-                        <input id="c_full_name" name="full_name" class="form-input" value="{{ old('full_name') }}">
-                        @error('full_name')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-                <div>
-                    <label class="form-label" for="c_email">Email</label>
-                    <input id="c_email" name="email" type="email" class="form-input" value="{{ old('email') }}">
-                    @error('email')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="form-label" for="c_role">Role <span class="text-rose-400">*</span></label>
-                    <select id="c_role" name="role" class="form-input" required>
-                        @foreach ($roles as $role)
-                            <option value="{{ $role->key }}" @selected(old('role') === $role->key)>{{ $role->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('role')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label class="form-label" for="c_password">Password <span class="text-rose-400">*</span></label>
-                        <input id="c_password" name="password" type="password" class="form-input" required autocomplete="new-password">
-                        @error('password')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
-                        <p class="mt-1 text-xs text-slate-400">Min 8 chars, mixed case &amp; number.</p>
-                    </div>
-                    <div>
-                        <label class="form-label" for="c_password_confirmation">Confirm Password <span class="text-rose-400">*</span></label>
-                        <input id="c_password_confirmation" name="password_confirmation" type="password" class="form-input" required autocomplete="new-password">
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-3 pt-2 border-t border-[var(--color-surface-200)]">
-                    <button type="button" onclick="closeModal('modal-create-user')" class="btn-secondary">Cancel</button>
-                    <button type="submit" class="btn-primary flex items-center gap-1.5">
-                        <i class="fas fa-user-plus text-sm"></i> Create user
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    @endif
 
     {{-- ── EDIT USER MODAL ─────────────────────────────────────────────── --}}
     @if (auth()->user()->hasPermission('users.update'))
@@ -296,9 +297,7 @@
         openModal('modal-edit-user');
     }
 
-    @if ($errors->any() && old('username'))
-        openModal('modal-create-user');
-    @elseif ($errors->any())
+    @if ($errors->any())
         openModal('modal-edit-user');
     @endif
     </script>

@@ -7,6 +7,7 @@
 
     $role = auth()->user()?->primaryRole();
     $roleName = is_object($role) ? ($role->name ?? 'Church Team') : ($role ?: 'Church Team');
+    $roleKey = is_object($role) ? ($role->key ?? null) : null;
 
     $iconPaths = [
         'home' => '<path d="M3 10.5 12 3l9 7.5"></path><path d="M5.5 9.5V20h13V9.5"></path>',
@@ -82,6 +83,12 @@
         'Ministry' => ['Attendance', 'Pastoral Care', 'Alerts', 'Events', 'Volunteers', 'Communications'],
         'Finance' => ['Payroll', 'Payroll Categories', 'Expenditures', 'Department Income', 'Department Expenses', 'Income Records', 'Income Types', 'Donations', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
     ];
+
+    if ($roleKey === 'church_secretary') {
+        $financeLabels = collect($sectionMap['Finance'] ?? [])->all();
+        $navigation = $navigation->reject(fn ($item) => in_array($item['label'], $financeLabels, true))->values();
+        unset($sectionMap['Finance']);
+    }
 
     $assignedLabels = collect($sectionMap)->flatten()->all();
     $groupedNavigation = collect($sectionMap)->mapWithKeys(function ($labels, $section) use ($navigation) {

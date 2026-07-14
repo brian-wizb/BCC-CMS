@@ -15,6 +15,15 @@
             align-items: stretch;
         }
 
+        .login-responsive-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 390px;
+            gap: 1.25rem;
+            align-items: stretch;
+            height: 100%;
+            width: 100%;
+        }
+
         /* ── Animations ── */
         @keyframes loginFadeUp {
             from { opacity: 0; visibility: hidden; transform: translateY(20px); }
@@ -312,7 +321,7 @@
         }
 
         .login-bg-wordmark-oasis {
-            display: inline-bloc
+            display: inline-block;
             padding: 0 0.08em;
             margin: 0 0.04em;
             background: linear-gradient(135deg, rgba(255, 248, 225, 0.95) 0%, rgba(255, 212, 120, 0.96) 44%, rgba(160, 233, 206, 0.92) 100%);
@@ -382,6 +391,111 @@
 
             .login-theme-floating .theme-picker-menu {
                 min-width: 12rem;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            body.auth-shell {
+                height: auto;
+                min-height: 100vh;
+                overflow-y: auto;
+            }
+
+            body.auth-shell > div {
+                height: auto;
+                min-height: 100vh !important;
+                align-items: flex-start;
+            }
+
+            .login-responsive-shell {
+                grid-template-columns: 1fr;
+                gap: 0.95rem;
+                height: auto;
+            }
+
+            .login-panel {
+                min-height: 22rem;
+            }
+
+            .login-card {
+                max-width: 540px !important;
+                max-height: none !important;
+                margin-inline: auto;
+            }
+        }
+
+        @media (max-width: 767px) {
+            body.auth-shell > div {
+                padding-top: 0.75rem;
+                padding-bottom: 0.75rem;
+            }
+
+            .login-responsive-shell {
+                gap: 0.75rem;
+            }
+
+            .login-panel {
+                min-height: auto;
+                border-radius: 1rem;
+            }
+
+            .login-panel .relative.z-10.flex.h-full.flex-col.p-7 {
+                padding: 1rem;
+            }
+
+            .login-bg-wordmark {
+                inset: 0;
+                padding: 1.1rem 0.4rem 0.35rem;
+            }
+
+            .login-bg-wordmark-track {
+                transform: translateY(0) rotate(-2.4deg);
+                opacity: 0.26;
+            }
+
+            .login-bg-wordmark-line {
+                font-size: clamp(1.15rem, 6.2vw, 1.75rem);
+                letter-spacing: 0.08em;
+                line-height: 1.16;
+            }
+
+            .login-theme-floating {
+                top: 0.5rem;
+                right: 0.5rem;
+            }
+
+            .login-theme-floating .theme-picker-trigger {
+                min-width: 7.9rem;
+                min-height: 2.35rem;
+                padding: 0.35rem 0.5rem;
+            }
+
+            .login-card {
+                width: 100%;
+                max-width: 100% !important;
+                border-radius: 1rem;
+                padding: 1rem !important;
+            }
+
+            .feat-card {
+                padding: 0.6rem 0.65rem;
+                gap: 0.55rem;
+            }
+
+            .feat-icon {
+                width: 1.75rem;
+                height: 1.75rem;
+                border-radius: 0.5rem;
+                font-size: 0.72rem;
+            }
+
+            .login-panel .grid.grid-cols-2 {
+                gap: 0.45rem;
+            }
+
+            .login-form .form-input,
+            .login-form .btn-signin {
+                min-height: 2.75rem;
             }
         }
 
@@ -602,7 +716,7 @@
     </style>
 
     {{-- Two-column layout: welcome panel + login card, visible from md (768px) up --}}
-    <div class="relative w-full h-full" style="display:grid; grid-template-columns:1fr 390px; gap:1.25rem; align-items:stretch;">
+    <div class="relative w-full h-full login-responsive-shell">
 
         <div class="login-bg-wordmark" aria-hidden="true">
             <div class="login-bg-wordmark-track">

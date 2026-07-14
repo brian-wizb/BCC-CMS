@@ -326,9 +326,18 @@ class AlertController extends Controller
             FollowUpTask::query()->create($taskData);
         }
 
+        $alertUpdates = [
+            'assigned_to' => $leader?->id,
+            'due_at'      => ! empty($data['due_date'])
+                ? Carbon::parse($data['due_date'])->endOfDay()
+                : null,
+        ];
+
         if ($alert->status === 'open') {
-            $alert->update(['status' => 'acknowledged']);
+            $alertUpdates['status'] = 'acknowledged';
         }
+
+        $alert->update($alertUpdates);
 
         return back()->with('status', $existingTask ? 'Follow-up task updated successfully.' : 'Follow-up task assigned successfully.');
     }

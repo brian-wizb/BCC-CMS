@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\SendCommunicationJob;
 use App\Models\Communication;
+use App\Models\CommunicationCreditSetting;
 use App\Models\CommunicationDelivery;
 use App\Models\Member;
 use App\Models\Visitor;
@@ -18,11 +19,14 @@ class CommunicationController extends Controller
 {
     public function index(): View
     {
+        $smsSentCount = $this->usedSmsCount();
+
         return view('communications.index', [
             'communications' => Communication::query()
                 ->withCount('deliveries')
                 ->latest('id')
                 ->paginate(10),
+            'smsSentCount' => $smsSentCount,
         ]);
     }
 
@@ -52,6 +56,13 @@ class CommunicationController extends Controller
         $data['status']     = 'draft';
         $data['created_by'] = auth()->id();
         $data['filters_json'] = $filters;
+        $data['estimated_sms_count'] = $this->estimateSmsCount(
+            channel: $data['channel'],
+            message: $data['message'],
+            audienceType: $data['audience_type'],
+            filters: $filters,
+        );
+        $data['actual_sms_count'] = 0;
 
         $communication = Communication::query()->create($data);
 
@@ -120,6 +131,13 @@ class CommunicationController extends Controller
             $data['filters_json'] = $this->buildAudienceFilters($data);
         }
 
+        $data['estimated_sms_count'] = $this->estimateSmsCount(
+            channel: $data['channel'],
+            message: $data['message'],
+            audienceType: $data['audience_type'],
+            filters: (array) ($data['filters_json'] ?? []),
+        );
+
         $communication->update($data);
 
         return back()->with('status', 'Draft updated successfully.');
@@ -137,6 +155,20 @@ class CommunicationController extends Controller
     {
         if ($communication->status === 'sent') {
             return back()->with('error', 'This communication has already been sent.');
+        }
+
+        $estimatedSmsCount = $this->estimateSmsCount(
+            channel: $communication->channel,
+            message: (string) $communication->message,
+            audienceType: $communication->audience_type,
+            filters: (array) ($communication->filters_json ?? []),
+        );
+
+        if ($communication->channel === 'sms') {
+            $creditState = $this->creditState();
+            if ($estimatedSmsCount > $creditState['remaining']) {
+                return back()->with('error', "Not enough message credits. Required {$estimatedSmsCount}, remaining {$creditState['remaining']}.");
+            }
         }
 
         $validated = $request->validate([
@@ -218,7 +250,14 @@ class CommunicationController extends Controller
             }
         }
 
-        $communication->update(['status' => 'sent', 'sent_at' => now()]);
+        $actualSmsCount = $communication->channel === 'sms' ? $dispatched : 0;
+
+        $communication->update([
+            'status' => 'sent',
+            'sent_at' => now(),
+            'estimated_sms_count' => $estimatedSmsCount,
+            'actual_sms_count' => $actualSmsCount,
+        ]);
 
         $msg = $immediateMode
             ? "Sent {$dispatched} message(s)."
@@ -228,6 +267,40 @@ class CommunicationController extends Controller
         }
 
         return back()->with('status', $msg);
+    }
+
+    public function operations(): View
+    {
+        $creditState = $this->creditState();
+
+        return view('communications.operations', [
+            'creditState' => $creditState,
+        ]);
+    }
+
+    public function updateOperations(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'credits_purchased_total' => ['required', 'integer', 'min:0'],
+            'low_balance_threshold' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $settings = CommunicationCreditSetting::query()->first();
+        if (! $settings) {
+            $settings = CommunicationCreditSetting::query()->create([
+                'credits_purchased_total' => (int) $data['credits_purchased_total'],
+                'low_balance_threshold' => (int) $data['low_balance_threshold'],
+                'updated_by' => auth()->id(),
+            ]);
+        } else {
+            $settings->update([
+                'credits_purchased_total' => (int) $data['credits_purchased_total'],
+                'low_balance_threshold' => (int) $data['low_balance_threshold'],
+                'updated_by' => auth()->id(),
+            ]);
+        }
+
+        return back()->with('status', 'Message credit settings updated successfully.');
     }
 
     private function buildAudienceFilters(array $data): array
@@ -360,5 +433,88 @@ class CommunicationController extends Controller
         }
 
         return false;
+    }
+
+    private function estimateSmsCount(string $channel, string $message, string $audienceType, array $filters = []): int
+    {
+        if ($channel !== 'sms') {
+            return 0;
+        }
+
+        $messageLength = mb_strlen($message);
+        if ($messageLength <= 0) {
+            return 0;
+        }
+
+        $partsPerRecipient = $messageLength <= 160 ? 1 : (int) ceil($messageLength / 153);
+
+        $recipientCount = match ($audienceType) {
+            'all_members' => (int) Member::query()->whereNotNull('phone')->where('phone', '!=', '')->count(),
+            'all_visitors' => (int) Visitor::query()->whereNotNull('phone')->where('phone', '!=', '')->count(),
+            'everyone' => (int) Member::query()->whereNotNull('phone')->where('phone', '!=', '')->count()
+                + (int) Visitor::query()->whereNotNull('phone')->where('phone', '!=', '')->count(),
+            'individual_registered' => $this->countRegisteredIndividualRecipient($filters),
+            'individual_unregistered' => $this->countUnregisteredIndividualRecipient($filters),
+            default => 0,
+        };
+
+        return $recipientCount * $partsPerRecipient;
+    }
+
+    private function countRegisteredIndividualRecipient(array $filters): int
+    {
+        $individual = Arr::get($filters, 'individual', []);
+        $recipientType = $individual['recipient_type'] ?? null;
+        $recipientId = isset($individual['recipient_id']) ? (int) $individual['recipient_id'] : 0;
+
+        if (! $recipientId || ! in_array($recipientType, ['member', 'visitor'], true)) {
+            return 0;
+        }
+
+        if ($recipientType === 'member') {
+            return Member::query()
+                ->whereKey($recipientId)
+                ->whereNotNull('phone')
+                ->where('phone', '!=', '')
+                ->exists() ? 1 : 0;
+        }
+
+        return Visitor::query()
+            ->whereKey($recipientId)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->exists() ? 1 : 0;
+    }
+
+    private function countUnregisteredIndividualRecipient(array $filters): int
+    {
+        $phone = trim((string) Arr::get($filters, 'individual.recipient_contact_phone', ''));
+
+        return $phone === '' ? 0 : 1;
+    }
+
+    private function creditState(): array
+    {
+        $settings = CommunicationCreditSetting::query()->first();
+        $purchased = (int) ($settings?->credits_purchased_total ?? 0);
+        $threshold = (int) ($settings?->low_balance_threshold ?? 100);
+        $used = $this->usedSmsCount();
+        $remaining = max($purchased - $used, 0);
+
+        return [
+            'purchased' => $purchased,
+            'used' => $used,
+            'remaining' => $remaining,
+            'threshold' => $threshold,
+            'is_low' => $remaining <= $threshold,
+        ];
+    }
+
+    private function usedSmsCount(): int
+    {
+        return (int) CommunicationDelivery::query()
+            ->whereHas('communication', fn ($q) => $q->where('channel', 'sms'))
+            ->whereIn('delivery_status', ['queued', 'delivered', 'failed'])
+            ->count();
     }
 }

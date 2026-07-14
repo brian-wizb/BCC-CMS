@@ -18,6 +18,8 @@ class Communication extends Model
         'message',
         'filters_json',
         'status',
+        'estimated_sms_count',
+        'actual_sms_count',
         'created_by',
         'sent_at',
     ];
@@ -27,6 +29,8 @@ class Communication extends Model
         return [
             'filters_json' => 'array',
             'sent_at' => 'datetime',
+            'estimated_sms_count' => 'integer',
+            'actual_sms_count' => 'integer',
         ];
     }
 

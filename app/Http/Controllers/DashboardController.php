@@ -13,6 +13,11 @@ use App\Models\Payroll;
 use App\Models\Pledge;
 use App\Models\PledgePayment;
 use App\Models\FollowUpTask;
+use App\Models\Family;
+use App\Models\Department;
+use App\Models\Group;
+use App\Models\Leader;
+use App\Models\Visitor;
 use App\Models\User;
 use App\Models\Zone;
 use Carbon\Carbon;
@@ -141,6 +146,43 @@ class DashboardController extends Controller
 
         $openAlertsCount    = Alert::query()->where('status', 'open')->count();
         $criticalAlertsCount = Alert::query()->where('severity', 'critical')->where('status', '!=', 'resolved')->count();
+
+        if ($user?->hasRole('church_secretary')) {
+            $peopleStats = [
+                'members' => Member::query()->count(),
+                'families' => Family::query()->count(),
+                'visitors' => Visitor::query()->count(),
+                'leaders' => Leader::query()->count(),
+                'departments' => Department::query()->count(),
+                'zones' => Zone::query()->count(),
+                'groups' => Group::query()->count(),
+                'follow_up_pending' => FollowUpTask::query()->whereIn('status', ['pending', 'in_progress'])->count(),
+            ];
+
+            $recentMembers = Member::query()
+                ->select(['id', 'full_name', 'phone', 'created_at'])
+                ->latest('id')
+                ->limit(8)
+                ->get();
+
+            $recentVisitors = Visitor::query()
+                ->select(['id', 'full_name', 'phone', 'first_visit_date'])
+                ->latest('id')
+                ->limit(8)
+                ->get();
+
+            return view('dashboard.secretary', [
+                'user' => $user,
+                'primaryRole' => $user->primaryRole(),
+                'peopleStats' => $peopleStats,
+                'chartData' => [
+                    'age' => $chartData['age'],
+                    'gender' => $chartData['gender'],
+                ],
+                'recentMembers' => $recentMembers,
+                'recentVisitors' => $recentVisitors,
+            ]);
+        }
 
         if ($user?->hasRole('counsellor')) {
             $leader = $user->leader;

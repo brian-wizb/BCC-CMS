@@ -50,6 +50,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/users', [UserManagementController::class, 'index'])
         ->middleware('permission:users.read')
         ->name('users.index');
+    Route::get('/users/create', [UserManagementController::class, 'create'])
+        ->middleware('permission:users.create')
+        ->name('users.create');
     Route::post('/users', [UserManagementController::class, 'store'])
         ->middleware('permission:users.create')
         ->name('users.store');
@@ -412,6 +415,12 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/communications/{communication}/retry', [CommunicationController::class, 'retryFailed'])
         ->middleware('permission:communications.send')
         ->name('communications.retry');
+    Route::get('/operations/communications-credits', [CommunicationController::class, 'operations'])
+        ->middleware('permission:settings.manage')
+        ->name('communications.operations');
+    Route::post('/operations/communications-credits', [CommunicationController::class, 'updateOperations'])
+        ->middleware('permission:settings.manage')
+        ->name('communications.operations.update');
 
     Route::get('/events', [EventController::class, 'index'])
         ->middleware('permission:events.read')
