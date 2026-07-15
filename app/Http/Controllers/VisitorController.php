@@ -169,8 +169,10 @@ class VisitorController extends Controller
 
     private function validatedData(Request $request): array
     {
-        return $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
+        $data = $request->validate([
+            'first_name' => ['required', 'string', 'max:100'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'surname' => ['required', 'string', 'max:100'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'gender' => ['nullable', 'string', 'max:50'],
@@ -181,5 +183,15 @@ class VisitorController extends Controller
             'status' => ['required', 'string', Rule::in(['new', 'contacted', 'counseled', 'joined_zone', 'in_class', 'converted'])],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $data['full_name'] = collect([
+            trim((string) ($data['first_name'] ?? '')),
+            trim((string) ($data['middle_name'] ?? '')),
+            trim((string) ($data['surname'] ?? '')),
+        ])->filter(fn (string $part) => $part !== '')->implode(' ');
+
+        unset($data['first_name'], $data['middle_name'], $data['surname']);
+
+        return $data;
     }
 }

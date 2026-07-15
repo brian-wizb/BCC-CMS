@@ -8,18 +8,7 @@
     $selectedPartnerMemberId = old('partner_member_id', $member?->partner_member_id);
     $selectedPartner = collect($partners ?? [])->firstWhere('id', (int) $selectedPartnerMemberId);
     $partnerTitheCode = $selectedPartner?->tithe_code;
-    $zoneOptions = [
-        'Diaspora outside tz',
-        'Diaspora inside tz',
-        'Kigamboni',
-        'Kigamboni-Sinza',
-        'Ubungo-Kimara Mbezi',
-        'Mgomeni-External',
-        'Temeke-Mbagala',
-        'Tabata-Kinyerezi',
-        'City Center-Mikocheni',
-        'Vingunguti-Pugu',
-    ];
+    $zoneOptions = collect($zones ?? [])->filter()->values()->all();
     $selectedZone = old('zone', $member?->zone);
 @endphp
 

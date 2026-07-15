@@ -33,6 +33,24 @@
             </article>
         </div>
 
+        <div class="mt-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">SMS Usage Breakdown</p>
+            <div class="mt-3 grid gap-4 sm:grid-cols-3">
+                <article class="surface-card p-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-400">From Communications</p>
+                    <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">{{ number_format($smsBreakdown['communications']) }}</p>
+                </article>
+                <article class="surface-card p-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-400">From Donations</p>
+                    <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">{{ number_format($smsBreakdown['donations']) }}</p>
+                </article>
+                <article class="surface-card p-4">
+                    <p class="text-xs uppercase tracking-wide text-slate-400">Combined Total</p>
+                    <p class="mt-1 text-2xl font-bold text-blue-600">{{ number_format($smsBreakdown['total']) }}</p>
+                </article>
+            </div>
+        </div>
+
         <form method="POST" action="{{ route('communications.operations.update') }}" class="mt-6 space-y-5">
             @csrf
 

@@ -7,6 +7,7 @@ use App\Http\Requests\Members\UpdateMemberRequest;
 use App\Models\Family;
 use App\Models\Member;
 use App\Models\University;
+use App\Models\Zone;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,6 +72,7 @@ class MemberController extends Controller
         $families = Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']);
         $partners = Member::query()->orderBy('full_name')->get(['id', 'full_name', 'tithe_code']);
         $universities = University::query()->orderBy('type')->orderBy('name')->get(['id', 'name', 'type', 'country']);
+        $zones = Zone::query()->orderBy('name')->pluck('name')->all();
         $nextTitheCode = Member::nextTitheCode();
 
         return view('members.create', [
@@ -85,6 +87,7 @@ class MemberController extends Controller
             'families' => $families,
             'partners' => $partners,
             'universities' => $universities,
+            'zones' => $zones,
             'nextTitheCode' => $nextTitheCode,
         ]);
     }
@@ -126,8 +129,9 @@ class MemberController extends Controller
             ->orderBy('full_name')
             ->get(['id', 'full_name', 'tithe_code']);
         $universities = University::query()->orderBy('type')->orderBy('name')->get(['id', 'name', 'type', 'country']);
+        $zones = Zone::query()->orderBy('name')->pluck('name')->all();
 
-        return view('members.edit', compact('member', 'families', 'partners', 'universities'));
+        return view('members.edit', compact('member', 'families', 'partners', 'universities', 'zones'));
     }
 
     public function update(UpdateMemberRequest $request, Member $member): RedirectResponse

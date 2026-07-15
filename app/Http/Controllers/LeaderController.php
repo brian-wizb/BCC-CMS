@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Leader;
 use App\Models\Member;
-use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,16 +46,28 @@ class LeaderController extends Controller
 
     public function create(): View
     {
+        $memberIdsWithLeader = Leader::query()
+            ->whereNotNull('member_id')
+            ->pluck('member_id');
+
         return view('leaders.create', [
             'leader'  => new Leader(['status' => 'active']),
-            'members' => Member::orderBy('full_name')->get(['id', 'full_name']),
-            'users'   => User::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'email']),
+            'members' => Member::query()
+                ->whereNotIn('id', $memberIdsWithLeader)
+                ->orderBy('full_name')
+                ->get(['id', 'full_name', 'phone', 'email']),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data   = $this->validatedData($request);
+        $member = Member::query()->findOrFail($data['member_id']);
+
+        $data['full_name'] = $member->full_name;
+        $data['phone'] = $member->phone;
+        $data['email'] = $member->email;
+
         $leader = Leader::query()->create($data);
 
         $this->auditLogger->log(
@@ -64,7 +75,7 @@ class LeaderController extends Controller
             action: 'leader.create',
             entityType: 'leader',
             entityId: $leader->id,
-            after: Arr::only($leader->toArray(), ['full_name', 'role', 'zone', 'status']),
+            after: Arr::only($leader->toArray(), ['full_name', 'zone', 'status']),
         );
 
         return redirect()->route('leaders.show', $leader)->with('status', 'Leader created successfully.');
@@ -79,17 +90,31 @@ class LeaderController extends Controller
 
     public function edit(Leader $leader): View
     {
+        $memberIdsWithLeader = Leader::query()
+            ->whereNotNull('member_id')
+            ->where('id', '!=', $leader->id)
+            ->pluck('member_id');
+
         return view('leaders.edit', [
             'leader'  => $leader,
-            'members' => Member::orderBy('full_name')->get(['id', 'full_name']),
-            'users'   => User::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'email']),
+            'members' => Member::query()
+                ->whereNotIn('id', $memberIdsWithLeader)
+                ->orderBy('full_name')
+                ->get(['id', 'full_name', 'phone', 'email']),
         ]);
     }
 
     public function update(Request $request, Leader $leader): RedirectResponse
     {
-        $before = Arr::only($leader->toArray(), ['full_name', 'role', 'zone', 'status']);
-        $leader->update($this->validatedData($request));
+        $before = Arr::only($leader->toArray(), ['full_name', 'zone', 'status']);
+        $data = $this->validatedData($request);
+        $member = Member::query()->findOrFail($data['member_id']);
+
+        $data['full_name'] = $member->full_name;
+        $data['phone'] = $member->phone;
+        $data['email'] = $member->email;
+
+        $leader->update($data);
 
         $this->auditLogger->log(
             request: $request,
@@ -97,7 +122,7 @@ class LeaderController extends Controller
             entityType: 'leader',
             entityId: $leader->id,
             before: $before,
-            after: Arr::only($leader->fresh()->toArray(), ['full_name', 'role', 'zone', 'status']),
+            after: Arr::only($leader->fresh()->toArray(), ['full_name', 'zone', 'status']),
         );
 
         return redirect()->route('leaders.show', $leader)->with('status', 'Leader updated successfully.');
@@ -105,7 +130,7 @@ class LeaderController extends Controller
 
     public function destroy(Leader $leader): RedirectResponse
     {
-        $before = Arr::only($leader->toArray(), ['full_name', 'role', 'zone', 'status']);
+        $before = Arr::only($leader->toArray(), ['full_name', 'zone', 'status']);
         $id     = $leader->id;
         $leader->delete();
 
@@ -123,12 +148,12 @@ class LeaderController extends Controller
     private function validatedData(Request $request): array
     {
         return $request->validate([
-            'member_id' => ['nullable', 'integer', 'exists:members,id'],
-            'user_id'   => ['nullable', 'integer', 'exists:users,id', Rule::unique('leaders', 'user_id')->ignore($request->route('leader'))],
-            'full_name' => ['required', 'string', 'max:255'],
-            'phone'     => ['nullable', 'string', 'max:50'],
-            'email'     => ['nullable', 'email', 'max:255'],
-            'role'      => ['nullable', 'string', 'max:255'],
+            'member_id' => [
+                'required',
+                'integer',
+                'exists:members,id',
+                Rule::unique('leaders', 'member_id')->ignore($request->route('leader')),
+            ],
             'zone'      => ['nullable', 'string', 'max:255'],
             'status'    => ['required', 'string', Rule::in(['active', 'inactive'])],
             'notes'     => ['nullable', 'string'],

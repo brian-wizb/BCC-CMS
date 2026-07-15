@@ -6,6 +6,7 @@ use App\Http\Requests\Families\StoreFamilyRequest;
 use App\Http\Requests\Families\UpdateFamilyRequest;
 use App\Models\Family;
 use App\Models\Member;
+use App\Models\Zone;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,10 +48,12 @@ class FamilyController extends Controller
     public function create(): View
     {
         $members = Member::orderBy('full_name')->get(['id', 'full_name', 'gender']);
+        $zones = Zone::query()->orderBy('name')->pluck('name')->all();
 
         return view('families.create', [
             'family'    => new Family(['gender' => 'Male']),
             'members'   => $members,
+            'zones'     => $zones,
             'linkedIds' => [],
         ]);
     }
@@ -86,8 +89,9 @@ class FamilyController extends Controller
     {
         $members   = Member::orderBy('full_name')->get(['id', 'full_name', 'gender']);
         $linkedIds = $family->members()->pluck('id')->toArray();
+        $zones = Zone::query()->orderBy('name')->pluck('name')->all();
 
-        return view('families.edit', compact('family', 'members', 'linkedIds'));
+        return view('families.edit', compact('family', 'members', 'linkedIds', 'zones'));
     }
 
     public function update(UpdateFamilyRequest $request, Family $family): RedirectResponse

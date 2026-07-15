@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
+use App\Models\Leader;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -39,8 +40,18 @@ class UserManagementController extends Controller
 
     public function create(): View
     {
+        $leaders = Leader::query()
+            ->with('member:id,full_name')
+            ->where(function ($query) {
+                $query->whereNull('user_id')
+                    ->orWhereHas('user', fn ($q) => $q->where('status', 'inactive'));
+            })
+            ->orderBy('full_name')
+            ->get(['id', 'member_id', 'user_id', 'full_name']);
+
         return view('users.create', [
-            'roles' => Role::query()->orderBy('name')->get(),
+            'roles'   => Role::query()->orderBy('name')->get(),
+            'leaders' => $leaders,
         ]);
     }
 
@@ -59,6 +70,10 @@ class UserManagementController extends Controller
         $role = Role::query()->where('key', $data['role'])->firstOrFail();
         $user->roles()->sync([$role->id]);
 
+        if (! empty($data['leader_id'])) {
+            Leader::query()->where('id', $data['leader_id'])->update(['user_id' => $user->id]);
+        }
+
         $this->auditLogger->log(
             request: $request,
             action: 'user.create',
@@ -68,6 +83,7 @@ class UserManagementController extends Controller
                 'username' => $user->username,
                 'role'     => $role->key,
                 'status'   => $user->status,
+                'leader_id' => $data['leader_id'] ?? null,
             ],
         );
 

@@ -6,6 +6,7 @@ use App\Jobs\SendCommunicationJob;
 use App\Models\Communication;
 use App\Models\CommunicationCreditSetting;
 use App\Models\CommunicationDelivery;
+use App\Models\Donation;
 use App\Models\Member;
 use App\Models\Visitor;
 use Illuminate\Support\Arr;
@@ -272,9 +273,11 @@ class CommunicationController extends Controller
     public function operations(): View
     {
         $creditState = $this->creditState();
+        $smsBreakdown = $this->smsUsageBreakdown();
 
         return view('communications.operations', [
             'creditState' => $creditState,
+            'smsBreakdown' => $smsBreakdown,
         ]);
     }
 
@@ -512,9 +515,25 @@ class CommunicationController extends Controller
 
     private function usedSmsCount(): int
     {
-        return (int) CommunicationDelivery::query()
+        return $this->smsUsageBreakdown()['total'];
+    }
+
+    private function smsUsageBreakdown(): array
+    {
+        $communicationSmsCount = (int) CommunicationDelivery::query()
             ->whereHas('communication', fn ($q) => $q->where('channel', 'sms'))
             ->whereIn('delivery_status', ['queued', 'delivered', 'failed'])
             ->count();
+
+        // Donation receipt SMS are sent directly from DonationController and must be included in credit usage.
+        $donationSmsCount = (int) Donation::query()
+            ->where('sms_delivery_status', 'sent')
+            ->count();
+
+        return [
+            'communications' => $communicationSmsCount,
+            'donations' => $donationSmsCount,
+            'total' => $communicationSmsCount + $donationSmsCount,
+        ];
     }
 }

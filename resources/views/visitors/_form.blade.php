@@ -1,15 +1,32 @@
 ﻿@csrf
 
+@php
+    $nameParts = preg_split('/\s+/', trim((string) ($visitor->full_name ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+    $defaultFirstName = old('first_name', $nameParts[0] ?? '');
+    $defaultSurname = old('surname', count($nameParts) > 1 ? $nameParts[count($nameParts) - 1] : '');
+    $defaultMiddleName = old('middle_name', count($nameParts) > 2 ? implode(' ', array_slice($nameParts, 1, -1)) : '');
+@endphp
+
 {{-- ── Visitor Information ────────────────────────────────────────── --}}
 <div class="mb-8 rounded-2xl border border-[var(--color-surface-200)] p-6">
     <h4 class="mb-5 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">
         <i class="fa-solid fa-user w-4 text-center"></i> Visitor Information
     </h4>
-    <div class="grid gap-4 md:grid-cols-2">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div>
-            <label class="form-label" for="full_name">Full name <span class="text-red-500">*</span></label>
-            <input id="full_name" name="full_name" class="form-input" required
-                   value="{{ old('full_name', $visitor->full_name) }}">
+            <label class="form-label" for="first_name">First name <span class="text-red-500">*</span></label>
+            <input id="first_name" name="first_name" class="form-input" required
+                   value="{{ $defaultFirstName }}">
+        </div>
+        <div>
+            <label class="form-label" for="middle_name">Middle name</label>
+            <input id="middle_name" name="middle_name" class="form-input"
+                   value="{{ $defaultMiddleName }}">
+        </div>
+        <div>
+            <label class="form-label" for="surname">Surname <span class="text-red-500">*</span></label>
+            <input id="surname" name="surname" class="form-input" required
+                   value="{{ $defaultSurname }}">
         </div>
         <div>
             <label class="form-label" for="gender">Gender <span class="text-red-500">*</span></label>

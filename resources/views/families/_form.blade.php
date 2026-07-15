@@ -1,4 +1,8 @@
 ﻿@php $family = $family ?? null; @endphp
+@php
+    $zoneOptions = collect($zones ?? [])->filter()->values()->all();
+    $selectedZone = old('zone', $family?->zone);
+@endphp
 
 @if ($errors->any())
     <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -78,8 +82,15 @@
             <label class="form-label" for="zone">
                 <i class="fas fa-map-marker-alt mr-1 opacity-50 text-xs"></i> Zone
             </label>
-            <input id="zone" name="zone" class="form-input" placeholder="e.g. North Zone"
-                   value="{{ old('zone', $family?->zone) }}">
+            <select id="zone" name="zone" class="form-input">
+                <option value="">Select zone</option>
+                @foreach ($zoneOptions as $zone)
+                    <option value="{{ $zone }}" @selected($selectedZone === $zone)>{{ $zone }}</option>
+                @endforeach
+                @if ($selectedZone && ! in_array($selectedZone, $zoneOptions, true))
+                    <option value="{{ $selectedZone }}" selected>{{ $selectedZone }} (legacy)</option>
+                @endif
+            </select>
         </div>
         <div>
             <label class="form-label" for="home_cell_group">

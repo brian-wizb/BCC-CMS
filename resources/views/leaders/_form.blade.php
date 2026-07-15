@@ -17,56 +17,22 @@
         <span class="flex h-7 w-7 items-center justify-center rounded-lg" style="background:rgba(36,184,255,0.12);">
             <i class="fas fa-user-shield text-xs" style="color:rgba(36,184,255,0.9);"></i>
         </span>
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Leader identity</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Leader source member</p>
     </div>
     <div class="grid gap-4 md:grid-cols-2">
         <div>
-            <label class="form-label" for="full_name">
-                <i class="fas fa-user-tie mr-1 opacity-50 text-xs"></i> Full name <span class="text-red-500">*</span>
-            </label>
-            <input id="full_name" name="full_name" class="form-input"
-                   placeholder="Leader's full name"
-                   value="{{ old('full_name', $leader->full_name) }}" required>
-        </div>
-        <div>
             <label class="form-label" for="member_id">
-                <i class="fas fa-id-card mr-1 opacity-50 text-xs"></i> Linked member
+                <i class="fas fa-id-card mr-1 opacity-50 text-xs"></i> Registered member <span class="text-red-500">*</span>
             </label>
-            <select id="member_id" name="member_id" class="form-input">
-                <option value="">— Not linked to a member —</option>
+            <select id="member_id" name="member_id" class="form-input" required>
+                <option value="">— Select member to create leader —</option>
                 @foreach ($members as $m)
                     <option value="{{ $m->id }}" @selected(old('member_id', $leader->member_id) == $m->id)>
                         {{ $m->full_name }}
                     </option>
                 @endforeach
             </select>
-        </div>
-        <div>
-            <label class="form-label" for="phone">
-                <i class="fas fa-phone mr-1 opacity-50 text-xs"></i> Phone
-            </label>
-            <input id="phone" name="phone" class="form-input" placeholder="+255 712 345 678"
-                   value="{{ old('phone', $leader->phone) }}">
-        </div>
-        <div>
-            <label class="form-label" for="email">
-                <i class="fas fa-envelope mr-1 opacity-50 text-xs"></i> Email
-            </label>
-            <input id="email" name="email" type="email" class="form-input" placeholder="leader@example.com"
-                   value="{{ old('email', $leader->email) }}">
-        </div>
-        <div>
-            <label class="form-label" for="user_id">
-                <i class="fas fa-user-circle mr-1 opacity-50 text-xs"></i> Linked system user
-            </label>
-            <select id="user_id" name="user_id" class="form-input">
-                <option value="">— No linked user —</option>
-                @foreach ($users as $user)
-                    <option value="{{ $user->id }}" @selected(old('user_id', $leader->user_id) == $user->id)>
-                        {{ $user->full_name }} @if($user->email) ({{ $user->email }}) @endif
-                    </option>
-                @endforeach
-            </select>
+            <p class="mt-1 text-xs text-slate-400">Name, phone, and email are synced automatically from selected member.</p>
         </div>
     </div>
 </div>
@@ -77,17 +43,9 @@
         <span class="flex h-7 w-7 items-center justify-center rounded-lg" style="background:rgba(52,211,153,0.12);">
             <i class="fas fa-sitemap text-xs" style="color:rgba(52,211,153,0.9);"></i>
         </span>
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Role &amp; assignment</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Assignment details</p>
     </div>
     <div class="grid gap-4 md:grid-cols-2">
-        <div>
-            <label class="form-label" for="role">
-                <i class="fas fa-tag mr-1 opacity-50 text-xs"></i> Role / title
-            </label>
-            <input id="role" name="role" class="form-input"
-                   placeholder="e.g. Zone Leader, Elder, Cell Group Leader"
-                   value="{{ old('role', $leader->role) }}">
-        </div>
         <div>
             <label class="form-label" for="zone">
                 <i class="fas fa-map-marker-alt mr-1 opacity-50 text-xs"></i> Zone

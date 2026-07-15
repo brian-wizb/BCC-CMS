@@ -18,6 +18,22 @@
         <form method="POST" action="{{ route('users.store') }}" class="space-y-5" autocomplete="off">
             @csrf
 
+            <div class="grid gap-4 md:grid-cols-1">
+                <div>
+                    <label class="form-label" for="leader_id">Link to leader <span class="text-slate-400 font-normal">(optional)</span></label>
+                    <select id="leader_id" name="leader_id" class="form-input">
+                        <option value="">- No leader link -</option>
+                        @foreach ($leaders as $leader)
+                            <option value="{{ $leader->id }}" @selected(old('leader_id') == $leader->id)>
+                                {{ $leader->full_name }} @if($leader->member?->full_name) - Member: {{ $leader->member->full_name }} @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('leader_id')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
+                    <p class="mt-1 text-xs text-slate-400">If selected, this user account will sync with that leader for follow-up task assignments.</p>
+                </div>
+            </div>
+
             <div class="grid gap-4 md:grid-cols-2">
                 <div>
                     <label class="form-label" for="username">Username <span class="text-rose-400">*</span></label>
@@ -25,7 +41,7 @@
                     @error('username')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="form-label" for="full_name">Full Name</label>
+                    <label class="form-label" for="full_name">Full Name (3 names)</label>
                     <input id="full_name" name="full_name" class="form-input" value="{{ old('full_name') }}">
                     @error('full_name')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
                 </div>
