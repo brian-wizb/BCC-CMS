@@ -42,10 +42,7 @@ class UserManagementController extends Controller
     {
         $leaders = Leader::query()
             ->with('member:id,full_name')
-            ->where(function ($query) {
-                $query->whereNull('user_id')
-                    ->orWhereHas('user', fn ($q) => $q->where('status', 'inactive'));
-            })
+            ->where('status', 'active')
             ->orderBy('full_name')
             ->get(['id', 'member_id', 'user_id', 'full_name']);
 
