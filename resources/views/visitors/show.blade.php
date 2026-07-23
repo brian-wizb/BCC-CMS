@@ -108,7 +108,7 @@
                                         {{ $task->priority }}
                                     </span>
                                     <span class="text-sm font-semibold text-[var(--color-ink-950)]">
-                                        {{ strtoupper($task->task_type) }}
+                                        {{ $task->task_type_label }}
                                     </span>
                                 </div>
                                 <x-ui.status-badge :status="$task->status" />
@@ -121,8 +121,17 @@
                                     Due {{ $task->due_date->format('d M Y') }}
                                 @endif
                             </p>
-                            @if ($task->notes)
-                                <p class="mt-1 text-xs text-slate-500">{{ $task->notes }}</p>
+                            <p class="mt-1 text-xs text-slate-500">
+                                {{ $task->target_display_name }} <span class="text-slate-400">({{ $task->target_display_type }})</span>
+                                @if ($task->target_member_count > 1)
+                                    <span class="ml-1 text-slate-400"><i class="fa-solid fa-people-group mr-1"></i>{{ $task->target_member_count }} people</span>
+                                @endif
+                            </p>
+                            @if ($task->target_phone)
+                                <p class="mt-1 text-xs text-slate-400"><i class="fa-solid fa-phone mr-1"></i>{{ $task->target_phone }}</p>
+                            @endif
+                            @if ($task->display_notes)
+                                <p class="mt-1 text-xs text-slate-500">{{ $task->display_notes }}</p>
                             @endif
                             {{-- Recent history --}}
                             @foreach ($task->history->take(2) as $entry)

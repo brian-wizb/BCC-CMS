@@ -60,7 +60,7 @@
                 </select>
             </div>
 
-            {{-- Person selector (member / visitor / family — pick one) --}}
+            {{-- Person selector (member / visitor — pick one) --}}
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Member</label>
                 <select name="member_id" class="form-input w-full">
@@ -76,15 +76,6 @@
                     <option value="">None</option>
                     @foreach ($visitors as $v)
                         <option value="{{ $v->id }}" @selected(old('visitor_id') == $v->id)>{{ $v->full_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs text-slate-500 mb-1">Family</label>
-                <select name="family_id" class="form-input w-full">
-                    <option value="">None</option>
-                    @foreach ($families as $f)
-                        <option value="{{ $f->id }}" @selected(old('family_id') == $f->id)>{{ $f->head_of_family }}</option>
                     @endforeach
                 </select>
             </div>

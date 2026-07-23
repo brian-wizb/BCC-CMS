@@ -88,9 +88,6 @@
     @php
         $typeConfig = [
             'inactive_member'       => ['label' => 'Inactive Members',        'icon' => 'fa-user-slash',          'color' => 'text-slate-700',   'bg' => 'bg-slate-100',   'ring' => 'ring-slate-300'],
-            'lapsed_attendance'     => ['label' => 'Lapsed Attendance',        'icon' => 'fa-calendar-xmark',      'color' => 'text-blue-700',    'bg' => 'bg-blue-50',     'ring' => 'ring-blue-200'],
-            'pastoral_case_overdue' => ['label' => 'Overdue Pastoral Cases',   'icon' => 'fa-briefcase-medical',   'color' => 'text-orange-700',  'bg' => 'bg-orange-50',   'ring' => 'ring-orange-200'],
-            'prayer_request_stale'  => ['label' => 'Stale Prayer Requests',    'icon' => 'fa-hands-praying',       'color' => 'text-violet-700',  'bg' => 'bg-violet-50',   'ring' => 'ring-violet-200'],
             'follow_up_overdue'     => ['label' => 'Follow-up Pending',        'icon' => 'fa-list-check',          'color' => 'text-amber-700',   'bg' => 'bg-amber-50',    'ring' => 'ring-amber-200'],
             'pledge_due'            => ['label' => 'Pledges Due',              'icon' => 'fa-hand-holding-dollar', 'color' => 'text-emerald-700', 'bg' => 'bg-emerald-50',  'ring' => 'ring-emerald-200'],
         ];
@@ -296,7 +293,7 @@
                                                 </div>
                                                 <div class="sm:col-span-2 lg:col-span-3">
                                                     <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Notes (optional)</label>
-                                                    <input type="text" name="notes" class="form-input w-full" value="{{ $linkedTask ? trim(preg_replace('/\n?ALERT_REF:\d+.*$/s', '', (string) $linkedTask->notes)) : '' }}" placeholder="Add follow-up instructions for the leader">
+                                                    <input type="text" name="notes" class="form-input w-full" value="{{ $linkedTask?->display_notes ?? '' }}" placeholder="Add follow-up instructions for the leader">
                                                 </div>
                                                 <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap gap-2 pt-1">
                                                     <button type="submit" class="btn-primary inline-flex items-center gap-2 text-sm">

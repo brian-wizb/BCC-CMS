@@ -11,7 +11,7 @@
                     <span class="status-pill dashboard-hero-kicker">People Management</span>
                     <h1 class="dashboard-hero-title mt-3 text-3xl font-bold md:text-4xl">Secretary People Dashboard</h1>
                     <p class="dashboard-hero-copy mt-2 max-w-3xl text-sm md:text-base">
-                        Track member growth, follow-up workload, and structure coverage across families, departments, zones, and groups.
+                        Track member growth, follow-up workload, and structure coverage across departments, zones, and groups.
                     </p>
                 </div>
                 <div class="grid grid-cols-2 gap-3 dashboard-hero-stats-grid">
@@ -29,7 +29,6 @@
 
         <section class="mt-6 grid gap-4 xl:grid-cols-4 md:grid-cols-2">
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Members</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['members']) }}</p><p class="mt-1 text-xs text-slate-500">Registered members</p></article>
-            <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Families</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['families']) }}</p><p class="mt-1 text-xs text-slate-500">Households managed</p></article>
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Visitors</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['visitors']) }}</p><p class="mt-1 text-xs text-slate-500">Visitor records</p></article>
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Leaders</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['leaders']) }}</p><p class="mt-1 text-xs text-slate-500">Leader profiles</p></article>
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Departments</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['departments']) }}</p><p class="mt-1 text-xs text-slate-500">Department units</p></article>

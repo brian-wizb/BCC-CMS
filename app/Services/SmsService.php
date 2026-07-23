@@ -68,11 +68,13 @@ class SmsService
 
         $baseUrl = rtrim((string) config('services.beem.base_url', 'https://apisms.beem.africa'), '/');
         $sender = (string) config('services.beem.sender_id', 'INFO');
+        $verifySsl = filter_var(config('services.beem.verify_ssl', true), FILTER_VALIDATE_BOOLEAN);
+        $caBundle = config('services.beem.ca_bundle');
 
         $normalised = WhatsAppService::normalisePhone($toPhone);
         $destAddr = ltrim($normalised, '+');
 
-        $sendRequest = function (string $senderId) use ($apiKey, $secret, $baseUrl, $body, $destAddr) {
+        $sendRequest = function (string $senderId) use ($apiKey, $secret, $baseUrl, $body, $destAddr, $verifySsl, $caBundle) {
             $payload = [
                 'source_addr' => $senderId,
                 'encoding' => 0,
@@ -86,28 +88,25 @@ class SmsService
                 ],
             ];
 
-            return Http::withHeaders([
+            $request = Http::withHeaders([
                 'Authorization' => 'Basic ' . base64_encode($apiKey . ':' . $secret),
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-            ])->post($baseUrl . '/v1/send', $payload);
+            ])->timeout(20);
+
+            if (is_string($caBundle) && trim($caBundle) !== '') {
+                $request = $request->withOptions(['verify' => $caBundle]);
+            } else {
+                $request = $request->withOptions(['verify' => $verifySsl]);
+            }
+
+            return $request->post($baseUrl . '/v1/send', $payload);
         };
 
         $response = $sendRequest($sender);
 
         if (! $response->successful()) {
-            $bodyText = (string) $response->body();
-            $looksLikeInvalidSender = $response->status() === 400
-                && str_contains(strtolower($bodyText), 'sender id');
-
-            // Fallback for unapproved/custom sender ids in Beem.
-            if ($looksLikeInvalidSender && strtoupper($sender) !== 'INFO') {
-                $response = $sendRequest('INFO');
-            }
-
-            if (! $response->successful()) {
-                throw new \RuntimeException('Beem SMS request failed: ' . $response->status() . ' ' . $response->body());
-            }
+            throw new \RuntimeException('Beem SMS request failed: ' . $response->status() . ' ' . $response->body());
         }
 
         $json = $response->json();

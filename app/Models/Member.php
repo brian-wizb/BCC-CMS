@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Member extends Model
@@ -45,7 +46,6 @@ class Member extends Model
     }
 
     protected $fillable = [
-        'family_id',
         'full_name',
         'phone',
         'tithe_code',
@@ -94,11 +94,6 @@ class Member extends Model
         ];
     }
 
-    public function family(): BelongsTo
-    {
-        return $this->belongsTo(Family::class);
-    }
-
     public function partnerMember(): BelongsTo
     {
         return $this->belongsTo(self::class, 'partner_member_id');
@@ -143,19 +138,54 @@ class Member extends Model
         return $this->hasMany(AttendanceRecord::class)->latest('recorded_at');
     }
 
-    public function prayerRequests(): HasMany
-    {
-        return $this->hasMany(PrayerRequest::class)->latest('created_at');
-    }
-
-    public function pastoralCases(): HasMany
-    {
-        return $this->hasMany(PastoralCase::class)->latest('opened_at');
-    }
-
     public function followUpTasks(): HasMany
     {
         return $this->hasMany(FollowUpTask::class, 'person_id')
             ->where('person_type', 'member');
+    }
+
+    public function getProfilePicUrlAttribute(): ?string
+    {
+        $profilePic = trim((string) ($this->profile_pic ?? ''));
+
+        if ($profilePic === '') {
+            return null;
+        }
+
+        $normalizedPath = str_replace('\\', '/', $profilePic);
+
+        if (Str::startsWith($normalizedPath, ['http://', 'https://'])) {
+            return $normalizedPath;
+        }
+
+        if (Str::contains($normalizedPath, 'members/profile-pictures/')) {
+            $relativePath = Str::afterLast($normalizedPath, 'members/profile-pictures/');
+
+            return Storage::disk('public')->url('members/profile-pictures/' . ltrim($relativePath, '/'));
+        }
+
+        if (Str::contains($normalizedPath, '/storage/')) {
+            $relativeFromStorage = Str::after($normalizedPath, '/storage/');
+
+            return asset('storage/' . ltrim($relativeFromStorage, '/'));
+        }
+
+        if (Str::startsWith($normalizedPath, '/storage/')) {
+            return asset(ltrim($normalizedPath, '/'));
+        }
+
+        if (Str::startsWith($normalizedPath, 'storage/')) {
+            return asset($normalizedPath);
+        }
+
+        if (Str::startsWith($normalizedPath, 'public/storage/')) {
+            return asset(Str::after($normalizedPath, 'public/'));
+        }
+
+        if (Str::startsWith($normalizedPath, '/public/storage/')) {
+            return asset(ltrim(Str::after($normalizedPath, '/public/'), '/'));
+        }
+
+        return $normalizedPath;
     }
 }

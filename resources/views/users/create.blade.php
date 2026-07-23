@@ -15,10 +15,40 @@
             </a>
         </div>
 
-        <form method="POST" action="{{ route('users.store') }}" class="space-y-5" autocomplete="off">
+        <form method="POST" action="{{ route('users.store') }}" enctype="multipart/form-data" class="space-y-5" autocomplete="off">
             @csrf
-
             <div class="grid gap-4 md:grid-cols-1">
+                {{-- Profile Photo --}}
+                <div class="flex items-center gap-5">
+                    <div id="photo-preview-wrap" class="relative h-20 w-20 flex-shrink-0">
+                        <div id="photo-initials"
+                             class="flex h-20 w-20 items-center justify-center rounded-2xl text-xl font-bold text-white"
+                             style="background:linear-gradient(135deg,rgba(99,102,241,0.85),rgba(168,85,247,0.75));">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <img id="photo-preview" src="" alt="Preview"
+                             class="absolute inset-0 hidden h-20 w-20 rounded-2xl object-cover" />
+                    </div>
+                    <div class="flex-1">
+                        <label class="form-label mb-1 block" for="profile_photo">Profile Photo <span class="text-slate-400 font-normal">(optional)</span></label>
+                        <input id="profile_photo" name="profile_photo" type="file" accept="image/jpeg,image/png,image/webp"
+                               class="form-input cursor-pointer text-sm"
+                               onchange="
+                                   const f = this.files[0];
+                                   if (f) {
+                                       const url = URL.createObjectURL(f);
+                                       const img = document.getElementById('photo-preview');
+                                       const ini = document.getElementById('photo-initials');
+                                       img.src = url;
+                                       img.classList.remove('hidden');
+                                       ini.classList.add('hidden');
+                                   }
+                               ">
+                        @error('profile_photo')<p class="mt-1 text-xs text-rose-400">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-slate-400">JPG, PNG or WebP, max 2 MB. Will display on the topbar.</p>
+                    </div>
+                </div>
+
                 <div>
                     <label class="form-label" for="leader_id">Link to leader <span class="text-slate-400 font-normal">(optional)</span></label>
                     <select id="leader_id" name="leader_id" class="form-input">

@@ -23,6 +23,8 @@
 
         @if ($canCreate)
             {{-- ── Create task form ───────────────────────────────────────── --}}
+            @php($assignmentScope = old('assignment_scope', 'individual'))
+            @php($personTypeValue = in_array(old('person_type'), ['visitor', 'member'], true) ? old('person_type') : 'visitor')
             <article class="surface-card p-6">
                 <h4 class="mb-5 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">
                     <i class="fa-solid fa-plus-circle w-4 text-center"></i> New Follow-up Task
@@ -31,22 +33,66 @@
                       action="{{ route('follow-up.tasks.store') }}" id="task-create-form">
                     @csrf
 
+                <div class="md:col-span-2 xl:col-span-3">
+                    <label class="form-label" for="assignment_scope">Assignment type <span class="text-red-500">*</span></label>
+                    <select id="assignment_scope" name="assignment_scope" class="form-input" required>
+                        <option value="individual" @selected($assignmentScope === 'individual')>Individual person</option>
+                        <option value="multiple" @selected($assignmentScope === 'multiple')>Multiple people</option>
+                    </select>
+                    <p class="mt-1 text-xs text-slate-400">Use multiple people when one counsellor should follow up several visitors or members at once.</p>
+                </div>
+
                 {{-- Person type selector --}}
-                <div>
+                <div id="person-type-wrap">
                     <label class="form-label" for="person_type">Person type <span class="text-red-500">*</span></label>
-                    <select id="person_type" name="person_type" class="form-input" required>
-                        <option value="visitor">Visitor</option>
-                        <option value="member">Member</option>
-                        <option value="family">Family</option>
+                    <select id="person_type" name="person_type" class="form-input">
+                        <option value="visitor" @selected($personTypeValue === 'visitor')>Visitor</option>
+                        <option value="member" @selected($personTypeValue === 'member')>Member</option>
                     </select>
                 </div>
 
-                {{-- Dynamic person dropdown --}}
-                <div>
-                    <label class="form-label" for="person_id">Person <span class="text-red-500">*</span></label>
-                    <select id="person_id" name="person_id" class="form-input" required>
-                        <option value="">Loading people...</option>
-                    </select>
+                {{-- Dynamic person selection --}}
+                <div id="person-wrap">
+                    <label class="form-label" for="person-selection-btn">Person <span class="text-red-500">*</span></label>
+                    <div class="flex gap-2" id="person-selection-container">
+                        <button type="button" id="person-selection-btn" class="flex-1 form-input text-left text-slate-500 hover:bg-slate-50 transition cursor-pointer">
+                            <i class="fa-solid fa-user mr-2"></i><span id="person-selection-text">Select person...</span>
+                        </button>
+                        <span id="person-selection-count" class="inline-flex items-center px-3 rounded-lg bg-blue-50 text-blue-700 font-semibold min-w-fit">0</span>
+                    </div>
+                    <p id="person-hint" class="mt-1 text-xs text-slate-400">Choose one person for a single assignment.</p>
+                    <div id="person-selection-display" class="mt-2 flex flex-wrap gap-2"></div>
+                    
+                    {{-- Hidden input fields for form submission --}}
+                    <input type="hidden" id="person_id" name="person_id" value="">
+                    <input type="hidden" id="person_ids_input" name="person_ids" value="">
+                </div>
+
+                {{-- Modal for multiple selection --}}
+                <div id="person-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50" style="display: none;">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-md mx-4 max-h-96 flex flex-col">
+                        <div class="border-b border-slate-200 px-6 py-4">
+                            <h5 class="font-semibold text-slate-900" id="modal-title">Select Person</h5>
+                            <p class="text-xs text-slate-500 mt-1" id="modal-instructions">Choose one person for assignment.</p>
+                        </div>
+
+                        <div class="px-6 py-3 border-b border-slate-200">
+                            <input type="text" id="person-search" class="form-input w-full" placeholder="Search people...">
+                        </div>
+
+                        <div id="person-list-container" class="flex-1 overflow-y-auto px-6 py-3">
+                            <div class="text-center text-slate-400 text-sm py-4">Loading people...</div>
+                        </div>
+
+                        <div class="border-t border-slate-200 px-6 py-4 flex gap-2 justify-end">
+                            <button type="button" id="person-modal-cancel" class="btn-secondary">
+                                Cancel
+                            </button>
+                            <button type="button" id="person-modal-done" class="btn-primary">
+                                Done
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Task type --}}
@@ -144,33 +190,33 @@
         <article class="surface-card p-6">
             <div class="space-y-4">
                 @forelse ($tasks as $task)
-                    @php
-                        $personName = match ($task->person_type) {
-                            'visitor' => $task->person_id
-                                ? ($visitors->find($task->person_id)?->full_name ?? 'Visitor #'.$task->person_id)
-                                : '—',
-                            'member'  => $task->person_id
-                                ? ($members->find($task->person_id)?->full_name ?? 'Member #'.$task->person_id)
-                                : '—',
-                            'family'  => $task->person_id
-                                ? ($families->find($task->person_id)?->head_of_family ?? 'Family #'.$task->person_id)
-                                : '—',
-                            default   => 'Unknown',
-                        };
-                    @endphp
-
                     <div class="rounded-2xl border border-[var(--color-surface-200)] p-4">
                         {{-- Task header --}}
                         <div class="flex flex-wrap items-start justify-between gap-2">
                             <div>
                                 <p class="font-semibold text-[var(--color-ink-950)]">
                                     <i class="fa-solid fa-{{ $task->task_type === 'call' ? 'phone' : ($task->task_type === 'sms' ? 'comment-sms' : ($task->task_type === 'visit' ? 'car' : ($task->task_type === 'prayer' ? 'hands-praying' : ($task->task_type === 'counseling' ? 'user-doctor' : 'map-pin')))) }} mr-1 text-blue-500"></i>
-                                    {{ strtoupper(str_replace('_', ' ', $task->task_type)) }}
+                                    {{ $task->task_type_label }}
                                     <span class="font-normal text-slate-500">for</span>
-                                    {{ $personName }}
-                                    <span class="text-xs text-slate-400">({{ $task->person_type }})</span>
+                                    {{ $task->target_display_name }}
                                 </p>
                                 <p class="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                                    <span>
+                                        <i class="fa-solid fa-user mr-1 text-slate-400"></i>
+                                        {{ $task->target_display_type }}
+                                    </span>
+                                    @if ($task->target_member_count > 1)
+                                        <span>
+                                            <i class="fa-solid fa-people-group mr-1 text-sky-500"></i>
+                                            {{ $task->target_member_count }} people
+                                        </span>
+                                    @endif
+                                    @if ($task->target_phone)
+                                        <span>
+                                            <i class="fa-solid fa-phone mr-1 text-slate-400"></i>
+                                            {{ $task->target_phone }}
+                                        </span>
+                                    @endif
                                     <span>
                                         <i class="fa-solid fa-user-shield mr-1 text-emerald-500"></i>
                                         {{ $task->leader?->full_name ?: 'Unassigned' }}
@@ -207,8 +253,8 @@
                             </div>
                         </div>
 
-                        @if ($task->notes)
-                            <p class="mt-2 text-sm text-slate-600">{{ $task->notes }}</p>
+                        @if ($task->display_notes)
+                            <p class="mt-2 rounded-xl bg-[var(--color-surface-50)] px-3 py-2 text-sm text-slate-600">{!! nl2br(e($task->display_notes)) !!}</p>
                         @endif
 
                         {{-- Update form --}}
@@ -237,7 +283,7 @@
                             <input type="date" name="due_date" class="form-input"
                                    value="{{ optional($task->due_date)->format('Y-m-d') }}">
                             <input name="notes" class="form-input md:col-span-2 xl:col-span-3"
-                                   value="{{ $task->notes }}" placeholder="Update notes">
+                                value="{{ $task->display_notes }}" placeholder="Update notes">
                             <button class="btn-secondary" type="submit">
                                 <i class="fa-solid fa-floppy-disk mr-1"></i> Save
                             </button>
@@ -280,61 +326,177 @@
         </article>
     </section>
 
-    {{-- JS: fetch and update person dropdown based on person_type --}}
+    {{-- JS: Modal-based person selection --}}
     <script>
-        const personTypeSelect = document.getElementById('person_type');
-        const personSelect = document.getElementById('person_id');
-        const peopleEndpoint = '{{ route('follow-up.people') }}';
+        (() => {
+            const assignmentScopeSelect = document.getElementById('assignment_scope');
+            const personTypeSelect = document.getElementById('person_type');
+            const personSelectionBtn = document.getElementById('person-selection-btn');
+            const personSelectionText = document.getElementById('person-selection-text');
+            const personSelectionCount = document.getElementById('person-selection-count');
+            const personSelectionDisplay = document.getElementById('person-selection-display');
+            const personHint = document.getElementById('person-hint');
+            const personIdInput = document.getElementById('person_id');
+            const personIdsInput = document.getElementById('person_ids_input');
+            const personModal = document.getElementById('person-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalInstructions = document.getElementById('modal-instructions');
+            const personListContainer = document.getElementById('person-list-container');
+            const personSearchInput = document.getElementById('person-search');
+            const personModalCancel = document.getElementById('person-modal-cancel');
+            const personModalDone = document.getElementById('person-modal-done');
+            const peopleEndpoint = '{{ route('follow-up.people') }}';
+            
+            let allPeople = [];
+            let selectedPeople = @json(old('person_ids', old('person_id') ? [old('person_id')] : []));
+            if (typeof selectedPeople === 'string') {
+                selectedPeople = selectedPeople ? [selectedPeople] : [];
+            }
+            selectedPeople = selectedPeople.map(id => parseInt(id)).filter(id => !isNaN(id));
 
-        function personPlaceholder(type) {
-            return '— select ' + type + ' —';
-        }
+            if (!assignmentScopeSelect || !personTypeSelect || !personSelectionBtn || !personModal) {
+                return;
+            }
 
-        function setPeopleOptions(type, people) {
-            personSelect.innerHTML = '';
+            async function loadPeople() {
+                const type = personTypeSelect.value;
+                personListContainer.innerHTML = '<div class="text-center text-slate-400 text-sm py-4">Loading people...</div>';
 
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = personPlaceholder(type);
-            personSelect.appendChild(placeholder);
+                try {
+                    const response = await fetch(peopleEndpoint + '?person_type=' + encodeURIComponent(type), {
+                        headers: { 'Accept': 'application/json' }
+                    });
 
-            people.forEach(function (person) {
-                const option = document.createElement('option');
-                option.value = person.id;
-                option.textContent = person.name;
-                personSelect.appendChild(option);
-            });
-        }
+                    if (!response.ok) throw new Error('Failed to load people');
 
-        async function loadPeopleByType(type) {
-            personSelect.disabled = true;
-            personSelect.innerHTML = '<option value="">Loading people...</option>';
+                    const payload = await response.json();
+                    allPeople = Array.isArray(payload.data) ? payload.data : [];
+                    renderPeopleList('');
+                } catch (error) {
+                    personListContainer.innerHTML = '<div class="text-center text-red-500 text-sm py-4">Failed to load people</div>';
+                }
+            }
 
-            try {
-                const response = await fetch(peopleEndpoint + '?person_type=' + encodeURIComponent(type), {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+            function renderPeopleList(searchTerm) {
+                const filtered = allPeople.filter(p => 
+                    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+                );
 
-                if (!response.ok) {
-                    throw new Error('Failed to load people');
+                if (filtered.length === 0) {
+                    personListContainer.innerHTML = '<div class="text-center text-slate-400 text-sm py-4">No people found</div>';
+                    return;
                 }
 
-                const payload = await response.json();
-                const people = Array.isArray(payload.data) ? payload.data : [];
-                setPeopleOptions(type, people);
-            } catch (error) {
-                personSelect.innerHTML = '<option value="">Unable to load people</option>';
-            } finally {
-                personSelect.disabled = false;
+                personListContainer.innerHTML = filtered.map(person => `
+                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition">
+                        <input type="checkbox" class="person-checkbox" value="${person.id}" 
+                               ${selectedPeople.includes(person.id) ? 'checked' : ''}>
+                        <span class="flex-1">${person.name}</span>
+                    </label>
+                `).join('');
+
+                document.querySelectorAll('.person-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', function () {
+                        const id = parseInt(this.value);
+                        if (this.checked) {
+                            if (!selectedPeople.includes(id)) selectedPeople.push(id);
+                        } else {
+                            selectedPeople = selectedPeople.filter(pid => pid !== id);
+                        }
+                    });
+                });
             }
-        }
 
-        personTypeSelect.addEventListener('change', function () {
-            loadPeopleByType(personTypeSelect.value);
-        });
+            function updateDisplayAndInputs() {
+                const isMultiple = assignmentScopeSelect.value === 'multiple';
+                const selectedIds = selectedPeople.map(id => parseInt(id)).filter(id => !isNaN(id));
 
-        loadPeopleByType(personTypeSelect.value);
+                if (isMultiple) {
+                    personIdInput.value = '';
+                    personIdsInput.value = JSON.stringify(selectedIds);
+                    personSelectionCount.textContent = selectedIds.length;
+                    personSelectionText.textContent = selectedIds.length === 0 ? 'Select people...' : `${selectedIds.length} people selected`;
+                } else {
+                    const id = selectedIds.length > 0 ? selectedIds[0] : '';
+                    personIdInput.value = id;
+                    personIdsInput.value = '';
+                    personSelectionCount.textContent = id ? '1' : '0';
+                    personSelectionText.textContent = selectedIds.length > 0 ? 'Person selected' : 'Select person...';
+                }
+
+                // Update display tags
+                const displayHtml = allPeople
+                    .filter(p => selectedIds.includes(p.id))
+                    .map(p => `
+                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+                            ${p.name}
+                            <button type="button" class="remove-person" data-id="${p.id}" title="Remove">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </span>
+                    `).join('');
+                
+                personSelectionDisplay.innerHTML = displayHtml;
+
+                document.querySelectorAll('.remove-person').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const id = parseInt(btn.dataset.id);
+                        selectedPeople = selectedPeople.filter(pid => pid !== id);
+                        updateDisplayAndInputs();
+                    });
+                });
+            }
+
+            function openModal() {
+                const isMultiple = assignmentScopeSelect.value === 'multiple';
+                modalTitle.textContent = isMultiple ? 'Select People' : 'Select Person';
+                modalInstructions.textContent = isMultiple 
+                    ? 'Choose multiple people of the same type.' 
+                    : 'Choose one person for assignment.';
+                personModal.style.display = 'flex';
+                personSearchInput.value = '';
+                loadPeople();
+                personSearchInput.focus();
+            }
+
+            function closeModal() {
+                updateDisplayAndInputs();
+                personModal.style.display = 'none';
+            }
+
+            function refreshView() {
+                const isMultiple = assignmentScopeSelect.value === 'multiple';
+                personHint.textContent = isMultiple 
+                    ? 'Select multiple people of the same type.' 
+                    : 'Choose one person for a single assignment.';
+                selectedPeople = [];
+                updateDisplayAndInputs();
+            }
+
+            personSelectionBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal();
+            });
+
+            personModalCancel.addEventListener('click', closeModal);
+            personModalDone.addEventListener('click', closeModal);
+
+            personSearchInput.addEventListener('input', (e) => {
+                renderPeopleList(e.target.value);
+            });
+
+            assignmentScopeSelect.addEventListener('change', refreshView);
+            personTypeSelect.addEventListener('change', () => {
+                selectedPeople = [];
+                updateDisplayAndInputs();
+            });
+
+            personModal.addEventListener('click', (e) => {
+                if (e.target === personModal) closeModal();
+            });
+
+            refreshView();
+        })();
     </script>
 </x-layouts.app>

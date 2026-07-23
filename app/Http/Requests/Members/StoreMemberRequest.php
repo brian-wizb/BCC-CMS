@@ -43,7 +43,6 @@ class StoreMemberRequest extends FormRequest
     protected function memberRules(): array
     {
         return [
-            'family_id' => ['nullable', 'integer', Rule::exists('families', 'id')],
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'surname' => ['required', 'string', 'max:100'],
@@ -55,6 +54,7 @@ class StoreMemberRequest extends FormRequest
             'residency' => ['nullable', 'string', 'max:255'],
             'marital_status' => ['nullable', 'string', Rule::in(['Single', 'Married', 'Divorced', 'Widowed', 'Separated', 'Unknown'])],
             'profile_pic' => ['nullable', 'string', 'max:255'],
+            'profile_pic_file' => ['nullable', 'image', 'max:4096'],
             'date_of_birth' => ['nullable', 'date'],
             'partner_member_id' => ['nullable', 'integer', Rule::exists('members', 'id')],
             'partner_name' => ['nullable', 'string', 'max:255'],

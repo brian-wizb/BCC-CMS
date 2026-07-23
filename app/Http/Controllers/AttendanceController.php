@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceRecord;
 use App\Models\Department;
-use App\Models\Family;
 use App\Models\FollowUpTask;
 use App\Models\Leader;
 use App\Models\Member;
@@ -17,6 +16,7 @@ use App\Services\WhatsAppService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
@@ -24,21 +24,35 @@ use Illuminate\View\View;
 
 class AttendanceController extends Controller
 {
+    private AuditLogger $auditLogger;
+
+    private AlertService $alertService;
+
+    private function tzNow(): Carbon
+    {
+        return now(config('app.timezone'));
+    }
+
     public function __construct(
-        private readonly AuditLogger $auditLogger,
-        private readonly AlertService $alertService,
-    ) {}
+        AuditLogger $auditLogger,
+        AlertService $alertService,
+    )
+    {
+        $this->auditLogger = $auditLogger;
+        $this->alertService = $alertService;
+    }
 
     // ── Dashboard ─────────────────────────────────────────────────────────
 
     public function index(): View
     {
+        $now = $this->tzNow();
         $lastService = Service::query()->orderByDesc('service_date')->first();
 
         $thisMonthPresent = AttendanceRecord::query()
             ->where('attendance_status', 'present')
-            ->whereMonth('recorded_at', now()->month)
-            ->whereYear('recorded_at', now()->year)
+            ->whereMonth('recorded_at', $now->month)
+            ->whereYear('recorded_at', $now->year)
             ->count();
 
         $totalServices = Service::query()->count();
@@ -136,7 +150,7 @@ class AttendanceController extends Controller
         ]);
 
         $records = AttendanceRecord::query()
-            ->with(['member', 'visitor', 'family', 'zone', 'recorder'])
+            ->with(['member', 'visitor', 'zone', 'recorder'])
             ->where('service_id', $service->id)
             ->latest('recorded_at')
             ->paginate(30);
@@ -202,7 +216,7 @@ class AttendanceController extends Controller
 
         $serviceId = (int) $request->input('service_id');
         $mode      = $request->input('attendance_mode');
-        $now       = now();
+        $now       = $this->tzNow();
         $userId    = auth()->id();
         $threshold = config('attendance.absence_alert_threshold', 3);
 
@@ -260,8 +274,8 @@ class AttendanceController extends Controller
                             'task_type'   => 'visit',
                             'priority'    => 'high',
                             'status'      => 'pending',
-                            'notes'       => "Auto-generated: {$threshold} consecutive absences recorded.",
-                            'due_date'    => now()->addDays(7),
+                            'notes'       => "Check in after {$threshold} missed services.",
+                            'due_date'    => $this->tzNow()->addDays(7),
                         ]);
                     }
                 }
@@ -283,7 +297,7 @@ class AttendanceController extends Controller
         $status    = trim((string) $request->string('status'));
 
         $records = AttendanceRecord::query()
-            ->with(['service', 'member', 'visitor', 'family', 'zone', 'recorder'])
+            ->with(['service', 'member', 'visitor', 'zone', 'recorder'])
             ->when($serviceId, fn ($q) => $q->where('service_id', $serviceId))
             ->when($status,    fn ($q) => $q->where('attendance_status', $status))
             ->latest('recorded_at')
@@ -297,7 +311,6 @@ class AttendanceController extends Controller
             'services'  => Service::query()->orderByDesc('service_date')->get(['id', 'name', 'service_date']),
             'members'   => Member::query()->orderBy('full_name')->get(['id', 'full_name']),
             'visitors'  => Visitor::query()->orderBy('full_name')->get(['id', 'full_name']),
-            'families'  => Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']),
             'zones'     => Zone::query()->where('status', 'active')->orderBy('name')->get(['id', 'name']),
             'statuses'  => config('attendance.statuses'),
             'modes'     => config('attendance.modes'),
@@ -310,7 +323,6 @@ class AttendanceController extends Controller
             'service_id'        => ['required', 'integer', Rule::exists('services', 'id')],
             'member_id'         => ['nullable', 'integer', Rule::exists('members', 'id')],
             'visitor_id'        => ['nullable', 'integer', Rule::exists('visitors', 'id')],
-            'family_id'         => ['nullable', 'integer', Rule::exists('families', 'id')],
             'department_id'     => ['nullable', 'integer', Rule::exists('departments', 'id')],
             'zone_id'           => ['nullable', 'integer', Rule::exists('zones', 'id')],
             'attendance_status' => ['required', 'string', Rule::in(array_keys(config('attendance.statuses')))],
@@ -320,19 +332,18 @@ class AttendanceController extends Controller
         ]);
 
         // Ensure at least one person is selected
-        if (! $data['member_id'] && ! $data['visitor_id'] && ! $data['family_id']) {
-            return back()->withErrors(['member_id' => 'Select at least one person (member, visitor, or family).'])->withInput();
+        if (! $data['member_id'] && ! $data['visitor_id']) {
+            return back()->withErrors(['member_id' => 'Select at least one person (member or visitor).'])->withInput();
         }
 
         $data['recorded_by'] = auth()->id();
-        $data['recorded_at'] = now();
+        $data['recorded_at'] = $this->tzNow();
 
         // Build unique key for upsert
         $uniqueKey = array_filter([
             'service_id'  => $data['service_id'],
             'member_id'   => $data['member_id']  ?? null,
             'visitor_id'  => $data['visitor_id'] ?? null,
-            'family_id'   => $data['family_id']  ?? null,
         ]);
 
         AttendanceRecord::query()->updateOrCreate($uniqueKey, $data);
@@ -348,8 +359,8 @@ class AttendanceController extends Controller
                     [
                         'priority' => 'high',
                         'status'   => 'pending',
-                        'notes'    => 'Auto-generated: first visit recorded.',
-                        'due_date' => now()->addDays(3),
+                        'notes'    => 'Welcome the visitor and help them feel connected.',
+                        'due_date' => $this->tzNow()->addDays(3),
                     ]
                 );
             }
@@ -364,7 +375,7 @@ class AttendanceController extends Controller
     public function editRecord(AttendanceRecord $record): View
     {
         return view('attendance.record-edit', [
-            'record'   => $record->load(['service', 'member', 'visitor', 'family', 'zone']),
+            'record'   => $record->load(['service', 'member', 'visitor', 'zone']),
             'zones'    => Zone::query()->where('status', 'active')->orderBy('name')->get(['id', 'name']),
             'statuses' => config('attendance.statuses'),
             'modes'    => config('attendance.modes'),
@@ -403,8 +414,9 @@ class AttendanceController extends Controller
 
     public function reports(Request $request): View
     {
-        $from = $request->date('from') ?? now()->startOfYear();
-        $to   = $request->date('to')   ?? now();
+        $now = $this->tzNow();
+        $from = $request->date('from') ?? $now->copy()->startOfYear();
+        $to   = $request->date('to')   ?? $now;
         $fromStart = $from->copy()->startOfDay();
         $toEnd = $to->copy()->endOfDay();
 
@@ -467,11 +479,12 @@ class AttendanceController extends Controller
     public function exportCsv(Request $request): Response
     {
         $serviceId = $request->integer('service_id');
-        $from      = $request->date('from') ?? now()->startOfYear();
-        $to        = $request->date('to')   ?? now();
+        $now       = $this->tzNow();
+        $from      = $request->date('from') ?? $now->copy()->startOfYear();
+        $to        = $request->date('to')   ?? $now;
 
         $records = AttendanceRecord::query()
-            ->with(['service', 'member', 'visitor', 'family', 'zone', 'recorder'])
+            ->with(['service', 'member', 'visitor', 'zone', 'recorder'])
             ->when($serviceId, fn ($q) => $q->where('service_id', $serviceId))
             ->whereBetween('recorded_at', [$from->startOfDay(), $to->endOfDay()])
             ->latest('recorded_at')
@@ -495,7 +508,7 @@ class AttendanceController extends Controller
             ]))."\n";
         }
 
-        $filename = 'attendance-export-'.now()->format('Y-m-d').'.csv';
+        $filename = 'attendance-export-'.$now->format('Y-m-d').'.csv';
 
         return response($csv, 200, [
             'Content-Type'        => 'text/csv',
@@ -510,6 +523,7 @@ class AttendanceController extends Controller
         $period = in_array($request->input('period'), ['3m', '6m', '12m', 'ytd', 'all'])
             ? $request->input('period')
             : '12m';
+        $now = $this->tzNow();
 
         $records = AttendanceRecord::query()
             ->with(['service'])
@@ -548,11 +562,11 @@ class AttendanceController extends Controller
             ->where('ar.member_id', $member->id);
 
         match ($period) {
-            '3m'  => $trendQuery->where('s.service_date', '>=', now()->subMonths(3)->startOfMonth()->toDateString()),
-            '6m'  => $trendQuery->where('s.service_date', '>=', now()->subMonths(6)->startOfMonth()->toDateString()),
-            'ytd' => $trendQuery->where('s.service_date', '>=', now()->startOfYear()->toDateString()),
+            '3m'  => $trendQuery->where('s.service_date', '>=', $now->copy()->subMonths(3)->startOfMonth()->toDateString()),
+            '6m'  => $trendQuery->where('s.service_date', '>=', $now->copy()->subMonths(6)->startOfMonth()->toDateString()),
+            'ytd' => $trendQuery->where('s.service_date', '>=', $now->copy()->startOfYear()->toDateString()),
             'all' => null,
-            default => $trendQuery->where('s.service_date', '>=', now()->subMonths(12)->startOfMonth()->toDateString()),
+            default => $trendQuery->where('s.service_date', '>=', $now->copy()->subMonths(12)->startOfMonth()->toDateString()),
         };
 
         $trendData = $trendQuery
@@ -616,9 +630,10 @@ class AttendanceController extends Controller
         $service   = Service::find($serviceId);
         $graceMins = config('attendance.late_grace_minutes', 15);
         $isLate    = false;
+        $now       = $this->tzNow();
         if ($service?->start_time) {
-            $isLate = now()->isAfter(
-                now()->setTimeFromTimeString($service->start_time)->addMinutes($graceMins)
+            $isLate = $now->copy()->isAfter(
+                $now->copy()->setTimeFromTimeString($service->start_time)->addMinutes($graceMins)
             );
         }
 
@@ -627,9 +642,9 @@ class AttendanceController extends Controller
             [
                 'attendance_status' => $isLate ? 'late' : 'present',
                 'attendance_mode'   => 'in_person',
-                'check_in_time'     => now(),
+                'check_in_time'     => $now,
                 'recorded_by'       => auth()->id(),
-                'recorded_at'       => now(),
+                'recorded_at'       => $now,
             ]
         );
 
@@ -639,17 +654,17 @@ class AttendanceController extends Controller
             if ($count === 1) {
                 FollowUpTask::query()->firstOrCreate(
                     ['person_type' => 'visitor', 'person_id' => $person->id, 'task_type' => 'call'],
-                    ['priority' => 'high', 'status' => 'pending', 'notes' => 'Auto-generated: first visit via QR scan.', 'due_date' => now()->addDays(3)]
+                    ['priority' => 'high', 'status' => 'pending', 'notes' => 'Welcome the visitor and help them feel connected.', 'due_date' => $this->tzNow()->addDays(3)]
                 );
             }
         }
 
         return response()->json([
             'success' => true,
-            'name'    => $person->full_name ?? ($person->head_of_family ?? 'Unknown'),
+            'name'    => $person->full_name ?? 'Unknown',
             'type'    => str_replace('_id', '', $field),
             'status'  => $isLate ? 'late' : 'present',
-            'time'    => now()->format('H:i'),
+            'time'    => $now->format('H:i'),
         ]);
     }
 
@@ -709,10 +724,11 @@ class AttendanceController extends Controller
         $service = Service::find($serviceId);
         $graceMins = config('attendance.late_grace_minutes', 15);
         $isLate = false;
+        $now = $this->tzNow();
 
         if ($service?->start_time) {
-            $isLate = now()->isAfter(
-                now()->setTimeFromTimeString($service->start_time)->addMinutes($graceMins)
+            $isLate = $now->copy()->isAfter(
+                $now->copy()->setTimeFromTimeString($service->start_time)->addMinutes($graceMins)
             );
         }
 
@@ -730,9 +746,9 @@ class AttendanceController extends Controller
             [
                 'attendance_status' => $isLate ? 'late' : 'present',
                 'attendance_mode' => 'in_person',
-                'check_in_time' => now(),
+                'check_in_time' => $now,
                 'recorded_by' => auth()->id(),
-                'recorded_at' => now(),
+                'recorded_at' => $now,
             ]
         );
 
@@ -741,7 +757,7 @@ class AttendanceController extends Controller
             if ($count === 1) {
                 FollowUpTask::query()->firstOrCreate(
                     ['person_type' => 'visitor', 'person_id' => $person->id, 'task_type' => 'call'],
-                    ['priority' => 'high', 'status' => 'pending', 'notes' => 'Auto-generated: first visit via scan quick record.', 'due_date' => now()->addDays(3)]
+                    ['priority' => 'high', 'status' => 'pending', 'notes' => 'Welcome the visitor and help them feel connected.', 'due_date' => $this->tzNow()->addDays(3)]
                 );
             }
         }
@@ -751,7 +767,7 @@ class AttendanceController extends Controller
             'name' => $person->full_name ?? 'Unknown',
             'type' => $personType,
             'status' => $isLate ? 'late' : 'present',
-            'time' => now()->format('H:i'),
+            'time' => $now->format('H:i'),
         ]);
     }
 
@@ -854,10 +870,11 @@ class AttendanceController extends Controller
         $startTime  = $service?->start_time;
         $graceMins  = config('attendance.late_grace_minutes', 15);
         $isLate     = false;
+        $now        = $this->tzNow();
 
         if ($startTime) {
-            $serviceStart = now()->setTimeFromTimeString($startTime);
-            $isLate       = now()->isAfter($serviceStart->addMinutes($graceMins));
+            $serviceStart = $now->copy()->setTimeFromTimeString($startTime);
+            $isLate       = $now->copy()->isAfter($serviceStart->addMinutes($graceMins));
         }
 
         AttendanceRecord::query()->updateOrCreate(
@@ -865,9 +882,9 @@ class AttendanceController extends Controller
             [
                 'attendance_status' => $isLate ? 'late' : 'present',
                 'attendance_mode'   => 'in_person',
-                'check_in_time'     => now(),
+                'check_in_time'     => $now,
                 'recorded_by'       => auth()->id() ?? $data['member_id'],
-                'recorded_at'       => now(),
+                'recorded_at'       => $now,
             ]
         );
 

@@ -21,7 +21,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('members.update', $member) }}">
+        <form method="POST" action="{{ route('members.update', $member) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             @include('members._form', ['submitLabel' => 'Update member'])

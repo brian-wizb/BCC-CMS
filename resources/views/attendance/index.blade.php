@@ -70,7 +70,7 @@
             </span>
             <div>
                 <h3 class="font-semibold text-[var(--color-ink-950)]">Record Attendance</h3>
-                <p class="mt-1 text-sm text-slate-500">Capture individual attendance for members, visitors, or families.</p>
+                <p class="mt-1 text-sm text-slate-500">Capture individual attendance for members or visitors.</p>
             </div>
         </a>
 

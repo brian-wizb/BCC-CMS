@@ -86,8 +86,16 @@
                         <tbody class="divide-y divide-[var(--color-surface-200)]">
                             @foreach ($leader->followUpTasks as $task)
                                 <tr class="hover:bg-[var(--color-surface-50)] transition">
-                                    <td class="px-5 py-3 font-medium text-[var(--color-ink-950)]">{{ ucfirst(str_replace('_', ' ', $task->task_type)) }}</td>
-                                    <td class="px-5 py-3 text-slate-500">{{ ucfirst($task->person_type) }} #{{ $task->person_id }}</td>
+                                    <td class="px-5 py-3 font-medium text-[var(--color-ink-950)]">{{ $task->task_type_label }}</td>
+                                    <td class="px-5 py-3 text-slate-500">
+                                        {{ $task->target_display_name }} <span class="text-xs text-slate-400">({{ $task->target_display_type }})</span>
+                                        @if ($task->target_member_count > 1)
+                                            <div class="mt-0.5 text-xs text-slate-400"><i class="fa-solid fa-people-group mr-1"></i>{{ $task->target_member_count }} people</div>
+                                        @endif
+                                        @if ($task->target_phone)
+                                            <div class="mt-0.5 text-xs text-slate-400"><i class="fa-solid fa-phone mr-1"></i>{{ $task->target_phone }}</div>
+                                        @endif
+                                    </td>
                                     <td class="px-5 py-3 text-slate-500">{{ ucfirst($task->priority) }}</td>
                                     <td class="px-5 py-3"><x-ui.status-badge :status="$task->status" /></td>
                                 </tr>

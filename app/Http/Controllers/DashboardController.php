@@ -9,11 +9,9 @@ use App\Models\Donation;
 use App\Models\Expenditure;
 use App\Models\Income;
 use App\Models\Member;
-use App\Models\Payroll;
 use App\Models\Pledge;
 use App\Models\PledgePayment;
 use App\Models\FollowUpTask;
-use App\Models\Family;
 use App\Models\Department;
 use App\Models\Group;
 use App\Models\Leader;
@@ -91,21 +89,19 @@ class DashboardController extends Controller
         $incomeTotal = (float) Income::query()->sum('amount');
         $deptIncomeTotal = (float) DepartmentIncome::query()->sum('amount');
         $expendituresTotal = (float) Expenditure::query()->sum('amount');
-        $payrollTotal = (float) Payroll::query()->sum('paid_amount');
 
         $timetable = [
             ['day' => 'Every Day', 'session' => 'Mid-Night Prayer Power', 'time' => '22:45 - 00:45'],
-            ['day' => 'Friday', 'session' => 'Family Prayer Service', 'time' => '17:30 - 21:00'],
-            ['day' => 'Saturday', 'session' => 'Praise and Worship Rehearsal', 'time' => '15:00 - 17:00'],
-            ['day' => 'Sunday', 'session' => 'Sunday Service - First Service', 'time' => '07:00 - 09:00'],
-            ['day' => 'Sunday', 'session' => 'Sunday Service - Second Service', 'time' => '10:00 - 13:00'],
-            ['day' => 'Sunday', 'session' => 'CMF Session', 'time' => '13:00 - 14:00'],
+            ['day' => 'Friday', 'session' => 'Friday Prayer Service', 'time' => '17:30 - 21:00'],
+            ['day' => 'Saturday', 'session' => 'Praise and Worship Rehearsal', 'time' => '16:00 - 18:00'],
+            ['day' => 'Sunday', 'session' => 'Sunday Service - First Service', 'time' => '06:30 - 08:00'],
+            ['day' => 'Sunday', 'session' => 'Sunday Service - Second Service', 'time' => '08:30 - 11:00'],
+            ['day' => 'Sunday', 'session' => 'Sunday Service - Third Service', 'time' => '11:30 - 13:30'],
         ];
 
         $stats = [
             'active_users' => User::query()->active()->count(),
             'members' => Member::query()->count(),
-            'families' => \App\Models\Family::query()->count(),
             'departments' => \App\Models\Department::query()->count(),
             'zones' => Zone::query()->count(),
             'income' => Income::query()->count(),
@@ -115,14 +111,12 @@ class DashboardController extends Controller
             'pledges' => Pledge::query()->count(),
             'missed_pledges' => \App\Models\MissedPledge::query()->count(),
             'pledge_payments' => PledgePayment::query()->count(),
-            'payroll' => Payroll::query()->count(),
-            'volunteers' => \App\Models\VolunteerAssignment::query()->count(),
             'running_campaigns' => $runningCampaigns,
             'unfinished_pledges_total' => round($unfinishedPledges, 2),
             'donations_total' => round($donationsTotal, 2),
             'income_total' => round($incomeTotal + $deptIncomeTotal, 2),
-            'expenditures_total' => round($expendituresTotal + $payrollTotal, 2),
-            'net_total' => round(($donationsTotal + $incomeTotal + $deptIncomeTotal) - ($expendituresTotal + $payrollTotal), 2),
+            'expenditures_total' => round($expendituresTotal, 2),
+            'net_total' => round(($donationsTotal + $incomeTotal + $deptIncomeTotal) - $expendituresTotal, 2),
         ];
 
         $chartData = [
@@ -138,9 +132,9 @@ class DashboardController extends Controller
                 ['name' => 'Other', 'value' => $genderBuckets['Other']],
             ],
             'finance' => [
-                ['name' => 'Donations', 'value' => round($donationsTotal, 2)],
+                ['name' => 'Givings', 'value' => round($donationsTotal, 2)],
                 ['name' => 'Income', 'value' => round($incomeTotal + $deptIncomeTotal, 2)],
-                ['name' => 'Expenses', 'value' => round($expendituresTotal + $payrollTotal, 2)],
+                ['name' => 'Expenses', 'value' => round($expendituresTotal, 2)],
             ],
         ];
 
@@ -150,7 +144,6 @@ class DashboardController extends Controller
         if ($user?->hasRole('church_secretary')) {
             $peopleStats = [
                 'members' => Member::query()->count(),
-                'families' => Family::query()->count(),
                 'visitors' => Visitor::query()->count(),
                 'leaders' => Leader::query()->count(),
                 'departments' => Department::query()->count(),
@@ -186,7 +179,9 @@ class DashboardController extends Controller
 
         if ($user?->hasRole('counsellor')) {
             $leader = $user->leader;
-            $taskQuery = FollowUpTask::query()->with('leader')->when($leader, fn ($q) => $q->where('leader_id', $leader->id), fn ($q) => $q->whereRaw('0 = 1'));
+            $taskQuery = FollowUpTask::query()
+                ->with(['leader', 'recipients'])
+                ->when($leader, fn ($q) => $q->where('leader_id', $leader->id), fn ($q) => $q->whereRaw('0 = 1'));
 
             $assignedTaskCount = $taskQuery->count();
             $pendingTaskCount = (clone $taskQuery)->where('status', 'pending')->count();

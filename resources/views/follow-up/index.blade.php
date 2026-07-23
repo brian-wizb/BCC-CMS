@@ -19,7 +19,7 @@
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Follow-up</p>
                 <h4 class="mt-1 text-xl font-semibold text-[var(--color-ink-950)]">Pipeline Board</h4>
                 <p class="mt-2 text-sm text-slate-500">
-                    Track visitors through all 6 conversion stages. See members and families with active tasks.
+                    Track visitors through all 6 conversion stages. See members with active tasks.
                 </p>
                 <p class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-purple-600">
                     Open pipeline <i class="fa-solid fa-arrow-right"></i>

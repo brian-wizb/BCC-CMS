@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -25,6 +26,7 @@ class User extends Authenticatable
     protected $fillable = [
         'username',
         'full_name',
+        'profile_photo_path',
         'email',
         'phone',
         'password',
@@ -113,4 +115,24 @@ class User extends Authenticatable
     {
         return $query->where('status', 'active');
     }
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        if (empty($this->profile_photo_path)) {
+            return null;
+        }
+
+        $path = str_replace('\\', '/', $this->profile_photo_path);
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/storage/')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
 }

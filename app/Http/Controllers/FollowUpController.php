@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Family;
 use App\Models\FollowUpHistory;
+use App\Models\FollowUpTaskRecipient;
 use App\Models\FollowUpTask;
 use App\Models\Leader;
 use App\Models\Member;
@@ -12,6 +12,7 @@ use App\Models\Visitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -27,12 +28,10 @@ class FollowUpController extends Controller
         $stages   = ['new', 'contacted', 'counseled', 'joined_zone', 'in_class', 'converted'];
         $visitors = Visitor::query()->orderByDesc('id')->get();
         $members  = Member::query()->with('followUpTasks')->orderBy('full_name')->get(['id', 'full_name', 'phone', 'zone']);
-        $families = Family::query()->with('followUpTasks')->orderBy('head_of_family')->get(['id', 'head_of_family', 'phone', 'zone']);
 
         return view('follow-up.pipeline', [
             'stages'   => collect($stages)->mapWithKeys(fn ($stage) => [$stage => $visitors->where('status', $stage)->values()]),
             'members'  => $members,
-            'families' => $families,
         ]);
     }
 
@@ -46,7 +45,7 @@ class FollowUpController extends Controller
         $leader = $user?->leader;
 
         $tasks = FollowUpTask::query()
-            ->with(['leader', 'history'])
+            ->with(['leader', 'history', 'recipients'])
             ->when($status !== '',   fn ($q) => $q->where('status',    $status))
             ->when($priority !== '', fn ($q) => $q->where('priority',  $priority))
             ->when($type !== '',     fn ($q) => $q->where('task_type', $type))
@@ -68,7 +67,6 @@ class FollowUpController extends Controller
             'leaders'  => Leader::query()->where('status', 'active')->orderBy('full_name')->get(['id', 'full_name', 'role']),
             'members'  => Member::query()->orderBy('full_name')->get(['id', 'full_name']),
             'visitors' => Visitor::query()->orderBy('full_name')->get(['id', 'full_name']),
-            'families' => Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']),
         ]);
     }
 
@@ -76,7 +74,7 @@ class FollowUpController extends Controller
     {
         $type = (string) $request->query('person_type', '');
 
-        if (! in_array($type, ['visitor', 'member', 'family'], true)) {
+        if (! in_array($type, ['visitor', 'member'], true)) {
             return response()->json(['data' => []]);
         }
 
@@ -89,10 +87,6 @@ class FollowUpController extends Controller
                 ->orderBy('full_name')
                 ->get(['id', 'full_name'])
                 ->map(fn ($person) => ['id' => $person->id, 'name' => $person->full_name]),
-            'family' => Family::query()
-                ->orderBy('head_of_family')
-                ->get(['id', 'head_of_family'])
-                ->map(fn ($person) => ['id' => $person->id, 'name' => $person->head_of_family]),
             default => collect(),
         };
 
@@ -102,8 +96,10 @@ class FollowUpController extends Controller
     public function storeTask(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'person_type' => ['required', 'string', Rule::in(['visitor', 'member', 'family'])],
-            'person_id'   => ['required', 'integer'],
+            'assignment_scope' => ['required', 'string', Rule::in(['individual', 'multiple'])],
+            'person_type' => ['required', 'string', Rule::in(['visitor', 'member'])],
+            'person_id'   => ['nullable', 'integer'],
+            'person_ids'  => ['nullable'],
             'leader_id'   => ['nullable', 'integer', Rule::exists('leaders', 'id')],
             'task_type'   => ['required', 'string', Rule::in(['call', 'sms', 'visit', 'prayer', 'counseling', 'zone_assignment'])],
             'priority'    => ['required', 'string', Rule::in(['low', 'medium', 'high'])],
@@ -111,6 +107,41 @@ class FollowUpController extends Controller
             'status'      => ['required', 'string', Rule::in(['pending', 'in_progress', 'completed'])],
             'notes'       => ['nullable', 'string'],
         ]);
+
+        $data['notes'] = trim((string) ($data['notes'] ?? '')) ?: null;
+        
+        // Parse person_ids - handle both JSON string and array formats
+        $rawPersonIds = $data['person_ids'] ?? [];
+        if (is_string($rawPersonIds)) {
+            $rawPersonIds = json_decode($rawPersonIds, true) ?? [];
+        }
+        
+        $personIds = collect($rawPersonIds)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($data['assignment_scope'] === 'multiple') {
+            if ($personIds->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'person_ids' => 'Select at least one person for this follow-up task.',
+                ]);
+            }
+
+            $data['person_id'] = null;
+        } else {
+            if (empty($data['person_type']) || empty($data['person_id'])) {
+                throw ValidationException::withMessages([
+                    'person_id' => 'Select a person for this follow-up task.',
+                ]);
+            }
+
+            $personIds = collect([(int) $data['person_id']]);
+        }
+
+        unset($data['assignment_scope']);
+        unset($data['person_ids']);
 
         if (! empty($data['leader_id'])) {
             $leader = Leader::query()->find($data['leader_id']);
@@ -121,7 +152,55 @@ class FollowUpController extends Controller
             $data['completed_at'] = now();
         }
 
-        FollowUpTask::query()->create($data);
+        $task = FollowUpTask::query()->create($data);
+
+        $recipients = collect();
+        $recipientSummaries = [];
+        if ($data['person_id'] !== null) {
+            $recipients->push([
+                'person_type' => $data['person_type'],
+                'person_id' => (int) $data['person_id'],
+            ]);
+        } elseif ($personIds->isNotEmpty()) {
+            $recipients = $personIds->map(fn (int $personId) => [
+                'person_type' => $data['person_type'],
+                'person_id' => $personId,
+            ]);
+        }
+
+        foreach ($recipients as $recipient) {
+            $person = match ($recipient['person_type']) {
+                'member' => Member::query()->find($recipient['person_id']),
+                'visitor' => Visitor::query()->find($recipient['person_id']),
+                default => null,
+            };
+
+            if (! $person) {
+                continue;
+            }
+
+            $displayName = match ($recipient['person_type']) {
+                'member' => $person->full_name ?? 'Member #' . $recipient['person_id'],
+                'visitor' => $person->full_name ?? 'Visitor #' . $recipient['person_id'],
+                default => 'Unknown',
+            };
+
+            FollowUpTaskRecipient::query()->create([
+                'task_id' => $task->id,
+                'person_type' => $recipient['person_type'],
+                'person_id' => $recipient['person_id'],
+                'display_name' => $displayName,
+                'phone' => $person->phone ?? null,
+            ]);
+
+            $recipientSummaries[] = $displayName . ($person->phone ? ' (' . $person->phone . ')' : '');
+        }
+
+        if ($recipientSummaries !== []) {
+            $task->update([
+                'notes' => $task->mergeDisplayNotes(trim((string) $task->notes) . PHP_EOL . 'Recipients: ' . implode(', ', $recipientSummaries)),
+            ]);
+        }
 
         return back()->with('status', 'Follow-up task created successfully.');
     }
@@ -135,6 +214,8 @@ class FollowUpController extends Controller
             'notes'     => ['nullable', 'string'],
             'due_date'  => ['nullable', 'date'],
         ]);
+
+        $data['notes'] = $task->mergeDisplayNotes($data['notes'] ?? null);
 
         if (! empty($data['leader_id'])) {
             $leader = Leader::query()->find($data['leader_id']);

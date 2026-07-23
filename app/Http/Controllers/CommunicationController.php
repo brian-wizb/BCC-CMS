@@ -525,14 +525,14 @@ class CommunicationController extends Controller
             ->whereIn('delivery_status', ['queued', 'delivered', 'failed'])
             ->count();
 
-        // Donation receipt SMS are sent directly from DonationController and must be included in credit usage.
+        // Giving receipt SMS are sent directly from DonationController and must be included in credit usage.
         $donationSmsCount = (int) Donation::query()
             ->where('sms_delivery_status', 'sent')
             ->count();
 
         return [
             'communications' => $communicationSmsCount,
-            'donations' => $donationSmsCount,
+            'givings' => $donationSmsCount,
             'total' => $communicationSmsCount + $donationSmsCount,
         ];
     }

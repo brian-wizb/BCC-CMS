@@ -9,7 +9,6 @@ use App\Models\Leader;
 use App\Models\Member;
 use App\Models\MemberTimelineEvent;
 use App\Models\FollowUpTask;
-use App\Models\PastoralCase;
 use App\Models\Pledge;
 use App\Models\Visitor;
 use App\Services\AlertService;
@@ -17,12 +16,24 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AlertController extends Controller
 {
-    public function __construct(private readonly AlertService $alertService) {}
+    private AlertService $alertService;
+
+    private const OBSOLETE_ALERT_TYPES = [
+        'pastoral_case_overdue',
+        'prayer_request_stale',
+        'lapsed_attendance',
+    ];
+
+    public function __construct(AlertService $alertService)
+    {
+        $this->alertService = $alertService;
+    }
 
     public function index(Request $request): View
     {
@@ -32,6 +43,7 @@ class AlertController extends Controller
         // Fetch all matching alerts, critical-first, grouped by type
         $alertsByType = Alert::query()
             ->with('assignee:id,full_name')
+            ->whereNotIn('alert_type', self::OBSOLETE_ALERT_TYPES)
             ->when($status   !== '', fn ($q) => $q->where('status', $status))
             ->when($severity !== '', fn ($q) => $q->where('severity', $severity))
             ->orderByRaw("FIELD(severity, 'critical', 'high', 'medium', 'low')")
@@ -87,74 +99,6 @@ class AlertController extends Controller
                             "Member last attended {$days} day(s) ago — alert closed automatically."
                         );
                     }
-                }
-            }
-        }
-
-        // pastoral_case_overdue: check whether case is still unresolved
-        $pastoralAlerts = $alertsByType->get('pastoral_case_overdue', collect());
-        if ($pastoralAlerts->isNotEmpty()) {
-            $caseIds   = $pastoralAlerts->pluck('reference_id')->map(fn ($id) => (int) $id);
-            $openCases = PastoralCase::query()
-                ->whereIn('id', $caseIds)
-                ->whereIn('status', ['open', 'in_progress'])
-                ->pluck('status', 'id');
-
-            foreach ($pastoralAlerts as $alert) {
-                $cid    = (int) $alert->reference_id;
-                $active = $openCases->has($cid);
-                $conditionActive[$alert->id] = $active;
-                $conditionDetail[$alert->id] = $active
-                    ? 'Pastoral case is still open/in-progress.'
-                    : 'Pastoral case has been closed — condition resolved.';
-            }
-        }
-
-        // prayer_request_stale: check whether prayer-support care request is still unresolved
-        $prayerAlerts = $alertsByType->get('prayer_request_stale', collect());
-        if ($prayerAlerts->isNotEmpty()) {
-            $prIds  = $prayerAlerts->pluck('reference_id')->map(fn ($id) => (int) $id);
-            $openPR = PastoralCase::query()
-                ->whereIn('id', $prIds)
-                ->where('case_type', 'prayer_support')
-                ->whereIn('status', ['open', 'in_progress'])
-                ->pluck('status', 'id');
-
-            foreach ($prayerAlerts as $alert) {
-                $prid   = (int) $alert->reference_id;
-                $active = $openPR->has($prid);
-                $conditionActive[$alert->id] = $active;
-                $conditionDetail[$alert->id] = $active
-                    ? 'Prayer support request is still open/in-progress.'
-                    : 'Prayer support request has been answered or closed — condition resolved.';
-            }
-        }
-
-        // lapsed_attendance: check whether member still hasn't attended in 60+ days
-        $lapsedAlerts = $alertsByType->get('lapsed_attendance', collect());
-        if ($lapsedAlerts->isNotEmpty()) {
-            $memberIds    = $lapsedAlerts->pluck('reference_id')->map(fn ($id) => (int) $id);
-            $latestRecord = AttendanceRecord::query()
-                ->whereIn('member_id', $memberIds)
-                ->selectRaw('member_id, MAX(recorded_at) as latest_at')
-                ->groupBy('member_id')
-                ->pluck('latest_at', 'member_id');
-
-            $cutoff = now()->subDays(60);
-            foreach ($lapsedAlerts as $alert) {
-                $mid    = (int) $alert->reference_id;
-                $latest = $latestRecord[$mid] ?? null;
-                if ($latest === null) {
-                    $conditionActive[$alert->id] = true;
-                    $conditionDetail[$alert->id] = 'No attendance records found — condition still active.';
-                } else {
-                    $latestAt = \Carbon\Carbon::parse($latest);
-                    $days     = (int) $latestAt->diffInDays(now());
-                    $active   = $latestAt->lt($cutoff);
-                    $conditionActive[$alert->id] = $active;
-                    $conditionDetail[$alert->id] = $active
-                        ? "Last attended {$days} day(s) ago — still lapsed."
-                        : "Member attended {$days} day(s) ago — condition resolved.";
                 }
             }
         }
@@ -224,10 +168,10 @@ class AlertController extends Controller
             'status'            => $status,
             'severity'          => $severity,
             'leaders'           => Leader::query()->orderBy('full_name')->get(['id', 'full_name']),
-            'openCount'         => Alert::query()->where('status', 'open')->count(),
-            'acknowledgedCount' => Alert::query()->where('status', 'acknowledged')->count(),
-            'criticalCount'     => Alert::query()->where('severity', 'critical')->whereIn('status', ['open', 'acknowledged'])->count(),
-            'overdueCount'      => Alert::query()->where('due_at', '<', $now)->whereIn('status', ['open', 'acknowledged'])->count(),
+            'openCount'         => Alert::query()->whereNotIn('alert_type', self::OBSOLETE_ALERT_TYPES)->where('status', 'open')->count(),
+            'acknowledgedCount' => Alert::query()->whereNotIn('alert_type', self::OBSOLETE_ALERT_TYPES)->where('status', 'acknowledged')->count(),
+            'criticalCount'     => Alert::query()->whereNotIn('alert_type', self::OBSOLETE_ALERT_TYPES)->where('severity', 'critical')->whereIn('status', ['open', 'acknowledged'])->count(),
+            'overdueCount'      => Alert::query()->whereNotIn('alert_type', self::OBSOLETE_ALERT_TYPES)->where('due_at', '<', $now)->whereIn('status', ['open', 'acknowledged'])->count(),
             'conditionActive'   => $conditionActive,
             'conditionDetail'   => $conditionDetail,
             'linkedFollowUpTasks' => $linkedFollowUpTasks,
@@ -243,27 +187,18 @@ class AlertController extends Controller
             'due_at'      => ['nullable', 'date'],
         ]);
 
-        $oldStatus   = $alert->status;
-        $oldAssignee = $alert->assigned_to;
+        $alert->update([
+            'status'      => $data['status'],
+            'severity'    => $data['severity'],
+            'assigned_to' => $data['assigned_to'] ?? null,
+            'due_at'      => ! empty($data['due_at'])
+                ? Carbon::parse($data['due_at'])
+                : null,
+        ]);
 
-        $alert->update($data);
+        if (! empty($data['assigned_to'])) {
+            $leader = Leader::query()->find((int) $data['assigned_to']);
 
-        // Write timeline event when an alert for a member is resolved
-        if ($oldStatus !== 'resolved' && $data['status'] === 'resolved'
-            && $alert->reference_type === 'member' && $alert->reference_id
-        ) {
-            $this->writeTimeline(
-                (int) $alert->reference_id,
-                'alert_resolved',
-                'Alert resolved: ' . $alert->title,
-                'Alert was marked as resolved.'
-            );
-        }
-
-        // Send email notification when assignee is newly set or changed
-        $newAssignee = $data['assigned_to'] ?? null;
-        if ($newAssignee && (string) $oldAssignee !== (string) $newAssignee) {
-            $leader = Leader::find($newAssignee);
             if ($leader && $leader->email) {
                 try {
                     Mail::to($leader->email)->send(new AlertAssigned($alert, $leader));
@@ -274,13 +209,6 @@ class AlertController extends Controller
         }
 
         return back()->with('status', 'Alert updated successfully.');
-    }
-
-    public function destroy(Alert $alert): RedirectResponse
-    {
-        $alert->delete();
-
-        return redirect()->route('alerts.index')->with('status', 'Alert deleted successfully.');
     }
 
     public function assignFollowUpTask(Request $request, Alert $alert): RedirectResponse
@@ -358,15 +286,70 @@ class AlertController extends Controller
     {
         $parts = [];
 
+        $summary = $this->buildAlertTaskSummary($alert);
+        if ($summary !== '') {
+            $parts[] = $summary;
+        }
+
+        $contactLine = $this->buildFollowUpContactLine($alert);
+        if ($contactLine !== '') {
+            $parts[] = $contactLine;
+        }
+
         $cleaned = trim((string) $userNotes);
         if ($cleaned !== '') {
-            $parts[] = $cleaned;
+            $parts[] = 'Note: ' . $cleaned;
         }
 
         $parts[] = 'ALERT_REF:' . $alert->id;
         $parts[] = 'From alert #' . $alert->id . ': ' . $alert->title;
 
         return implode("\n", $parts);
+    }
+
+    private function buildAlertTaskSummary(Alert $alert): string
+    {
+        return match ($alert->alert_type) {
+            'inactive_member' => 'Check in and encourage a return to services. [Inactive Member]',
+            'pledge_due' => $this->buildPledgeTaskSummary($alert) . ' [Pledge Due]',
+            default => Str::of((string) $alert->title)->squish()->toString(),
+        };
+    }
+
+    private function buildPledgeTaskSummary(Alert $alert): string
+    {
+        $pledge = Pledge::query()->with('campaign:id,name')->find((int) $alert->reference_id);
+
+        if (! $pledge) {
+            return 'Follow up on the pledge commitment.';
+        }
+
+        $campaignName = trim((string) ($pledge->campaign?->name ?? ''));
+
+        return $campaignName !== ''
+            ? 'Follow up on the pledge for the ' . $campaignName . ' campaign.'
+            : 'Follow up on the pledge commitment.';
+    }
+
+    private function buildFollowUpContactLine(Alert $alert): string
+    {
+        $person = $this->resolveFollowUpPerson($alert);
+
+        if ($person === null) {
+            return '';
+        }
+
+        $phone = match ($person['person_type']) {
+            'member' => Member::query()->whereKey($person['person_id'])->value('phone'),
+            'visitor' => Visitor::query()->whereKey($person['person_id'])->value('phone'),
+            default => null,
+        };
+
+        if (! filled($phone)) {
+            return '';
+        }
+
+        return 'Phone: ' . $phone;
     }
 
     private function resolveFollowUpPerson(Alert $alert): ?array

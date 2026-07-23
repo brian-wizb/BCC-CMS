@@ -9,8 +9,12 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserManagementController extends Controller
 {
@@ -33,7 +37,6 @@ class UserManagementController extends Controller
                 ->orderBy('created_at')
                 ->paginate(15)
                 ->withQueryString(),
-            'roles'  => Role::query()->orderBy('name')->get(),
             'search' => $search,
         ]);
     }
@@ -54,11 +57,12 @@ class UserManagementController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = $this->attachUploadedProfilePhoto($request, $request->validated());
 
         $user = User::query()->create([
             'username'  => $data['username'],
             'full_name' => $data['full_name'] ?? null,
+            'profile_photo_path' => $data['profile_photo_path'] ?? null,
             'email'     => $data['email'] ?? null,
             'password'  => Hash::make($data['password']),
             'status'    => 'active',
@@ -87,9 +91,28 @@ class UserManagementController extends Controller
         return redirect()->route('users.index')->with('status', 'User created successfully.');
     }
 
+    public function edit(User $user): View
+    {
+        return view('users.edit', [
+            'user' => $user->load('roles'),
+            'roles' => Role::query()->orderBy('name')->get(),
+        ]);
+    }
+
+    public function profilePhoto(User $user): StreamedResponse|RedirectResponse
+    {
+        $path = $this->extractPublicProfilePhotoPath($user->profile_photo_path);
+
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            return redirect()->away('https://ui-avatars.com/api/?name=' . urlencode($user->full_name ?: $user->username ?: 'User') . '&background=e2e8f0&color=475569&size=256');
+        }
+
+        return Storage::disk('public')->response($path);
+    }
+
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $data   = $request->validated();
+        $data   = $this->attachUploadedProfilePhoto($request, $request->validated(), $user);
         $before = [
             'full_name' => $user->full_name,
             'email'     => $user->email,
@@ -99,6 +122,7 @@ class UserManagementController extends Controller
 
         $user->fill([
             'full_name' => $data['full_name'] ?? null,
+            'profile_photo_path' => $data['profile_photo_path'] ?? $user->profile_photo_path,
             'email'     => $data['email'] ?? null,
             'status'    => $data['status'],
         ]);
@@ -176,5 +200,50 @@ class UserManagementController extends Controller
         );
 
         return redirect()->route('users.index')->with('status', 'User restored successfully.');
+    }
+
+    private function attachUploadedProfilePhoto(Request $request, array $data, ?User $user = null): array
+    {
+        if (! $request->hasFile('profile_photo')) {
+            return $data;
+        }
+
+        $storedPath = $request->file('profile_photo')->store('users/profile-photos', 'public');
+        $data['profile_photo_path'] = $storedPath;
+
+        $existingPath = $this->extractPublicProfilePhotoPath($user?->profile_photo_path);
+
+        if ($existingPath && Str::startsWith($existingPath, 'users/profile-photos/')) {
+            Storage::disk('public')->delete($existingPath);
+        }
+
+        return $data;
+    }
+
+    private function extractPublicProfilePhotoPath(?string $profilePhotoPath): ?string
+    {
+        if (blank($profilePhotoPath)) {
+            return null;
+        }
+
+        $path = str_replace('\\', '/', $profilePhotoPath);
+
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            $path = (string) parse_url($path, PHP_URL_PATH);
+        }
+
+        if (Str::startsWith($path, 'users/profile-photos/')) {
+            return $path;
+        }
+
+        if (Str::startsWith($path, 'storage/')) {
+            return ltrim(Str::after($path, 'storage/'), '/');
+        }
+
+        if (! Str::contains($path, '/storage/')) {
+            return null;
+        }
+
+        return ltrim(Str::after($path, '/storage/'), '/');
     }
 }

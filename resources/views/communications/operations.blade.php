@@ -41,8 +41,8 @@
                     <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">{{ number_format($smsBreakdown['communications']) }}</p>
                 </article>
                 <article class="surface-card p-4">
-                    <p class="text-xs uppercase tracking-wide text-slate-400">From Donations</p>
-                    <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">{{ number_format($smsBreakdown['donations']) }}</p>
+                    <p class="text-xs uppercase tracking-wide text-slate-400">From Givings</p>
+                    <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">{{ number_format($smsBreakdown['givings']) }}</p>
                 </article>
                 <article class="surface-card p-4">
                     <p class="text-xs uppercase tracking-wide text-slate-400">Combined Total</p>

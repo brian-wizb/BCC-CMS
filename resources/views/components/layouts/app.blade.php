@@ -119,7 +119,7 @@
         <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                var searchKeys = ['member', 'visitor', 'leader', 'family'];
+                var searchKeys = ['member', 'visitor', 'leader'];
 
                 var shouldAutoEnhance = function(el) {
                     if (!el || el.tagName !== 'SELECT') {

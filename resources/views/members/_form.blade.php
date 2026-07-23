@@ -10,6 +10,24 @@
     $partnerTitheCode = $selectedPartner?->tithe_code;
     $zoneOptions = collect($zones ?? [])->filter()->values()->all();
     $selectedZone = old('zone', $member?->zone);
+    $profilePictureRaw = old('profile_pic', $member?->profile_pic);
+    $profilePicturePreview = null;
+
+    if (filled($profilePictureRaw) && old('profile_pic_file') === null) {
+        if (isset($member) && $member?->exists) {
+            $profilePicturePreview = route('members.profile-picture', $member);
+        } elseif (\Illuminate\Support\Str::startsWith($profilePictureRaw, ['http://', 'https://'])) {
+            $profilePicturePreview = $profilePictureRaw;
+        } elseif (\Illuminate\Support\Str::startsWith($profilePictureRaw, '/storage/')) {
+            $profilePicturePreview = asset(ltrim($profilePictureRaw, '/'));
+        } elseif (\Illuminate\Support\Str::startsWith($profilePictureRaw, 'storage/')) {
+            $profilePicturePreview = asset($profilePictureRaw);
+        } elseif (\Illuminate\Support\Str::startsWith($profilePictureRaw, 'members/profile-pictures/')) {
+            $profilePicturePreview = \Illuminate\Support\Facades\Storage::disk('public')->url($profilePictureRaw);
+        } else {
+            $profilePicturePreview = $profilePictureRaw;
+        }
+    }
 @endphp
 
 {{-- Validation errors --}}
@@ -157,10 +175,10 @@
                     </label>
                     <p class="mt-3 text-xs text-slate-600 leading-relaxed">
                         <i class="fas fa-info-circle mr-1.5 opacity-60"></i>
-                        When checked, your tithe code will be the same as your partner's
+                        When checked, both partners will use the tithe code of the spouse who was registered first
                     </p>
                     <div class="mt-3 rounded-lg bg-white px-3 py-2 border border-amber-200">
-                        <p class="text-xs text-slate-500 font-medium">Partner's tithe code:</p>
+                        <p class="text-xs text-slate-500 font-medium">Partner / shared tithe code:</p>
                         <p id="partner_tithe_code_text" class="text-sm font-bold text-orange-700 mt-1">{{ $partnerTitheCode ?: 'Not available' }}</p>
                     </div>
                 </div>
@@ -257,24 +275,29 @@
         </div>
 
         <div class="md:col-span-2">
-            <label class="form-label" for="family_id">
-                <i class="fas fa-home mr-1 opacity-50 text-xs"></i> Family
+            <label class="form-label" for="profile_pic_file">
+                <i class="fas fa-image mr-1 opacity-50 text-xs"></i> Profile picture
             </label>
-            <select id="family_id" name="family_id" class="form-input">
-                <option value="">— No family assigned —</option>
-                @foreach ($families ?? [] as $fam)
-                    <option value="{{ $fam->id }}" @selected(old('family_id', $member?->family_id) == $fam->id)>
-                        {{ $fam->head_of_family }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="md:col-span-2">
-            <label class="form-label" for="profile_pic">
-                <i class="fas fa-image mr-1 opacity-50 text-xs"></i> Profile picture URL
-            </label>
-            <input id="profile_pic" name="profile_pic" class="form-input" placeholder="https://kbox.bcc.or.tz/uploads/members/john.jpg" value="{{ old('profile_pic', $member?->profile_pic) }}">
+            <input id="profile_pic_file" name="profile_pic_file" type="file" accept="image/*" class="form-input">
+            <input id="profile_pic" name="profile_pic" type="hidden" value="{{ old('profile_pic', $member?->profile_pic) }}">
+            <p class="mt-1 text-xs text-slate-500">Pick an image to upload for this member profile.</p>
+            <div class="mt-3 flex items-center gap-3 rounded-xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] p-3">
+                <div class="h-16 w-16 overflow-hidden rounded-xl border border-[var(--color-surface-200)] bg-white">
+                    <img
+                        id="profile_pic_preview"
+                        src="{{ $profilePicturePreview ?: '' }}"
+                        alt="Profile picture preview"
+                        class="h-full w-full object-cover {{ $profilePicturePreview ? '' : 'hidden' }}"
+                    >
+                    <div id="profile_pic_placeholder" class="flex h-full w-full items-center justify-center text-slate-400 {{ $profilePicturePreview ? 'hidden' : '' }}">
+                        <i class="fas fa-user text-lg"></i>
+                    </div>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Current profile image</p>
+                    <p class="mt-1 truncate text-sm text-[var(--color-ink-950)]">{{ $profilePicturePreview ?: 'No image selected' }}</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -298,20 +321,6 @@
                 <i class="fas fa-calendar-check mr-1 opacity-50 text-xs"></i> Born again date
             </label>
             <input id="born_again_date" name="born_again_date" type="date" class="form-input" value="{{ old('born_again_date', optional($member?->born_again_date)->format('Y-m-d')) }}">
-        </div>
-
-        <div class="md:col-start-1">
-            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-4 py-3 text-sm text-slate-600 hover:border-[var(--color-brand-500)] transition">
-                <input type="checkbox" name="is_baptized" value="1" class="accent-[var(--color-brand-500)]" @checked(old('is_baptized', $member?->is_baptized))>
-                <i class="fas fa-water opacity-60 text-xs"></i> Baptized
-            </label>
-        </div>
-
-        <div>
-            <label class="form-label" for="baptized_date">
-                <i class="fas fa-calendar-check mr-1 opacity-50 text-xs"></i> Baptized date
-            </label>
-            <input id="baptized_date" name="baptized_date" type="date" class="form-input" value="{{ old('baptized_date', optional($member?->baptized_date)->format('Y-m-d')) }}">
         </div>
 
         <div class="md:col-start-1">
@@ -466,13 +475,13 @@
         const partnerNameInput = document.getElementById('partner_name');
         const partnerTitheCodeText = document.getElementById('partner_tithe_code_text');
         const sharePartnerTitheCode = document.getElementById('share_partner_tithe_code');
-        const titheCodeInput = document.getElementById('tithe_code');
+        const profilePicFileInput = document.getElementById('profile_pic_file');
+        const profilePicPreview = document.getElementById('profile_pic_preview');
+        const profilePicPlaceholder = document.getElementById('profile_pic_placeholder');
 
         if (!maritalStatus || !marriedDetailsBlock) {
             return;
         }
-
-        const originalTitheCode = titheCodeInput ? titheCodeInput.value : '';
 
         const getSelectedPartnerOption = () => partnerMemberSelect?.options[partnerMemberSelect.selectedIndex] ?? null;
 
@@ -497,19 +506,6 @@
                 partnerTitheCodeText.textContent = partnerCode || 'Not available';
             }
 
-            if (!sharePartnerTitheCode || !titheCodeInput) {
-                return;
-            }
-
-            const shouldShare = sharePartnerTitheCode.checked && hasRegisteredPartner && partnerCode;
-            titheCodeInput.readOnly = !!shouldShare;
-            titheCodeInput.classList.toggle('bg-slate-100', !!shouldShare);
-
-            if (shouldShare) {
-                titheCodeInput.value = partnerCode;
-            } else if (titheCodeInput.value === partnerCode || titheCodeInput.value === '') {
-                titheCodeInput.value = originalTitheCode;
-            }
         };
 
         const syncMaritalState = () => {
@@ -547,6 +543,21 @@
             };
             isUniversityStudentCb.addEventListener('change', syncUniversityBlock);
             syncUniversityBlock();
+        }
+
+        if (profilePicFileInput && profilePicPreview && profilePicPlaceholder) {
+            profilePicFileInput.addEventListener('change', () => {
+                const file = profilePicFileInput.files?.[0];
+
+                if (!file) {
+                    return;
+                }
+
+                const temporaryUrl = URL.createObjectURL(file);
+                profilePicPreview.src = temporaryUrl;
+                profilePicPreview.classList.remove('hidden');
+                profilePicPlaceholder.classList.add('hidden');
+            });
         }
     })();
 </script>

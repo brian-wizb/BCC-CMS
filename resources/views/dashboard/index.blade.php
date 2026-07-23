@@ -58,7 +58,7 @@
     @endif
 
     <section class="mt-6 grid gap-4 xl:grid-cols-3 md:grid-cols-2">
-        <article class="surface-card p-5"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Donations Total</p><p class="mt-2 text-2xl font-semibold">Tsh {{ number_format($stats['donations_total'], 2) }}</p></article>
+        <article class="surface-card p-5"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Givings Total</p><p class="mt-2 text-2xl font-semibold">Tsh {{ number_format($stats['donations_total'], 2) }}</p></article>
         <article class="surface-card p-5"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Income Total</p><p class="mt-2 text-2xl font-semibold">Tsh {{ number_format($stats['income_total'], 2) }}</p></article>
         <article class="surface-card p-5"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Expenses Total</p><p class="mt-2 text-2xl font-semibold">Tsh {{ number_format($stats['expenditures_total'], 2) }}</p></article>
     </section>
@@ -173,7 +173,7 @@
 
             // Semantic aliases used in specific charts
             income:    '#59a14f',   // green  — money in  (positive)
-            donations: '#4e79a7',   // blue   — gifts
+            givings: '#4e79a7',     // blue   — gifts
             expenses:  '#e15759',   // red    — money out (alert)
             pledges:   '#f28e2b',   // orange — pending
 
@@ -190,7 +190,7 @@
         // Gender palette
         const GENDER_COLORS = [VIZ.maleFill, VIZ.femaleFill, VIZ.otherFill];
         // Finance bar: semantically coloured per category
-        const FINANCE_COLORS = [VIZ.donations, VIZ.income, VIZ.expenses, VIZ.pledges];
+        const FINANCE_COLORS = [VIZ.givings, VIZ.income, VIZ.expenses, VIZ.pledges];
         // Radar accent
         const RADAR_BORDER  = VIZ.teal;
         const RADAR_FILL    = 'rgba(118,183,178,0.18)';
@@ -325,16 +325,14 @@
             chartInstances.push(new Chart(radarCanvas.getContext('2d'), {
                 type: 'radar',
                 data: {
-                    labels: ['Members', 'Families', 'Departments', 'Zones', 'Campaigns', 'Volunteers'],
+                    labels: ['Members', 'Departments', 'Zones', 'Campaigns'],
                     datasets: [{
                         label: 'Coverage',
                         data: [
                             {{ $stats['members'] }},
-                            {{ $stats['families'] }},
                             {{ $stats['departments'] }},
                             {{ $stats['zones'] }},
                             {{ $stats['campaigns'] }},
-                            {{ $stats['volunteers'] }},
                         ],
                         borderColor: RADAR_BORDER,
                         backgroundColor: RADAR_FILL,

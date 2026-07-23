@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Family;
 use App\Models\Member;
 use App\Models\Department;
 use App\Models\Role;
@@ -39,7 +38,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_member_admin_can_create_member(): void
     {
-        $user = $this->actingAsRole('member_admin');
+        $user = $this->actingAsRole('church_secretary');
 
         $response = $this->actingAs($user)->post(route('members.store'), [
             'full_name' => 'Jane Doe',
@@ -58,25 +57,6 @@ class PhaseOneManagementTest extends TestCase
         ]);
     }
 
-    public function test_member_admin_can_create_family(): void
-    {
-        $user = $this->actingAsRole('member_admin');
-
-        $response = $this->actingAs($user)->post(route('families.store'), [
-            'head_of_family' => 'John Family',
-            'gender' => 'Male',
-            'phone' => '0755000111',
-            'members' => 4,
-        ]);
-
-        $response->assertRedirect(route('families.index'));
-
-        $this->assertDatabaseHas('families', [
-            'head_of_family' => 'John Family',
-            'members' => 4,
-        ]);
-    }
-
     public function test_accountant_cannot_access_user_management(): void
     {
         $user = $this->actingAsRole('accountant');
@@ -88,7 +68,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_member_admin_can_create_department_and_assign_member(): void
     {
-        $user = $this->actingAsRole('member_admin');
+        $user = $this->actingAsRole('church_secretary');
         $leader = User::factory()->create();
         $member = Member::query()->create([
             'full_name' => 'Department Member',
@@ -128,7 +108,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_member_admin_can_create_zone_and_assign_member(): void
     {
-        $user = $this->actingAsRole('member_admin');
+        $user = $this->actingAsRole('church_secretary');
         $leader = User::factory()->create();
         $member = Member::query()->create([
             'full_name' => 'Zone Member',
@@ -181,7 +161,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_members_index_lists_existing_members(): void
     {
-        $user = $this->actingAsRole('member_admin');
+        $user = $this->actingAsRole('church_secretary');
         Member::query()->create([
             'full_name' => 'Existing Member',
             'gender' => 'Male',
@@ -191,20 +171,6 @@ class PhaseOneManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertSeeText('Existing Member');
-    }
-
-    public function test_families_index_lists_existing_families(): void
-    {
-        $user = $this->actingAsRole('member_admin');
-        Family::query()->create([
-            'head_of_family' => 'Existing Family',
-            'gender' => 'Female',
-        ]);
-
-        $response = $this->actingAs($user)->get(route('families.index'));
-
-        $response->assertOk();
-        $response->assertSeeText('Existing Family');
     }
 
     private function actingAsRole(string $roleKey): User

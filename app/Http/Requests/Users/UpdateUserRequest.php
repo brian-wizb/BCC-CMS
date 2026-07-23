@@ -23,6 +23,7 @@ class UpdateUserRequest extends FormRequest
             'role'      => ['required', 'string', Rule::in(array_keys(config('permissions.roles', [])))],
             'status'    => ['required', 'string', Rule::in(['active', 'inactive'])],
             'password'  => ['nullable', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }

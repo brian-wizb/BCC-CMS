@@ -5,7 +5,7 @@
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Leadership Operations</p>
                 <h2 class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">Communications</h2>
                 <p class="mt-1 text-xs text-slate-500">
-                    Total SMS messages sent (communications + tithe donations): <span class="font-semibold text-[var(--color-ink-950)]">{{ number_format($smsSentCount) }}</span>
+                    Total SMS messages sent (communications + tithe givings): <span class="font-semibold text-[var(--color-ink-950)]">{{ number_format($smsSentCount) }}</span>
                 </p>
             </div>
             <a href="{{ route('communications.create') }}" class="btn-primary">

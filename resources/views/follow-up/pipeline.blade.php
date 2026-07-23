@@ -107,30 +107,5 @@
         </div>
         @endif
 
-        {{-- ── Families with follow-up tasks ────────────────────────────── --}}
-        @if ($families->count())
-        <div>
-            <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-amber-600">
-                <i class="fa-solid fa-house-chimney w-4 text-center"></i>
-                Families With Active Tasks
-            </h4>
-            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                @foreach ($families->filter(fn ($f) => $f->followUpTasks?->where('status', '!=', 'completed')->count() > 0) as $family)
-                    <a href="{{ route('families.show', $family) }}"
-                       class="surface-card block rounded-2xl p-4 hover:bg-[var(--color-surface-50)]">
-                        <p class="font-semibold text-[var(--color-ink-950)]">{{ $family->head_of_family }}</p>
-                        <p class="mt-1 text-xs text-slate-500">
-                            <i class="fa-solid fa-map-pin mr-1"></i>{{ $family->zone ?: '—' }}
-                        </p>
-                        <p class="mt-1 text-xs text-amber-600">
-                            <i class="fa-solid fa-clipboard-list mr-1"></i>
-                            {{ $family->followUpTasks->where('status', '!=', 'completed')->count() }} open task(s)
-                        </p>
-                    </a>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
     </section>
 </x-layouts.app>

@@ -16,7 +16,7 @@
             </a>
         </div>
 
-        <form method="POST" action="{{ route('members.store') }}">
+        <form method="POST" action="{{ route('members.store') }}" enctype="multipart/form-data">
             @csrf
             @include('members._form', ['submitLabel' => 'Save member'])
         </form>

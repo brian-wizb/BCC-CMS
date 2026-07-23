@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Donation;
 use App\Models\Member;
 use App\Services\SmsService;
+use App\Services\WhatsAppService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DonationController extends Controller
@@ -53,7 +55,7 @@ class DonationController extends Controller
         $perPage = in_array((int)$request->input('per_page'), [10,25,50,100]) ? (int)$request->input('per_page') : 25;
         $donations = $query->paginate($perPage)->withQueryString();
 
-        return view('donations.index', compact('donations', 'search', 'perPage', 'dateFrom', 'dateTo'));
+        return view('givings.index', compact('donations', 'search', 'perPage', 'dateFrom', 'dateTo'));
     }
 
     public function export(Request $request)
@@ -66,7 +68,7 @@ class DonationController extends Controller
             ->latest('donation_date')
             ->get();
 
-        $filename = 'donations-report-' . now()->format('YmdHis') . '.csv';
+        $filename = 'givings-report-' . now()->format('YmdHis') . '.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -79,7 +81,7 @@ class DonationController extends Controller
                 'ID',
                 'Member',
                 'Tithe Code',
-                'Donation Type',
+                'Giving Type',
                 'Amount',
                 'Method',
                 'Reference',
@@ -113,7 +115,7 @@ class DonationController extends Controller
     public function create(): View
     {
         $members = Member::orderBy('full_name')->get(['id', 'full_name', 'tithe_code']);
-        return view('donations.create', compact('members'));
+        return view('givings.create', compact('members'));
     }
 
     /**
@@ -139,7 +141,9 @@ class DonationController extends Controller
 
         // Auto-fill donor info from member if selected
         if (!empty($data['member_id'])) {
-            $member = Member::find($data['member_id']);
+            $member = Member::query()
+                ->with('partnerMember:id,full_name,phone,tithe_code,partner_member_id,marital_status')
+                ->find($data['member_id']);
             $data['donor_name']  = $member->full_name;
             $data['donor_email'] = $member->email;
             if (empty($data['tithe_code'])) {
@@ -159,33 +163,61 @@ class DonationController extends Controller
 
         $smsBanner = null;
 
-        // Send SMS confirmation to member when a tithe is recorded.
+        // Send SMS confirmation to member and linked spouse when a tithe is recorded.
         if ($shouldAttemptSms) {
-            $member = $member ?? Member::find($data['member_id']);
+            $member = $member ?? Member::query()
+                ->with('partnerMember:id,full_name,phone,tithe_code,partner_member_id,marital_status')
+                ->find($data['member_id']);
 
-            if (! $member || blank($member->phone)) {
+            $recipients = $member ? $this->resolveTitheSmsRecipients($member) : collect();
+
+            if (! $member || $recipients->isEmpty()) {
                 $donation->update([
                     'sms_delivery_status' => 'failed',
-                    'sms_provider_response' => 'No member phone number on file.',
+                    'sms_provider_response' => 'No member or partner phone number on file.',
                 ]);
-                $smsBanner = 'Donation saved, but receipt SMS was not sent (missing member phone).';
+                $smsBanner = 'Giving saved, but receipt SMS was not sent (missing member or partner phone).';
             } else {
-                try {
-                    $amount = number_format((float) $data['amount'], 0, '.', ',');
-                    $date   = \Carbon\Carbon::parse($data['donation_date'])->format('d-m-Y');
-                    $msg    = "Mpendwa Mshirika wa TAG - Bethel City Church, Matoleo yako ya (Tithe [Zaka]) "
-                        . "TZS {$amount} imepokelewa {$date}. Mungu akubariki. "
-                        . "Kwa maelezo piga 0759-010263.";
+                $sentResponses = [];
+                $failedResponses = [];
 
-                    $providerResponse = app(SmsService::class)->send($member->phone, $msg);
+                try {
+                    foreach ($recipients as $recipient) {
+                        try {
+                            $providerResponse = app(SmsService::class)->send(
+                                $recipient->phone,
+                                $this->buildTitheReceiptMessage($recipient, $donation)
+                            );
+
+                            $sentResponses[] = $recipient->full_name . ' [' . ($recipient->tithe_code ?: $donation->tithe_code ?: 'N/A') . '] => ' . (string) $providerResponse;
+                        } catch (\Throwable $recipientError) {
+                            $failedResponses[] = $recipient->full_name . ' [' . ($recipient->tithe_code ?: $donation->tithe_code ?: 'N/A') . '] => ' . $recipientError->getMessage();
+                        }
+                    }
+
+                    $deliveryStatus = count($sentResponses) === count($recipients)
+                        ? 'sent'
+                        : (count($sentResponses) > 0 ? 'partial' : 'failed');
+
+                    $providerResponseText = implode(' | ', array_filter([
+                        $sentResponses !== [] ? 'Sent: ' . implode('; ', $sentResponses) : null,
+                        $failedResponses !== [] ? 'Failed: ' . implode('; ', $failedResponses) : null,
+                    ]));
 
                     $donation->update([
-                        'sms_delivery_status' => 'sent',
-                        'sms_provider_response' => (string) $providerResponse,
-                        'sms_sent_at' => now(),
+                        'sms_delivery_status' => $deliveryStatus,
+                        'sms_provider_response' => $providerResponseText,
+                        'sms_sent_at' => count($sentResponses) > 0 ? now() : null,
                     ]);
 
-                    $smsBanner = 'Receipt SMS sent successfully.';
+                    if ($deliveryStatus === 'sent') {
+                        $smsBanner = 'Receipt SMS sent successfully.';
+                    } elseif ($deliveryStatus === 'partial') {
+                        $smsBanner = 'Giving saved, and receipt SMS was sent to some recipients only.';
+                    } else {
+                        Log::warning("Tithe SMS failed for donation {$donation->id}, member {$data['member_id']}: {$providerResponseText}");
+                        $smsBanner = 'Giving saved, but receipt SMS failed to send.';
+                    }
                 } catch (\Throwable $e) {
                     $donation->update([
                         'sms_delivery_status' => 'failed',
@@ -193,17 +225,17 @@ class DonationController extends Controller
                     ]);
 
                     Log::warning("Tithe SMS failed for donation {$donation->id}, member {$data['member_id']}: {$e->getMessage()}");
-                    $smsBanner = 'Donation saved, but receipt SMS failed to send.';
+                    $smsBanner = 'Giving saved, but receipt SMS failed to send.';
                 }
             }
         }
 
-        $status = 'Donation recorded successfully.';
+        $status = 'Giving recorded successfully.';
         if ($smsBanner) {
             $status .= ' ' . $smsBanner;
         }
 
-        return redirect()->route('donations.index')->with('status', $status);
+        return redirect()->route('givings.index')->with('status', $status);
     }
 
     /**
@@ -212,7 +244,7 @@ class DonationController extends Controller
     public function edit(Donation $donation): View
     {
         $members = Member::orderBy('full_name')->get(['id', 'full_name', 'tithe_code']);
-        return view('donations.edit', compact('donation', 'members'));
+        return view('givings.edit', compact('donation', 'members'));
     }
 
     /**
@@ -250,7 +282,7 @@ class DonationController extends Controller
 
         $donation->update($data);
 
-        return redirect()->route('donations.index')->with('status', 'Donation updated successfully.');
+        return redirect()->route('givings.index')->with('status', 'Giving updated successfully.');
     }
 
     /**
@@ -263,7 +295,7 @@ class DonationController extends Controller
         }
         $donation->delete();
 
-        return redirect()->route('donations.index')->with('status', 'Donation deleted.');
+        return redirect()->route('givings.index')->with('status', 'Giving deleted.');
     }
 
     private function isTitheDonationType(string $type): bool
@@ -281,5 +313,31 @@ class DonationController extends Controller
         }
 
         return false;
+    }
+
+    private function resolveTitheSmsRecipients(Member $member): Collection
+    {
+        $member->loadMissing('partnerMember:id,full_name,phone,tithe_code,partner_member_id,marital_status');
+
+        $recipients = collect([$member]);
+
+        if ($member->marital_status === 'Married' && $member->partnerMember) {
+            $recipients->push($member->partnerMember);
+        }
+
+        return $recipients
+            ->filter(fn (Member $recipient) => filled($recipient->phone))
+            ->unique(fn (Member $recipient) => WhatsAppService::normalisePhone((string) $recipient->phone))
+            ->values();
+    }
+
+    private function buildTitheReceiptMessage(Member $recipient, Donation $donation): string
+    {
+        $amount = number_format((float) $donation->amount, 0, '.', ',');
+        $date = $donation->donation_date?->format('d-m-Y') ?? now()->format('d-m-Y');
+        $titheCode = $recipient->tithe_code ?: ($donation->tithe_code ?: 'N/A');
+        $type = $donation->type ?: 'Tithe [Zaka]';
+
+        return "Mpendwa {$recipient->full_name}, matoleo yako ({$type}) TZS {$amount} yamepokelewa {$date}. Tithe code: {$titheCode}. BCC - Mungu akubariki. Maelezo: 0759-010263.";
     }
 }

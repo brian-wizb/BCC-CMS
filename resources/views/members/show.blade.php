@@ -6,6 +6,20 @@
                     <a href="{{ route('members.index') }}" class="inline-flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[var(--color-surface-100)] transition" title="Back to members">
                         <i class="fas fa-arrow-left text-slate-500 text-sm"></i>
                     </a>
+                    <div class="h-16 w-16 overflow-hidden rounded-2xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)]">
+                        @if ($member->profile_pic)
+                            <img
+                                src="{{ route('members.profile-picture', $member) }}"
+                                alt="{{ $member->full_name }} profile picture"
+                                class="h-full w-full object-cover"
+                                onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($member->full_name ?: 'Member') }}&background=e2e8f0&color=475569&size=256';"
+                            >
+                        @else
+                            <div class="flex h-full w-full items-center justify-center text-slate-400">
+                                <i class="fas fa-user text-xl"></i>
+                            </div>
+                        @endif
+                    </div>
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Member profile</p>
                         <h3 class="mt-2 text-2xl font-semibold text-[var(--color-ink-950)]">{{ $member->full_name }}</h3>

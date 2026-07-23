@@ -27,7 +27,7 @@
         <x-ui.date-range-filters :action="route('reports.zones')" :date-from="$dateFrom" :date-to="$dateTo" />
 
         {{-- Summary stat cards --}}
-        <article class="grid gap-4 sm:grid-cols-4">
+        <article class="grid gap-4 sm:grid-cols-3">
             <div class="stat-card p-5">
                 <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Zones</p>
                 <p class="mt-1 text-3xl font-bold text-[var(--color-ink-950)]">{{ $zones->count() }}</p>
@@ -35,10 +35,6 @@
             <div class="stat-card p-5">
                 <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Total Members</p>
                 <p class="mt-1 text-3xl font-bold text-[var(--color-ink-950)]">{{ number_format($zones->sum('members')) }}</p>
-            </div>
-            <div class="stat-card p-5">
-                <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Total Families</p>
-                <p class="mt-1 text-3xl font-bold text-[var(--color-ink-950)]">{{ number_format($zones->sum('families')) }}</p>
             </div>
             <div class="stat-card p-5">
                 <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Total Attendance Records</p>
@@ -54,7 +50,6 @@
                             <th class="px-4 pb-3"><i class="fas fa-map-marker-alt mr-1.5 opacity-60"></i>Zone</th>
                             <th class="px-4 pb-3"><i class="fas fa-user-tie mr-1.5 opacity-60"></i>Leader</th>
                             <th class="px-4 pb-3 text-right"><i class="fas fa-users mr-1.5 opacity-60"></i>Members</th>
-                            <th class="px-4 pb-3 text-right"><i class="fas fa-home mr-1.5 opacity-60"></i>Families</th>
                             <th class="px-4 pb-3 text-right"><i class="fas fa-calendar-check mr-1.5 opacity-60"></i>Attendance</th>
                             <th class="px-4 pb-3 text-right"><i class="fas fa-percentage mr-1.5 opacity-60"></i>Att. Rate</th>
                             <th class="px-4 pb-3 w-1/4">Distribution</th>
@@ -67,7 +62,6 @@
                                 <td class="px-4 py-3 font-medium text-[var(--color-ink-950)]">{{ $zone['name'] }}</td>
                                 <td class="px-4 py-3 text-slate-400">{{ $zone['leader'] }}</td>
                                 <td class="px-4 py-3 text-right">{{ number_format($zone['members']) }}</td>
-                                <td class="px-4 py-3 text-right">{{ number_format($zone['families']) }}</td>
                                 <td class="px-4 py-3 text-right">{{ number_format($zone['attendance']) }}</td>
                                 <td class="px-4 py-3 text-right">{{ $zone['attendance_rate'] }}x</td>
                                 <td class="px-4 py-3">
@@ -77,7 +71,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">No zone records found.</td></tr>
+                            <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No zone records found.</td></tr>
                         @endforelse
                     </tbody>
                     @if ($zones->isNotEmpty())
@@ -86,7 +80,6 @@
                                 <td class="px-4 pt-3">Total</td>
                                 <td class="px-4 pt-3"></td>
                                 <td class="px-4 pt-3 text-right">{{ number_format($zones->sum('members')) }}</td>
-                                <td class="px-4 pt-3 text-right">{{ number_format($zones->sum('families')) }}</td>
                                 <td class="px-4 pt-3 text-right">{{ number_format($zones->sum('attendance')) }}</td>
                                 <td colspan="2" class="px-4 pt-3"></td>
                             </tr>

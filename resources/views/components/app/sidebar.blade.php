@@ -40,7 +40,6 @@
         'Reports' => 'folder',
         'Users' => 'users',
         'Members' => 'users',
-        'Families' => 'home',
         'Departments' => 'building',
         'Zones' => 'layers',
         'Groups' => 'users',
@@ -48,19 +47,14 @@
         'Follow-Up' => 'check',
         'Leaders' => 'shield',
         'Attendance' => 'check',
-        'Pastoral Care' => 'heart',
         'Alerts' => 'bell',
-        'Events' => 'calendar',
-        'Volunteers' => 'users',
         'Communications' => 'megaphone',
-        'Payroll' => 'wallet',
         'Expenditures' => 'wallet',
         'Department Income' => 'chart',
         'Department Expenses' => 'chart',
         'Income Types' => 'bookmark',
-        'Payroll Categories' => 'tags',
         'Income Records' => 'chart',
-        'Donations' => 'gift',
+        'Givings' => 'gift',
         'Campaigns' => 'megaphone',
         'Pledges' => 'gift',
         'Missed Pledges' => 'bell',
@@ -79,9 +73,9 @@
 
     $sectionMap = [
         'Core' => ['Dashboard', 'Reports'],
-        'People' => ['Users', 'Members', 'Families', 'Departments', 'Zones', 'Groups', 'Visitors', 'Follow-Up', 'Leaders'],
-        'Ministry' => ['Attendance', 'Pastoral Care', 'Alerts', 'Events', 'Volunteers', 'Communications'],
-        'Finance' => ['Payroll', 'Payroll Categories', 'Expenditures', 'Department Income', 'Department Expenses', 'Income Records', 'Income Types', 'Donations', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
+        'People' => ['Users', 'Members', 'Departments', 'Zones', 'Groups', 'Visitors', 'Follow-Up', 'Leaders'],
+        'Ministry' => ['Attendance', 'Alerts', 'Communications'],
+        'Finance' => ['Expenditures', 'Department Income', 'Department Expenses', 'Income Records', 'Income Types', 'Givings', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
     ];
 
     if ($roleKey === 'church_secretary') {

@@ -8,7 +8,7 @@
                 </span>
                 <div>
                     <h3 class="text-2xl font-semibold text-[var(--color-ink-950)]">Finance Report</h3>
-                    <p class="text-xs text-slate-500">Income, expenditure, donations, and department finances</p>
+                    <p class="text-xs text-slate-500">Income, expenditure, givings, and department finances</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 print-hide">
@@ -31,7 +31,7 @@
             <div class="stat-card p-5">
                 <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Total Income</p>
                 <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">TSh {{ number_format($totalIncome + $totalDonations + $totalDeptIncome, 2) }}</p>
-                <p class="mt-1 text-xs text-slate-500">General + Donations + Dept</p>
+                <p class="mt-1 text-xs text-slate-500">General + Givings + Dept</p>
             </div>
             <div class="stat-card p-5">
                 <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Total Expenditure</p>
@@ -50,7 +50,7 @@
                 <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">TSh {{ number_format($totalIncome, 2) }}</p>
             </div>
             <div class="stat-card p-5">
-                <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Donations</p>
+                <p class="text-xs uppercase tracking-[0.14em] text-slate-500">Givings</p>
                 <p class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">TSh {{ number_format($totalDonations, 2) }}</p>
             </div>
             <div class="stat-card p-5">
@@ -131,10 +131,10 @@
                 </table>
             </article>
 
-            {{-- Donations by type --}}
+            {{-- Givings by type --}}
             <article class="surface-card p-6">
                 <h4 class="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-950)]">
-                    <i class="fas fa-hand-holding-heart opacity-60" style="color:rgba(244,193,93,0.8);"></i> Donations by Type
+                    <i class="fas fa-hand-holding-heart opacity-60" style="color:rgba(244,193,93,0.8);"></i> Givings by Type
                 </h4>
                 <table class="min-w-full text-sm">
                     <thead class="text-left text-xs uppercase text-slate-500">
@@ -150,7 +150,7 @@
                                 <td class="py-2.5 text-right">{{ number_format($row->total, 2) }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="2" class="py-4 text-center text-slate-400">No donation records.</td></tr>
+                            <tr><td colspan="2" class="py-4 text-center text-slate-400">No giving records.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

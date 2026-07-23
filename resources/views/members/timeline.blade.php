@@ -4,7 +4,7 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Member History</p>
                 <h3 class="mt-2 text-2xl font-semibold text-[var(--color-ink-950)]">{{ $member->full_name }} timeline</h3>
-                <p class="mt-2 text-sm text-slate-500">Unified events across membership, attendance, prayer, pastoral care, and custom timeline records.</p>
+                <p class="mt-2 text-sm text-slate-500">Unified events across membership, attendance, and custom timeline records.</p>
             </div>
             <a href="{{ route('members.show', $member) }}" class="btn-secondary">Back to member</a>
         </div>

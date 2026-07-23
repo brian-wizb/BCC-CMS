@@ -473,6 +473,93 @@ function initializeSidebar() {
     initializeSidebarHoverTooltips();
 }
 
+function initializeMobileTopbarAutoFold() {
+    const topbar = document.querySelector('.app-topbar');
+    if (!topbar) {
+        return;
+    }
+
+    const mobileTopbarQuery = window.matchMedia('(max-width: 1023px)');
+    const appMain = document.querySelector('.app-main');
+    const getScrollY = () => {
+        const windowY = window.scrollY || 0;
+        const containerY = appMain instanceof HTMLElement ? appMain.scrollTop : 0;
+
+        return Math.max(windowY, containerY);
+    };
+
+    let lastScrollY = getScrollY();
+    let ticking = false;
+    let isCompact = false;
+
+    const setCompact = (compact) => {
+        if (isCompact === compact) {
+            return;
+        }
+
+        isCompact = compact;
+        document.documentElement.dataset.topbarCompact = compact ? 'true' : 'false';
+    };
+
+    const evaluateState = () => {
+        const currentY = getScrollY();
+        const delta = currentY - lastScrollY;
+
+        if (!mobileTopbarQuery.matches) {
+            setCompact(false);
+            lastScrollY = currentY;
+            ticking = false;
+            return;
+        }
+
+        if (document.documentElement.dataset.sidebarOpen === 'true') {
+            setCompact(false);
+            lastScrollY = currentY;
+            ticking = false;
+            return;
+        }
+
+        if (currentY <= 24) {
+            setCompact(false);
+        } else if (delta > 6 && currentY > 72) {
+            setCompact(true);
+        } else if (delta < -6) {
+            setCompact(false);
+        }
+
+        lastScrollY = currentY;
+        ticking = false;
+    };
+
+    const onScroll = () => {
+        if (ticking) {
+            return;
+        }
+
+        ticking = true;
+        window.requestAnimationFrame(evaluateState);
+    };
+
+    const handleViewportChange = () => {
+        lastScrollY = getScrollY();
+        evaluateState();
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    if (appMain instanceof HTMLElement) {
+        appMain.addEventListener('scroll', onScroll, { passive: true });
+    }
+    mobileTopbarQuery.addEventListener('change', handleViewportChange);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            handleViewportChange();
+        }
+    });
+
+    handleViewportChange();
+}
+
 // ── Toast notification system ─────────────────────────────────────────────
 const TOAST_ICONS = {
     success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
@@ -620,6 +707,7 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initializeTheme();
         initializeSidebar();
+        initializeMobileTopbarAutoFold();
         initializeToasts();
         initializeRipple();
         initializeConfirmForms();
@@ -627,6 +715,7 @@ if (document.readyState === 'loading') {
 } else {
     initializeTheme();
     initializeSidebar();
+    initializeMobileTopbarAutoFold();
     initializeToasts();
     initializeRipple();
     initializeConfirmForms();

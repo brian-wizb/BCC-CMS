@@ -55,8 +55,16 @@
                     <div class="rounded-2xl border border-[var(--color-surface-200)] p-4">
                         <div class="flex items-start justify-between gap-4">
                             <div>
-                                <p class="font-semibold text-[var(--color-ink-950)]">{{ ucfirst(str_replace('_', ' ', $task->task_type)) }}</p>
-                                <p class="mt-1 text-sm text-slate-500">{{ $task->person_type }} #{{ $task->person_id }}</p>
+                                <p class="font-semibold text-[var(--color-ink-950)]">{{ $task->task_type_label }}</p>
+                                <p class="mt-1 text-sm text-slate-500">{{ $task->target_display_name }} · {{ $task->target_display_type }}</p>
+                                @if ($task->target_member_count > 1)
+                                    <p class="mt-0.5 text-xs text-slate-400"><i class="fa-solid fa-people-group mr-1"></i>{{ $task->target_member_count }} people</p>
+                                @endif
+                                @if ($task->target_phone)
+                                    <p class="mt-0.5 text-xs text-slate-400">
+                                        <i class="fa-solid fa-phone mr-1"></i>{{ $task->target_phone }}
+                                    </p>
+                                @endif
                             </div>
                             <span class="rounded-full px-2 py-0.5 text-xs font-semibold uppercase
                                 @if ($task->status === 'pending') bg-amber-100 text-amber-700
@@ -71,6 +79,9 @@
                             @endif
                             <span><i class="fa-solid fa-flag-checkered mr-1"></i> {{ ucfirst($task->priority) }} priority</span>
                         </div>
+                        @if ($task->display_notes)
+                            <p class="mt-3 text-sm text-slate-600">{{ $task->display_notes }}</p>
+                        @endif
                     </div>
                 @empty
                     <div class="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-500">

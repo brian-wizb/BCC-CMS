@@ -14,7 +14,6 @@ class AttendanceRecord extends Model
         'service_id',
         'member_id',
         'visitor_id',
-        'family_id',
         'department_id',
         'zone_id',
         'zone',
@@ -49,11 +48,6 @@ class AttendanceRecord extends Model
         return $this->belongsTo(Visitor::class);
     }
 
-    public function family(): BelongsTo
-    {
-        return $this->belongsTo(Family::class);
-    }
-
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
@@ -74,7 +68,6 @@ class AttendanceRecord extends Model
     {
         return $this->member?->full_name
             ?? $this->visitor?->full_name
-            ?? $this->family?->head_of_family
             ?? 'Unknown';
     }
 
@@ -83,7 +76,6 @@ class AttendanceRecord extends Model
     {
         if ($this->member_id)  { return 'member'; }
         if ($this->visitor_id) { return 'visitor'; }
-        if ($this->family_id)  { return 'family'; }
         return 'unknown';
     }
 }

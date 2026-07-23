@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Members\StoreMemberRequest;
 use App\Http\Requests\Members\UpdateMemberRequest;
-use App\Models\Family;
 use App\Models\Member;
 use App\Models\University;
 use App\Models\Zone;
@@ -14,13 +13,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class MemberController extends Controller
 {
-    public function __construct(private readonly AuditLogger $auditLogger)
+    private AuditLogger $auditLogger;
+
+    public function __construct(AuditLogger $auditLogger)
     {
+        $this->auditLogger = $auditLogger;
     }
 
     public function index(Request $request): View
@@ -69,7 +73,6 @@ class MemberController extends Controller
 
     public function create(): View
     {
-        $families = Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']);
         $partners = Member::query()->orderBy('full_name')->get(['id', 'full_name', 'tithe_code']);
         $universities = University::query()->orderBy('type')->orderBy('name')->get(['id', 'name', 'type', 'country']);
         $zones = Zone::query()->orderBy('name')->pluck('name')->all();
@@ -84,7 +87,6 @@ class MemberController extends Controller
                 'is_university_student' => false,
                 'tithe_code' => $nextTitheCode,
             ]),
-            'families' => $families,
             'partners' => $partners,
             'universities' => $universities,
             'zones' => $zones,
@@ -94,7 +96,7 @@ class MemberController extends Controller
 
     public function store(StoreMemberRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = $this->attachUploadedProfilePicture($request, $request->validated());
 
         $member = DB::transaction(function () use ($data) {
             $member = Member::query()->create($this->normalizedMemberData($data, null));
@@ -121,9 +123,19 @@ class MemberController extends Controller
         return view('members.show', compact('member'));
     }
 
+    public function profilePicture(Member $member): StreamedResponse|RedirectResponse
+    {
+        $path = $this->extractPublicProfilePicturePath($member->profile_pic);
+
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            return redirect()->away('https://ui-avatars.com/api/?name=' . urlencode($member->full_name ?: 'Member') . '&background=e2e8f0&color=475569&size=256');
+        }
+
+        return Storage::disk('public')->response($path);
+    }
+
     public function edit(Member $member): View
     {
-        $families = Family::query()->orderBy('head_of_family')->get(['id', 'head_of_family']);
         $partners = Member::query()
             ->whereKeyNot($member->id)
             ->orderBy('full_name')
@@ -131,12 +143,12 @@ class MemberController extends Controller
         $universities = University::query()->orderBy('type')->orderBy('name')->get(['id', 'name', 'type', 'country']);
         $zones = Zone::query()->orderBy('name')->pluck('name')->all();
 
-        return view('members.edit', compact('member', 'families', 'partners', 'universities', 'zones'));
+        return view('members.edit', compact('member', 'partners', 'universities', 'zones'));
     }
 
     public function update(UpdateMemberRequest $request, Member $member): RedirectResponse
     {
-        $data = $request->validated();
+        $data = $this->attachUploadedProfilePicture($request, $request->validated(), $member);
         $before = Arr::only($member->toArray(), ['full_name', 'gender', 'phone', 'zone', 'residency']);
         $member = DB::transaction(function () use ($member, $data) {
             $originalPartnerId = $member->partner_member_id;
@@ -262,19 +274,18 @@ class MemberController extends Controller
             $sharePartnerTitheCode = false;
         }
 
-        $partner = $partnerMemberId ? Member::query()->find($partnerMemberId, ['id', 'full_name', 'tithe_code']) : null;
+        $partner = $partnerMemberId ? Member::query()->find($partnerMemberId, ['id', 'full_name', 'tithe_code', 'created_at']) : null;
         $titheCode = $data['tithe_code'] ?? ($member?->tithe_code ?? null);
 
         if ($member === null && blank($titheCode)) {
             $titheCode = Member::nextTitheCode();
         }
 
-        if ($sharePartnerTitheCode && $partner?->tithe_code) {
-            $titheCode = $partner->tithe_code;
+        if ($sharePartnerTitheCode && $partner) {
+            $titheCode = $this->resolveSharedPartnerTitheCode($member, $partner, $titheCode);
         }
 
         return [
-            'family_id' => $data['family_id'] ?? null,
             'full_name' => $data['full_name'],
             'gender' => $data['gender'],
             'phone' => $data['phone'] ?? null,
@@ -311,6 +322,7 @@ class MemberController extends Controller
     private function syncPartnerMarriageDetails(Member $member, array $data, ?int $originalPartnerId = null): void
     {
         $currentPartnerId = $data['marital_status'] === 'Married' ? ($data['partner_member_id'] ?? null) : null;
+        $sharePartnerTitheCode = $data['marital_status'] === 'Married' && ($data['share_partner_tithe_code'] ?? false);
 
         if ($originalPartnerId && (int) $originalPartnerId !== (int) $currentPartnerId) {
             Member::query()
@@ -321,6 +333,7 @@ class MemberController extends Controller
                     'partner_name' => null,
                     'married_date' => null,
                     'marital_status' => null,
+                    'share_partner_tithe_code' => false,
                 ]);
         }
 
@@ -328,10 +341,21 @@ class MemberController extends Controller
             return;
         }
 
-        $partner = Member::query()->find($currentPartnerId, ['id', 'full_name']);
+        $partner = Member::query()->find($currentPartnerId, ['id', 'full_name', 'tithe_code', 'created_at']);
 
         if (! $partner) {
             return;
+        }
+
+        $sharedTitheCode = $sharePartnerTitheCode
+            ? $this->resolveSharedPartnerTitheCode($member, $partner, $member->tithe_code)
+            : null;
+
+        if ($sharePartnerTitheCode && $sharedTitheCode && $member->tithe_code !== $sharedTitheCode) {
+            $member->forceFill([
+                'tithe_code' => $sharedTitheCode,
+                'share_partner_tithe_code' => true,
+            ])->save();
         }
 
         Member::query()
@@ -341,6 +365,83 @@ class MemberController extends Controller
                 'partner_name' => $member->full_name,
                 'married_date' => $data['married_date'] ?? null,
                 'marital_status' => 'Married',
+                'share_partner_tithe_code' => $sharePartnerTitheCode,
+                'tithe_code' => $sharePartnerTitheCode && $sharedTitheCode ? $sharedTitheCode : $partner->tithe_code,
             ]);
+    }
+
+    private function resolveSharedPartnerTitheCode(?Member $member, Member $partner, ?string $fallbackTitheCode = null): string
+    {
+        $anchorMember = $member;
+
+        if ($anchorMember !== null) {
+            $anchorCreatedAt = $anchorMember->created_at;
+            $partnerCreatedAt = $partner->created_at;
+
+            if ($anchorCreatedAt !== null && $partnerCreatedAt !== null) {
+                if ($partnerCreatedAt->lt($anchorCreatedAt) || ($partnerCreatedAt->eq($anchorCreatedAt) && $partner->id < $anchorMember->id)) {
+                    $anchorMember = $partner;
+                }
+            } elseif ($anchorCreatedAt === null && $partnerCreatedAt !== null) {
+                $anchorMember = $partner;
+            } elseif ($partnerCreatedAt === null && $partner->id < $anchorMember->id) {
+                $anchorMember = $partner;
+            }
+        }
+
+        if ($anchorMember === null) {
+            $anchorMember = $partner;
+        }
+
+        return $anchorMember->tithe_code
+            ?: $fallbackTitheCode
+            ?: $member?->tithe_code
+            ?: $partner->tithe_code
+            ?: Member::nextTitheCode();
+    }
+
+    private function attachUploadedProfilePicture(Request $request, array $data, ?Member $member = null): array
+    {
+        if (! $request->hasFile('profile_pic_file')) {
+            return $data;
+        }
+
+        $storedPath = $request->file('profile_pic_file')->store('members/profile-pictures', 'public');
+        $data['profile_pic'] = $storedPath;
+
+        $existingProfilePicPath = $this->extractPublicProfilePicturePath($member?->profile_pic);
+
+        if ($existingProfilePicPath && Str::startsWith($existingProfilePicPath, 'members/profile-pictures/')) {
+            Storage::disk('public')->delete($existingProfilePicPath);
+        }
+
+        return $data;
+    }
+
+    private function extractPublicProfilePicturePath(?string $profilePic): ?string
+    {
+        if (blank($profilePic)) {
+            return null;
+        }
+
+        $path = $profilePic;
+
+        if (Str::startsWith($profilePic, ['http://', 'https://'])) {
+            $path = (string) parse_url($profilePic, PHP_URL_PATH);
+        }
+
+        if (Str::startsWith($path, 'members/profile-pictures/')) {
+            return $path;
+        }
+
+        if (Str::startsWith($path, 'storage/')) {
+            return ltrim(Str::after($path, 'storage/'), '/');
+        }
+
+        if (! Str::contains($path, '/storage/')) {
+            return null;
+        }
+
+        return ltrim(Str::after($path, '/storage/'), '/');
     }
 }

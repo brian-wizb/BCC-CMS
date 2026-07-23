@@ -44,6 +44,8 @@ return [
         'secret_key' => env('BEEM_SECRET_KEY'),
         'sender_id' => env('BEEM_SENDER_ID', 'INFO'),
         'base_url' => env('BEEM_BASE_URL', 'https://apisms.beem.africa'),
+        'verify_ssl' => env('BEEM_VERIFY_SSL', true),
+        'ca_bundle' => env('BEEM_CA_BUNDLE'),
     ],
 
     'slack' => [

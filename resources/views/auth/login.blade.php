@@ -822,7 +822,7 @@
                         </span>
                         <div>
                             <p class="text-[11px] font-bold text-white/90">Membership</p>
-                            <p class="text-[10px] text-white/45 leading-snug mt-0.5">Profiles, zones &amp; families</p>
+                            <p class="text-[10px] text-white/45 leading-snug mt-0.5">Profiles and zones</p>
                         </div>
                     </div>
                     <div class="feat-card">
