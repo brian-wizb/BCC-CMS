@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{{ asset('images/bcc-logo.png') }}?v=20260724">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/bcc-logo.png') }}?v=20260724">
     <script>
         (() => {
             const themeStorageKey = 'bcc-theme';
@@ -41,6 +43,16 @@
             <x-app.topbar :title="$resolvedTitle" />
 
             <main class="page-section">
+                <header class="print-document-header" aria-hidden="true">
+                    <img src="{{ asset('images/bcc-logo.png') }}" alt="" class="print-document-logo">
+                    <div>
+                        <p class="print-document-church">Bethel City Church</p>
+                        <h1 class="print-document-title">{{ $resolvedTitle }}</h1>
+                        <p class="print-document-meta">
+                            BCC Management Platform · Printed {{ now(config('app.timezone'))->format('d M Y, H:i') }}
+                        </p>
+                    </div>
+                </header>
                 <x-ui.flash-message />
                 @yield('content')
             </main>

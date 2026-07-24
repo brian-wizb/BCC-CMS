@@ -8,10 +8,10 @@
         <div class="absolute inset-0 opacity-24 [background-image:repeating-linear-gradient(90deg,rgba(255,255,255,0.18)_0_1px,transparent_1px_24px)]"></div>
         <div class="relative z-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-                <span class="status-pill dashboard-hero-kicker">Executive Snapshot</span>
-                <h1 class="dashboard-hero-title mt-3 text-3xl font-bold md:text-4xl">Welcome to BCC Command Center</h1>
+                <span class="status-pill dashboard-hero-kicker">Leadership Overview</span>
+                <h1 class="dashboard-hero-title mt-3 text-3xl font-bold md:text-4xl">Welcome to BCC Operations Center</h1>
                 <p class="dashboard-hero-copy mt-2 max-w-3xl text-sm md:text-base">
-                    Ministry operations, governance metrics, and strategic momentum are visible from one orchestrated dashboard built for decision-making.
+                    See church growth, ministry activity, financial stewardship, and priorities that need attention—all in one clear view.
                 </p>
             </div>
             <div class="grid grid-cols-2 gap-3 dashboard-hero-stats-grid">

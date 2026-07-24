@@ -109,8 +109,8 @@
                     </button>
                 </div>
                 <div class="sidebar-brand-copy">
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-title)]">BCC Management System</p>
-                    <p class="mt-2 text-xs leading-5 text-[var(--brand-copy)]">Operational platform for church governance, finance, and ministry execution.</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--brand-title)]">BCC Management Platform</p>
+                    <p class="mt-2 text-xs leading-5 text-[var(--brand-copy)]">One connected workspace for people, ministry, finance, and daily church operations.</p>
                 </div>
             </div>
 

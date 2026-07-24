@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{{ asset('images/bcc-logo.png') }}?v=20260724">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/bcc-logo.png') }}?v=20260724">
     <title>Self Check-In — {{ $service->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome-free/css/all.min.css') }}">
@@ -69,7 +71,7 @@
         </div>
 
         <p class="mt-6 text-center text-xs text-gray-400">
-            BCC Management System &middot; Attendance Check-In
+            BCC Management Platform &middot; Attendance Check-In
         </p>
     </main>
 

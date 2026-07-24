@@ -39,7 +39,7 @@
                     <span class="topbar-chip">Operations Console</span>
                 </div>
                 <h2 class="app-topbar-title">{{ $title }}</h2>
-                <p class="mt-1 text-sm text-[var(--header-copy)]">Bishop Community Church Management Platform</p>
+                <p class="mt-1 text-sm text-[var(--header-copy)]">BCC Management Platform</p>
             </div>
         </div>
 
@@ -55,17 +55,19 @@
                 @endif
                 <div class="topbar-profile-copy">
                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--profile-label)]">Signed in</p>
-                    <p class="mt-1 text-sm font-semibold text-[var(--color-ink-950)]">{{ $userName }}</p>
+                    <p class="topbar-profile-name">{{ $userName }}</p>
                     <div class="topbar-profile-meta">
-                        <span>{{ $user?->username }}</span>
+                        <span class="topbar-profile-username">{{ '@'.$user?->username }}</span>
                         <span class="topbar-meta-dot"></span>
-                        <span>{{ $roleName }}</span>
-                        <span class="topbar-meta-dot"></span>
-                        <span>{{ $user?->status ?? 'unknown' }}</span>
+                        <span class="topbar-role-badge">{{ $roleName }}</span>
+                        <span class="topbar-status-badge">
+                            <span class="topbar-status-dot"></span>
+                            {{ ucfirst($user?->status ?? 'unknown') }}
+                        </span>
                     </div>
                 </div>
                 <a href="{{ route('profile.index') }}" title="My Profile"
-                   class="ml-2 flex h-7 w-7 items-center justify-center rounded-lg text-slate-500">
+                   class="topbar-profile-link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                         <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/><path d="M3 21c0-4.418 4.03-8 9-8s9 3.582 9 8"/>
                     </svg>

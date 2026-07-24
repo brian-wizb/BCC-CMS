@@ -49,29 +49,38 @@
         @keyframes wordmarkReveal {
             0% {
                 opacity: 0;
-                transform: translateY(20px) rotate(-6.8deg) scale(0.985);
-                filter: blur(6px) saturate(95%);
+                transform: translate3d(0, 24px, 0) rotate(-6.4deg) scale(0.982);
             }
-            55% {
-                opacity: 0.34;
-                transform: translateY(10px) rotate(-5.8deg) scale(1);
-                filter: blur(2px) saturate(108%);
+            24% {
+                opacity: 0.1;
+                transform: translate3d(0, 19px, 0) rotate(-6.05deg) scale(0.987);
+            }
+            52% {
+                opacity: 0.38;
+                transform: translate3d(0, 10px, 0) rotate(-5.55deg) scale(0.994);
+            }
+            78% {
+                opacity: 0.76;
+                transform: translate3d(0, 3px, 0) rotate(-5deg) scale(0.998);
             }
             100% {
                 opacity: 1;
-                transform: translateY(0) rotate(-4.8deg) scale(1);
-                filter: blur(0) saturate(118%);
+                transform: translate3d(0, 0, 0) rotate(-4.8deg) scale(1);
             }
         }
 
         @keyframes wordmarkSettleBlur {
             0% {
-                opacity: 0.3;
-                filter: blur(0) saturate(118%);
+                opacity: 1;
+            }
+            35% {
+                opacity: 0.67;
+            }
+            70% {
+                opacity: 0.38;
             }
             100% {
                 opacity: 0.23;
-                filter: blur(1.8px) saturate(110%);
             }
         }
 
@@ -277,15 +286,19 @@
 
         .login-bg-wordmark-track {
             position: relative;
-            transform: translateY(2%) rotate(-4.8deg);
+            transform: translate3d(0, 2%, 0) rotate(-4.8deg);
+            transform-origin: 50% 50%;
+            backface-visibility: hidden;
+            -webkit-font-smoothing: antialiased;
+            will-change: transform, opacity;
             display: grid;
             gap: clamp(0.32rem, 0.8vh, 0.62rem);
             padding-top: clamp(0.7rem, 1.8vh, 1.25rem);
             opacity: 0.34;
-            filter: saturate(118%);
+            filter: blur(0.7px) saturate(114%);
             animation:
-                wordmarkReveal 2s cubic-bezier(.22,.61,.36,1) both,
-                wordmarkSettleBlur 1.1s ease-out 3.3s forwards;
+                wordmarkReveal 2.8s cubic-bezier(0.16, 1, 0.3, 1) both,
+                wordmarkSettleBlur 2.6s cubic-bezier(0.33, 1, 0.68, 1) 2.8s forwards;
         }
 
         .login-bg-wordmark-line {
@@ -307,6 +320,8 @@
                 0 14px 36px rgba(3, 10, 28, 0.26),
                 0 1px 0 rgba(255, 255, 255, 0.12);
             font-variation-settings: "wght" 700;
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
 
         .login-bg-wordmark-line-accent {
@@ -786,10 +801,10 @@
                 {{-- Church branding row --}}
                 <div class="mb-5 flex items-center gap-3">
                     <div class="rounded-xl bg-white/10 p-2 backdrop-blur-sm">
-                        <img src="{{ asset('images/bcc-logo.png') }}" alt="BCC" class="h-8 w-8 rounded-lg object-contain block">
+                        <img src="{{ asset('images/bcc-logo.png') }}" alt="BCC" class="bcc-logo-rounded h-8 w-8 object-contain block">
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300">Bethel Community Church</p>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300">Bethel City Church</p>
                         <p class="text-[11px] text-white/50">Management System</p>
                     </div>
                     <div class="ml-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1">
@@ -888,7 +903,7 @@
             <div class="mb-3 flex flex-col items-center text-center">
                 <div class="mb-2 rounded-md bg-white p-[3px] shadow-[0_2px_12px_rgba(0,0,0,0.18)]">
                     <img src="{{ asset('images/bcc-logo.png') }}" alt="BCC Logo"
-                         class="h-7 w-7 rounded object-contain block">
+                         class="bcc-logo-rounded h-7 w-7 object-contain block">
                 </div>
                 <span class="mb-0.5 text-[10px] font-bold uppercase tracking-[0.26em] text-[var(--color-brand-500)]">BCC CMS</span>
                 <h2 class="text-[1.2rem] font-extrabold leading-tight text-[var(--color-ink-950)]"
@@ -973,7 +988,7 @@
 
             {{-- Footer --}}
             <p class="mt-3 text-center text-[10px]" style="color:rgba(168,189,226,0.28); letter-spacing:.04em;">
-                BCC Management System &nbsp;&middot;&nbsp; Secure &amp; Encrypted
+                BCC Management Platform &nbsp;&middot;&nbsp; Secure &amp; Encrypted
             </p>
         </div>
 
