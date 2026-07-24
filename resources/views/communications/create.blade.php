@@ -5,7 +5,7 @@
             <h2 class="mt-1 text-2xl font-bold text-[var(--color-ink-950)]">Compose communication</h2>
         </div>
 
-        <form method="POST" action="{{ route('communications.store') }}" class="space-y-5" id="compose-form">
+        <form method="POST" action="{{ route('communications.store') }}" enctype="multipart/form-data" class="space-y-5" id="compose-form">
             @csrf
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -28,6 +28,7 @@
                         <option value="everyone" @selected(old('audience_type') === 'everyone')>Everyone (Members + Visitors)</option>
                         <option value="individual_registered" @selected(old('audience_type') === 'individual_registered')>Individual (Registered)</option>
                         <option value="individual_unregistered" @selected(old('audience_type') === 'individual_unregistered')>Individual (Unregistered)</option>
+                        <option value="bulk_unregistered" @selected(old('audience_type') === 'bulk_unregistered')>Bulk (Unregistered Import)</option>
                     </select>
                     @error('audience_type')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
@@ -63,6 +64,14 @@
                     <input name="recipient_contact_phone" class="form-input w-full" value="{{ old('recipient_contact_phone') }}" placeholder="+2557XXXXXXXX">
                     @error('recipient_contact_phone')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
+            </div>
+
+            {{-- Bulk unregistered recipients --}}
+            <div id="bulk-unregistered-block" class="hidden rounded-xl border border-dashed border-[var(--color-surface-300)] bg-[var(--color-surface-50)] p-4">
+                <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient file</label>
+                <input type="file" name="bulk_recipient_file" accept=".csv,.txt,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="form-input w-full">
+                <p class="mt-2 text-xs text-slate-500">Upload CSV or Excel (.xlsx), up to 1,000 recipients. The first row must contain <code>name</code> and <code>phone</code> columns. Duplicate phone numbers are skipped.</p>
+                @error('bulk_recipient_file')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
             </div>
 
             {{-- Subject --}}
@@ -107,6 +116,7 @@
         const recipientId   = document.getElementById('recipient-id');
         const regBlock      = document.getElementById('registered-individual-block');
         const manualBlock   = document.getElementById('manual-individual-block');
+        const bulkBlock     = document.getElementById('bulk-unregistered-block');
 
         const members = @json(($members ?? collect())->map(fn($m) => ['id' => $m->id, 'name' => $m->full_name, 'phone' => $m->phone])->values());
         const visitors = @json(($visitors ?? collect())->map(fn($v) => ['id' => $v->id, 'name' => $v->full_name, 'phone' => $v->phone])->values());
@@ -144,11 +154,13 @@
         }
 
         function toggleAudienceBlocks() {
-            if (!audienceType || !regBlock || !manualBlock) return;
+            if (!audienceType || !regBlock || !manualBlock || !bulkBlock) return;
             const isRegistered = audienceType.value === 'individual_registered';
             const isManual = audienceType.value === 'individual_unregistered';
+            const isBulk = audienceType.value === 'bulk_unregistered';
             regBlock.classList.toggle('hidden', !isRegistered);
             manualBlock.classList.toggle('hidden', !isManual);
+            bulkBlock.classList.toggle('hidden', !isBulk);
             if (isRegistered) {
                 populateRecipientOptions();
             }

@@ -12,6 +12,7 @@ use App\Models\Visitor;
 use Illuminate\Support\Arr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -43,16 +44,17 @@ class CommunicationController extends Controller
     {
         $data = $request->validate([
             'channel'       => ['required', 'string', Rule::in(['sms', 'whatsapp'])],
-            'audience_type' => ['required', 'string', Rule::in(['all_members', 'all_visitors', 'everyone', 'individual_registered', 'individual_unregistered'])],
+            'audience_type' => ['required', 'string', Rule::in(['all_members', 'all_visitors', 'everyone', 'individual_registered', 'individual_unregistered', 'bulk_unregistered'])],
             'subject'       => ['nullable', 'string', 'max:255'],
             'message'       => ['required', 'string'],
             'recipient_type' => ['nullable', 'string', Rule::in(['member', 'visitor'])],
             'recipient_id' => ['nullable', 'integer'],
             'recipient_name' => ['nullable', 'string', 'max:255'],
             'recipient_contact_phone' => ['nullable', 'string', 'max:50'],
+            'bulk_recipient_file' => ['nullable', 'file', 'mimes:csv,txt,xlsx', 'max:5120'],
         ]);
 
-        $filters = $this->buildAudienceFilters($data);
+        $filters = $this->buildAudienceFilters($data, $request);
 
         $data['status']     = 'draft';
         $data['created_by'] = auth()->id();
@@ -109,13 +111,14 @@ class CommunicationController extends Controller
 
         $data = $request->validate([
             'channel'       => ['required', 'string', Rule::in(['sms', 'whatsapp'])],
-            'audience_type' => ['required', 'string', Rule::in(['all_members', 'all_visitors', 'everyone', 'individual_registered', 'individual_unregistered'])],
+            'audience_type' => ['required', 'string', Rule::in(['all_members', 'all_visitors', 'everyone', 'individual_registered', 'individual_unregistered', 'bulk_unregistered'])],
             'subject'       => ['nullable', 'string', 'max:255'],
             'message'       => ['required', 'string'],
             'recipient_type' => ['nullable', 'string', Rule::in(['member', 'visitor'])],
             'recipient_id' => ['nullable', 'integer'],
             'recipient_name' => ['nullable', 'string', 'max:255'],
             'recipient_contact_phone' => ['nullable', 'string', 'max:50'],
+            'bulk_recipient_file' => ['nullable', 'file', 'mimes:csv,txt,xlsx', 'max:5120'],
         ]);
 
         $audienceType = $data['audience_type'] ?? null;
@@ -124,12 +127,14 @@ class CommunicationController extends Controller
             'recipient_id',
             'recipient_name',
             'recipient_contact_phone',
+            'bulk_recipient_file',
         ]);
 
-        if (in_array($audienceType, ['individual_registered', 'individual_unregistered'], true) && ! $hasRecipientInput) {
+        if (in_array($audienceType, ['individual_registered', 'individual_unregistered', 'bulk_unregistered'], true)
+            && $communication->audience_type === $audienceType && ! $hasRecipientInput) {
             $data['filters_json'] = (array) ($communication->filters_json ?? []);
         } else {
-            $data['filters_json'] = $this->buildAudienceFilters($data);
+            $data['filters_json'] = $this->buildAudienceFilters($data, $request);
         }
 
         $data['estimated_sms_count'] = $this->estimateSmsCount(
@@ -251,6 +256,27 @@ class CommunicationController extends Controller
             }
         }
 
+        if ($communication->audience_type === 'bulk_unregistered') {
+            $recipients = Arr::get($communication->filters_json, 'bulk_unregistered_recipients', []);
+            foreach ($recipients as $recipient) {
+                $contact = trim((string) ($recipient['phone'] ?? ''));
+                if ($contact === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                $delivery = CommunicationDelivery::create([
+                    'communication_id' => $communication->id,
+                    'recipient_type' => 'manual',
+                    'recipient_id' => 0,
+                    'recipient_contact' => $contact,
+                    'delivery_status' => 'queued',
+                ]);
+                $this->dispatchDelivery($delivery, $deliveryMode);
+                $dispatched++;
+            }
+        }
+
         $actualSmsCount = $communication->channel === 'sms' ? $dispatched : 0;
 
         $communication->update([
@@ -306,7 +332,7 @@ class CommunicationController extends Controller
         return back()->with('status', 'Message credit settings updated successfully.');
     }
 
-    private function buildAudienceFilters(array $data): array
+    private function buildAudienceFilters(array $data, ?Request $request = null): array
     {
         $audienceType = $data['audience_type'] ?? null;
         $filters = [];
@@ -353,6 +379,17 @@ class CommunicationController extends Controller
                 'recipient_name' => $name,
                 'recipient_contact_phone' => $phone,
             ];
+        }
+
+        if ($audienceType === 'bulk_unregistered') {
+            $file = $request?->file('bulk_recipient_file');
+            if (! $file instanceof UploadedFile) {
+                throw ValidationException::withMessages([
+                    'bulk_recipient_file' => 'Upload a CSV or Excel file with name and phone columns.',
+                ]);
+            }
+
+            $filters['bulk_unregistered_recipients'] = $this->parseBulkRecipients($file);
         }
 
         return $filters;
@@ -458,6 +495,7 @@ class CommunicationController extends Controller
                 + (int) Visitor::query()->whereNotNull('phone')->where('phone', '!=', '')->count(),
             'individual_registered' => $this->countRegisteredIndividualRecipient($filters),
             'individual_unregistered' => $this->countUnregisteredIndividualRecipient($filters),
+            'bulk_unregistered' => count(Arr::get($filters, 'bulk_unregistered_recipients', [])),
             default => 0,
         };
 
@@ -494,6 +532,176 @@ class CommunicationController extends Controller
         $phone = trim((string) Arr::get($filters, 'individual.recipient_contact_phone', ''));
 
         return $phone === '' ? 0 : 1;
+    }
+
+    /**
+     * Parse a CSV or the first worksheet of a simple Excel workbook.
+     * The header row must contain name and phone columns (common variants are accepted).
+     *
+     * @return array<int, array{name: string, phone: string}>
+     */
+    private function parseBulkRecipients(UploadedFile $file): array
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $rows = match ($extension) {
+            'csv', 'txt' => $this->readCsvRows($file->getRealPath()),
+            'xlsx' => $this->readXlsxRows($file->getRealPath()),
+            default => [],
+        };
+
+        if (count($rows) < 2) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'The file must include a header row and at least one recipient.']);
+        }
+
+        $headers = array_map(fn ($header) => $this->normaliseImportHeader((string) $header), array_shift($rows));
+        $nameIndex = $this->findImportColumn($headers, ['name', 'full_name', 'recipient_name']);
+        $phoneIndex = $this->findImportColumn($headers, ['phone', 'phone_number', 'mobile', 'mobile_number', 'contact', 'recipient_contact_phone']);
+        if ($nameIndex === null || $phoneIndex === null) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'The header row must contain name and phone columns.']);
+        }
+
+        $recipients = [];
+        $seenPhones = [];
+        foreach ($rows as $index => $row) {
+            $name = trim((string) ($row[$nameIndex] ?? ''));
+            $phone = trim((string) ($row[$phoneIndex] ?? ''));
+            if ($name === '' && $phone === '') {
+                continue;
+            }
+            if ($name === '' || $phone === '') {
+                throw ValidationException::withMessages(['bulk_recipient_file' => 'Every recipient row must include both name and phone (row '.($index + 2).').']);
+            }
+
+            $phoneKey = preg_replace('/\s+/', '', $phone);
+            if (isset($seenPhones[$phoneKey])) {
+                continue;
+            }
+            $seenPhones[$phoneKey] = true;
+            $recipients[] = ['name' => $name, 'phone' => $phone];
+        }
+
+        if ($recipients === []) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'No valid recipients were found in the uploaded file.']);
+        }
+        if (count($recipients) > 1000) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'A bulk send can contain up to 1,000 unique recipients.']);
+        }
+
+        return $recipients;
+    }
+
+    private function readCsvRows(string $path): array
+    {
+        $handle = fopen($path, 'r');
+        if ($handle === false) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'Unable to read the uploaded CSV file.']);
+        }
+
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            $rows[] = $row;
+        }
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function readXlsxRows(string $path): array
+    {
+        if (! class_exists(\ZipArchive::class)) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'Excel imports require the PHP ZIP extension. Please upload a CSV file instead.']);
+        }
+
+        $archive = new \ZipArchive();
+        if ($archive->open($path) !== true) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'Unable to read the Excel workbook.']);
+        }
+
+        try {
+            $sharedStringsXml = $archive->getFromName('xl/sharedStrings.xml');
+            $sharedStrings = $sharedStringsXml ? $this->xlsxSharedStrings($sharedStringsXml) : [];
+            $sheetXml = $archive->getFromName('xl/worksheets/sheet1.xml');
+            if (! $sheetXml) {
+                throw ValidationException::withMessages(['bulk_recipient_file' => 'The Excel workbook does not contain a first worksheet.']);
+            }
+
+            return $this->xlsxRows($sheetXml, $sharedStrings);
+        } finally {
+            $archive->close();
+        }
+    }
+
+    private function xlsxSharedStrings(string $xml): array
+    {
+        $document = simplexml_load_string($xml);
+        if ($document === false) {
+            return [];
+        }
+
+        return array_map(fn ($node) => trim((string) $node), $document->xpath('//*[local-name()="si"]') ?: []);
+    }
+
+    private function xlsxRows(string $xml, array $sharedStrings): array
+    {
+        $document = simplexml_load_string($xml);
+        if ($document === false) {
+            throw ValidationException::withMessages(['bulk_recipient_file' => 'The Excel worksheet could not be parsed.']);
+        }
+
+        $rows = [];
+        foreach ($document->xpath('//*[local-name()="row"]') ?: [] as $row) {
+            $values = [];
+            foreach ($row->xpath('./*[local-name()="c"]') ?: [] as $cell) {
+                $reference = (string) $cell['r'];
+                $column = preg_replace('/\d+/', '', $reference);
+                $index = $this->xlsxColumnIndex($column);
+                $type = (string) $cell['t'];
+                $value = (string) (($cell->xpath('./*[local-name()="v"]')[0] ?? '') ?: '');
+                if ($type === 's') {
+                    $value = $sharedStrings[(int) $value] ?? '';
+                } elseif ($type === 'inlineStr') {
+                    $value = (string) (($cell->xpath('./*[local-name()="is"]/*[local-name()="t"]')[0] ?? '') ?: '');
+                }
+                $values[$index] = $value;
+            }
+            if ($values !== []) {
+                ksort($values);
+                $normalised = array_fill(0, max(array_keys($values)) + 1, '');
+                foreach ($values as $index => $value) {
+                    $normalised[$index] = $value;
+                }
+                $rows[] = $normalised;
+            }
+        }
+
+        return $rows;
+    }
+
+    private function xlsxColumnIndex(string $column): int
+    {
+        $index = 0;
+        foreach (str_split(strtoupper($column)) as $letter) {
+            $index = ($index * 26) + (ord($letter) - 64);
+        }
+
+        return max(0, $index - 1);
+    }
+
+    private function normaliseImportHeader(string $header): string
+    {
+        return strtolower(trim(str_replace([' ', '-'], '_', preg_replace('/^\xEF\xBB\xBF/', '', $header) ?? '')));
+    }
+
+    private function findImportColumn(array $headers, array $accepted): ?int
+    {
+        foreach ($accepted as $name) {
+            $index = array_search($name, $headers, true);
+            if ($index !== false) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     private function creditState(): array

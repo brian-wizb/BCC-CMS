@@ -38,7 +38,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_member_admin_can_create_member(): void
     {
-        $user = $this->actingAsRole('church_secretary');
+        $user = $this->actingAsRole('chief_usher');
 
         $response = $this->actingAs($user)->post(route('members.store'), [
             'full_name' => 'Jane Doe',
@@ -68,7 +68,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_member_admin_can_create_department_and_assign_member(): void
     {
-        $user = $this->actingAsRole('church_secretary');
+        $user = $this->actingAsRole('chief_usher');
         $leader = User::factory()->create();
         $member = Member::query()->create([
             'full_name' => 'Department Member',
@@ -108,7 +108,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_member_admin_can_create_zone_and_assign_member(): void
     {
-        $user = $this->actingAsRole('church_secretary');
+        $user = $this->actingAsRole('chief_usher');
         $leader = User::factory()->create();
         $member = Member::query()->create([
             'full_name' => 'Zone Member',
@@ -161,7 +161,7 @@ class PhaseOneManagementTest extends TestCase
 
     public function test_members_index_lists_existing_members(): void
     {
-        $user = $this->actingAsRole('church_secretary');
+        $user = $this->actingAsRole('chief_usher');
         Member::query()->create([
             'full_name' => 'Existing Member',
             'gender' => 'Male',

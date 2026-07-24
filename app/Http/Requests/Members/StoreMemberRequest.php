@@ -32,6 +32,9 @@ class StoreMemberRequest extends FormRequest
                 ->implode(' '),
             'partner_name' => trim((string) $this->input('partner_name')),
             'tithe_code' => trim((string) $this->input('tithe_code')),
+            'phone' => trim((string) $this->input('phone')),
+            'email' => strtolower(trim((string) $this->input('email'))),
+            'member_code' => trim((string) $this->input('member_code')),
             'is_born_again' => $this->boolean('is_born_again'),
             'is_baptized' => $this->boolean('is_baptized'),
             'holy_spirit_baptised' => $this->boolean('holy_spirit_baptised'),
@@ -42,13 +45,15 @@ class StoreMemberRequest extends FormRequest
 
     protected function memberRules(): array
     {
+        $currentMemberId = optional($this->route('member'))->id;
+
         return [
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'surname' => ['required', 'string', 'max:100'],
             'full_name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'string', 'max:50'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:50', Rule::unique('members', 'phone')->ignore($currentMemberId)],
             'tithe_code' => ['nullable', 'string', 'max:100'],
             'zone' => ['nullable', 'string', 'max:255', Rule::exists('zones', 'name')],
             'residency' => ['nullable', 'string', 'max:255'],
@@ -66,9 +71,9 @@ class StoreMemberRequest extends FormRequest
             'baptized_date' => ['nullable', 'date'],
             'holy_spirit_baptised' => ['nullable', 'boolean'],
             'membership_date' => ['nullable', 'date'],
-            'member_code' => ['nullable', 'string', 'max:100'],
+            'member_code' => ['nullable', 'string', 'max:100', Rule::unique('members', 'member_code')->ignore($currentMemberId)],
             'username' => ['nullable', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('members', 'email')->ignore($currentMemberId)],
             'remarks' => ['nullable', 'string'],
             // Education & employment
             'employment_status' => ['nullable', 'string', Rule::in(['Employed', 'Unemployed', 'Entrepreneur', 'Self-employed', 'Student', 'Retired', 'Other'])],
@@ -88,6 +93,18 @@ class StoreMemberRequest extends FormRequest
             $marriedDate = $this->input('married_date');
             $sharePartnerTitheCode = $this->boolean('share_partner_tithe_code');
             $currentMemberId = optional($this->route('member'))->id;
+
+            if ($this->filled('date_of_birth')) {
+                $duplicateMember = \App\Models\Member::query()
+                    ->when($currentMemberId, fn ($query) => $query->whereKeyNot($currentMemberId))
+                    ->whereRaw('LOWER(TRIM(full_name)) = ?', [strtolower(trim((string) $this->input('full_name')))])
+                    ->whereDate('date_of_birth', $this->input('date_of_birth'))
+                    ->exists();
+
+                if ($duplicateMember) {
+                    $validator->errors()->add('date_of_birth', 'A member with the same name and date of birth already exists.');
+                }
+            }
 
             if (! $isMarried) {
                 return;

@@ -44,6 +44,8 @@
         'Zones' => 'layers',
         'Groups' => 'users',
         'Visitors' => 'users',
+        'Children Ministry' => 'users',
+        'Discipleship' => 'heart',
         'Follow-Up' => 'check',
         'Leaders' => 'shield',
         'Attendance' => 'check',
@@ -73,12 +75,12 @@
 
     $sectionMap = [
         'Core' => ['Dashboard', 'Reports'],
-        'People' => ['Users', 'Members', 'Departments', 'Zones', 'Groups', 'Visitors', 'Follow-Up', 'Leaders'],
-        'Ministry' => ['Attendance', 'Alerts', 'Communications'],
+        'People' => ['Users', 'Members', 'Departments', 'Zones', 'Groups', 'Visitors', 'Children Ministry', 'Follow-Up', 'Leaders'],
+        'Ministry' => ['Discipleship', 'Attendance', 'Alerts', 'Communications'],
         'Finance' => ['Expenditures', 'Department Income', 'Department Expenses', 'Income Records', 'Income Types', 'Givings', 'Campaigns', 'Pledges', 'Missed Pledges', 'Pledge Payments'],
     ];
 
-    if ($roleKey === 'church_secretary') {
+    if ($roleKey === 'chief_usher') {
         $financeLabels = collect($sectionMap['Finance'] ?? [])->all();
         $navigation = $navigation->reject(fn ($item) => in_array($item['label'], $financeLabels, true))->values();
         unset($sectionMap['Finance']);

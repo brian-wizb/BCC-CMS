@@ -209,18 +209,19 @@
     /* ========== PREMIUM FOREST THEME ========== */
     [data-theme='forest'] {
         color-scheme: dark;
-        /* Green-tinted palette with natural gradients */
-        --color-brand-50: #f0fdf4;
-        --color-brand-100: #dcfce7;
-        --color-brand-500: #16a34a;
-        --color-brand-600: #15803d;
-        --color-brand-900: #103927;
-        --color-accent-500: #22c55e;
-        --color-accent-600: #1ea853;
-        --color-logo-400: #4ade80;
-        --color-logo-500: #22c55e;
-        --color-logo-600: #16a34a;
-        --color-logo-700: #0f7938;
+        /* Persian Green palette */
+        --color-brand-50: #e6f9f7;
+        --color-brand-100: #bdeee8;
+        --color-brand-400: #20b9a8;
+        --color-brand-500: #00a693;
+        --color-brand-600: #008b7b;
+        --color-brand-900: #064a43;
+        --color-accent-500: #19b8a6;
+        --color-accent-600: #008f80;
+        --color-logo-400: #35c7b6;
+        --color-logo-500: #00a693;
+        --color-logo-600: #008b7b;
+        --color-logo-700: #006b60;
         --color-mint-500: #6ee7b7;
         --color-mint-600: #2dd4bf;
         --color-sun-500: #fbbf24;
@@ -243,15 +244,15 @@
         --glass-surface: rgba(21, 58, 38, 0.85);
         --glass-surface-soft: rgba(15, 40, 24, 0.72);
         --glass-surface-strong: rgba(30, 77, 49, 0.92);
-        --glass-stroke: rgba(22, 163, 74, 0.35);
-        --glass-stroke-strong: rgba(34, 197, 94, 0.5);
-        --glass-highlight: rgba(74, 222, 128, 0.2);
-        --glass-shadow: 0 32px 64px rgba(22, 163, 74, 0.25);
+        --glass-stroke: rgba(0, 166, 147, 0.35);
+        --glass-stroke-strong: rgba(25, 184, 166, 0.5);
+        --glass-highlight: rgba(53, 199, 182, 0.2);
+        --glass-shadow: 0 32px 64px rgba(0, 166, 147, 0.25);
         --glass-blur: 32px;
 
         /* Premium forest glows */
-        --glow-soft: 0 20px 60px rgba(22, 163, 74, 0.35);
-        --glow-strong: 0 30px 80px rgba(34, 197, 94, 0.4);
+        --glow-soft: 0 20px 60px rgba(0, 166, 147, 0.35);
+        --glow-strong: 0 30px 80px rgba(25, 184, 166, 0.4);
 
         /* Forest text palette */
         --text-muted: #86efac;
@@ -259,7 +260,7 @@
         --text-subtle: #bbf7d0;
         --nav-text: #6ee7b7;
         --nav-hover-text: #ecfdf5;
-        --nav-dot: #34d399;
+        --nav-dot: #00a693;
         --input-placeholder: #6ba584;
         --header-copy: #a7f3d0;
         --brand-title: rgba(255, 255, 255, 0.95);
@@ -268,18 +269,18 @@
         --profile-copy: #a7f3d0;
         --table-head-text: #6ee7b7;
         --table-body-text: #dcfce7;
-        --chart-grid: rgba(22, 163, 74, 0.25);
-        --chart-border: rgba(34, 197, 94, 0.6);
-        --chart-radar-fill: rgba(22, 163, 74, 0.2);
+        --chart-grid: rgba(0, 166, 147, 0.25);
+        --chart-border: rgba(25, 184, 166, 0.6);
+        --chart-radar-fill: rgba(0, 166, 147, 0.2);
 
-        --stat-accent-start: rgba(74, 222, 128, 0.96);
-        --stat-accent-end: rgba(34, 197, 94, 0.92);
-        --stat-tint: rgba(74, 222, 128, 0.12);
-        scrollbar-color: rgba(74, 222, 128, 0.72) rgba(15, 40, 24, 0.46);
+        --stat-accent-start: rgba(53, 199, 182, 0.96);
+        --stat-accent-end: rgba(0, 166, 147, 0.92);
+        --stat-tint: rgba(0, 166, 147, 0.12);
+        scrollbar-color: rgba(0, 166, 147, 0.72) rgba(15, 40, 36, 0.46);
 
         /* Forest gradient backgrounds */
-        --gradient-primary: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #6ee7b7 100%);
-        --gradient-secondary: linear-gradient(135deg, #0f2818 0%, #1e4d31 100%);
+        --gradient-primary: linear-gradient(135deg, #008b7b 0%, #00a693 50%, #57d5c6 100%);
+        --gradient-secondary: linear-gradient(135deg, #0d2926 0%, #164b45 100%);
     }
 
     body {
@@ -616,6 +617,10 @@
             box-shadow 220ms ease,
             backdrop-filter 220ms ease,
             gap 220ms ease;
+    }
+
+    .topbar-expand-control {
+        display: none;
     }
 
     .app-topbar-copy {
@@ -3108,6 +3113,31 @@
             margin-right: 0;
         }
 
+        .topbar-expand-control {
+            position: absolute;
+            right: 0.7rem;
+            bottom: -0.75rem;
+            z-index: 58;
+            height: 1.5rem;
+            width: 2.75rem;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--glass-stroke);
+            border-radius: 999px;
+            background: var(--glass-surface-strong);
+            color: var(--color-brand-400);
+            box-shadow: 0 6px 16px rgba(3, 10, 28, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-0.35rem);
+            transition: opacity 180ms ease, transform 220ms ease;
+        }
+
+        .topbar-expand-control svg {
+            height: 1rem;
+            width: 1rem;
+        }
+
         .topbar-heading-wrap {
             position: relative;
             padding-left: 3.25rem;
@@ -3257,6 +3287,13 @@
                 inset 0 1px 0 rgba(36, 184, 255, 0.16),
                 inset 0 -1px 0 rgba(132, 169, 238, 0.12),
                 0 8px 18px rgba(3, 10, 28, 0.22);
+        }
+
+        html[data-topbar-compact='true'] .topbar-expand-control {
+            display: inline-flex;
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
         }
 
         html[data-topbar-compact='true'] .topbar-heading-wrap {
@@ -4881,4 +4918,54 @@
     #cameraPanel .flex.gap-3 > * {
         flex: 1 1 48%;
     }
+}
+
+/* Persian Green refinements for the green theme. */
+[data-theme='forest'] .app-cosmos {
+    background:
+        radial-gradient(circle at 15% 5%, rgba(0, 166, 147, 0.24), transparent 32%),
+        radial-gradient(circle at 75% 20%, rgba(53, 199, 182, 0.16), transparent 28%),
+        radial-gradient(circle at 25% 75%, rgba(0, 139, 123, 0.15), transparent 30%),
+        linear-gradient(158deg, #0d2926 0%, #123832 36%, #164b45 64%, #1d6259 100%);
+}
+
+[data-theme='forest'] .app-topbar {
+    background:
+        linear-gradient(180deg, rgba(13, 41, 38, 0.98), rgba(18, 56, 50, 0.94)),
+        radial-gradient(circle at 85% -15%, rgba(53, 199, 182, 0.16), transparent 28%),
+        radial-gradient(circle at 10% 115%, rgba(0, 166, 147, 0.12), transparent 32%);
+}
+
+[data-theme='forest'] .app-sidebar {
+    border-color: rgba(0, 166, 147, 0.24);
+    background:
+        linear-gradient(180deg, rgba(22, 75, 69, 0.82), rgba(18, 56, 50, 0.66)),
+        radial-gradient(circle at 84% 16%, rgba(53, 199, 182, 0.14), transparent 34%),
+        linear-gradient(120deg, rgba(230, 249, 247, 0.06), transparent 40%);
+}
+
+[data-theme='forest'] .brand-panel,
+[data-theme='forest'] .sidebar-brand-panel {
+    border-color: rgba(0, 166, 147, 0.34);
+    background:
+        linear-gradient(135deg, rgba(0, 107, 96, 0.78) 0%, rgba(0, 139, 123, 0.68) 32%, rgba(0, 166, 147, 0.44) 68%, rgba(87, 213, 198, 0.25) 100%),
+        linear-gradient(180deg, rgba(230, 249, 247, 0.14), transparent 45%);
+}
+
+[data-theme='forest'] .btn-primary,
+[data-theme='forest'] .nav-link-active .nav-link-icon,
+[data-theme='forest'] .sidebar-section-icon {
+    background: linear-gradient(135deg, #008b7b 0%, #00a693 52%, #57d5c6 100%);
+}
+
+[data-theme='forest'] .form-input:focus {
+    border-color: rgba(0, 166, 147, 0.72);
+    box-shadow: 0 0 0 2px rgba(0, 166, 147, 0.18), 0 0 14px rgba(0, 166, 147, 0.16);
+}
+
+[data-theme='forest'] .topbar-chip {
+    border-color: rgba(0, 166, 147, 0.46);
+    background:
+        linear-gradient(135deg, rgba(0, 166, 147, 0.24), rgba(0, 139, 123, 0.1)),
+        linear-gradient(180deg, rgba(22, 75, 69, 0.4), rgba(18, 56, 50, 0.22));
 }

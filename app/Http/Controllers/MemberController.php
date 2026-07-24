@@ -229,6 +229,7 @@ class MemberController extends Controller
 
         $headers = array_map(fn ($header) => Str::of((string) $header)->trim()->lower()->value(), fgetcsv($handle) ?: []);
         $count = 0;
+        $skippedDuplicates = 0;
 
         while (($row = fgetcsv($handle)) !== false) {
             $data = array_combine($headers, $row);
@@ -236,15 +237,38 @@ class MemberController extends Controller
                 continue;
             }
 
+            $phone = trim((string) ($data['phone'] ?? ''));
+            $email = strtolower(trim((string) ($data['email'] ?? '')));
+            $memberCode = trim((string) ($data['member_code'] ?? ''));
+
+            $duplicate = Member::query()
+                ->where(function ($query) use ($phone, $email, $memberCode) {
+                    if ($phone !== '') {
+                        $query->orWhere('phone', $phone);
+                    }
+                    if ($email !== '') {
+                        $query->orWhere('email', $email);
+                    }
+                    if ($memberCode !== '') {
+                        $query->orWhere('member_code', $memberCode);
+                    }
+                })
+                ->exists();
+
+            if (($phone !== '' || $email !== '' || $memberCode !== '') && $duplicate) {
+                $skippedDuplicates++;
+                continue;
+            }
+
             Member::query()->create([
-                'full_name' => $data['full_name'],
+                'full_name' => trim((string) $data['full_name']),
                 'gender' => $data['gender'],
-                'phone' => $data['phone'] ?: null,
+                'phone' => $phone !== '' ? $phone : null,
                 'zone' => $data['zone'] ?: null,
                 'residency' => $data['residency'] ?: null,
                 'marital_status' => $data['marital_status'] ?: null,
-                'email' => $data['email'] ?: null,
-                'member_code' => $data['member_code'] ?: null,
+                'email' => $email !== '' ? $email : null,
+                'member_code' => $memberCode !== '' ? $memberCode : null,
                 'tithe_code' => $data['tithe_code'] ?: null,
             ]);
 
@@ -257,10 +281,15 @@ class MemberController extends Controller
             request: $request,
             action: 'member.import',
             entityType: 'member',
-            after: ['records' => $count],
+            after: ['records' => $count, 'duplicates_skipped' => $skippedDuplicates],
         );
 
-        return redirect()->route('members.index')->with('status', $count.' member records imported successfully.');
+        $status = $count.' member records imported successfully.';
+        if ($skippedDuplicates > 0) {
+            $status .= ' '.$skippedDuplicates.' duplicate '.Str::plural('record', $skippedDuplicates).' skipped.';
+        }
+
+        return redirect()->route('members.index')->with('status', $status);
     }
 
     private function normalizedMemberData(array $data, ?Member $member): array

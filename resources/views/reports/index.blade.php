@@ -36,6 +36,30 @@
             <p class="mt-4 flex items-center gap-1.5 text-xs font-semibold" style="color:rgba(167,139,250,0.8);">Open report <i class="fas fa-arrow-right text-[10px]"></i></p>
         </a>
 
+        {{-- Children Ministry --}}
+        <a href="{{ route('reports.children-ministry') }}" class="surface-card p-6 block">
+            <div class="mb-3 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(52,211,153,0.14);">
+                    <i class="fas fa-child text-base" style="color:rgba(52,211,153,0.9);"></i>
+                </span>
+                <h3 class="text-lg font-semibold text-[var(--color-ink-950)]">Children Ministry Report</h3>
+            </div>
+            <p class="text-sm text-slate-500">Registered children, parent contacts, and linked members overview.</p>
+            <p class="mt-4 flex items-center gap-1.5 text-xs font-semibold" style="color:rgba(52,211,153,0.8);">Open report <i class="fas fa-arrow-right text-[10px]"></i></p>
+        </a>
+
+        {{-- Discipleship --}}
+        <a href="{{ route('reports.discipleship') }}" class="surface-card p-6 block">
+            <div class="mb-3 flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl" style="background:rgba(124,58,237,0.14);">
+                    <i class="fas fa-book-open text-base" style="color:rgba(124,58,237,0.9);"></i>
+                </span>
+                <h3 class="text-lg font-semibold text-[var(--color-ink-950)]">Discipleship Report</h3>
+            </div>
+            <p class="text-sm text-slate-500">Foundation 1–4 progression, completions, and certificate awards.</p>
+            <p class="mt-4 flex items-center gap-1.5 text-xs font-semibold" style="color:rgba(124,58,237,0.8);">Open report <i class="fas fa-arrow-right text-[10px]"></i></p>
+        </a>
+
         {{-- Follow-up --}}
         <a href="{{ route('reports.followup') }}" class="surface-card p-6 block">
             <div class="mb-3 flex items-center gap-3">

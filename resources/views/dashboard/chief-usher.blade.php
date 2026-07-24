@@ -1,4 +1,4 @@
-<x-layouts.app title="Secretary Dashboard">
+<x-layouts.app title="Chief Usher Dashboard">
     <div class="dashboard-responsive">
         <section class="dashboard-hero">
             <div class="dashboard-hero-orb dashboard-hero-orb-a"></div>
@@ -8,8 +8,8 @@
             <div class="absolute inset-0 opacity-24 [background-image:repeating-linear-gradient(90deg,rgba(255,255,255,0.18)_0_1px,transparent_1px_24px)]"></div>
             <div class="relative z-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
-                    <span class="status-pill dashboard-hero-kicker">People Management</span>
-                    <h1 class="dashboard-hero-title mt-3 text-3xl font-bold md:text-4xl">Secretary People Dashboard</h1>
+                    <span class="status-pill dashboard-hero-kicker">People Operations</span>
+                    <h1 class="dashboard-hero-title mt-3 text-3xl font-bold md:text-4xl">Chief Usher Dashboard</h1>
                     <p class="dashboard-hero-copy mt-2 max-w-3xl text-sm md:text-base">
                         Track member growth, follow-up workload, and structure coverage across departments, zones, and groups.
                     </p>
@@ -30,6 +30,10 @@
         <section class="mt-6 grid gap-4 xl:grid-cols-4 md:grid-cols-2">
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Members</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['members']) }}</p><p class="mt-1 text-xs text-slate-500">Registered members</p></article>
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Visitors</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['visitors']) }}</p><p class="mt-1 text-xs text-slate-500">Visitor records</p></article>
+            <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Children Ministry</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['children_ministry']) }}</p><p class="mt-1 text-xs text-slate-500">Registered children</p></article>
+            <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Discipleship Enrolled</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['discipleship_enrolled']) }}</p><p class="mt-1 text-xs text-slate-500">Registered and external participants</p></article>
+            <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Discipleship In Progress</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['discipleship_in_progress']) }}</p><p class="mt-1 text-xs text-slate-500">Active Foundation learners</p></article>
+            <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Certificates Awarded</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['discipleship_awarded']) }}</p><p class="mt-1 text-xs text-slate-500">Foundation graduates</p></article>
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Leaders</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['leaders']) }}</p><p class="mt-1 text-xs text-slate-500">Leader profiles</p></article>
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Departments</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['departments']) }}</p><p class="mt-1 text-xs text-slate-500">Department units</p></article>
             <article class="stat-card"><p class="text-xs uppercase tracking-[0.12em] text-slate-500">Zones</p><p class="mt-2 text-3xl font-semibold text-[var(--color-ink-950)]">{{ number_format($peopleStats['zones']) }}</p><p class="mt-1 text-xs text-slate-500">Pastoral zones</p></article>

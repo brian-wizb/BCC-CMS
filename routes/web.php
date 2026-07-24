@@ -18,6 +18,8 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\ChildrenMinistryController;
+use App\Http\Controllers\DiscipleshipController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -204,6 +206,53 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::patch('/visitors/{visitor}/convert', [VisitorController::class, 'convertToMember'])
         ->middleware('permission:visitors.convert')
         ->name('visitors.convert');
+
+    Route::get('/children-ministry', [ChildrenMinistryController::class, 'index'])
+        ->middleware('permission:children_ministry.read')
+        ->name('children-ministry.index');
+    Route::get('/children-ministry/export', [ChildrenMinistryController::class, 'export'])
+        ->middleware('permission:children_ministry.export')
+        ->name('children-ministry.export');
+    Route::get('/children-ministry/create', [ChildrenMinistryController::class, 'create'])
+        ->middleware('permission:children_ministry.create')
+        ->name('children-ministry.create');
+    Route::post('/children-ministry', [ChildrenMinistryController::class, 'store'])
+        ->middleware('permission:children_ministry.create')
+        ->name('children-ministry.store');
+    Route::get('/children-ministry/{childrenMinistry}', [ChildrenMinistryController::class, 'show'])
+        ->middleware('permission:children_ministry.read')
+        ->name('children-ministry.show');
+    Route::get('/children-ministry/{childrenMinistry}/edit', [ChildrenMinistryController::class, 'edit'])
+        ->middleware('permission:children_ministry.update')
+        ->name('children-ministry.edit');
+    Route::put('/children-ministry/{childrenMinistry}', [ChildrenMinistryController::class, 'update'])
+        ->middleware('permission:children_ministry.update')
+        ->name('children-ministry.update');
+    Route::delete('/children-ministry/{childrenMinistry}', [ChildrenMinistryController::class, 'destroy'])
+        ->middleware('permission:children_ministry.delete')
+        ->name('children-ministry.destroy');
+
+    Route::get('/discipleship', [DiscipleshipController::class, 'index'])
+        ->middleware('permission:discipleship.read')
+        ->name('discipleship.index');
+    Route::get('/discipleship/create', [DiscipleshipController::class, 'create'])
+        ->middleware('permission:discipleship.create')
+        ->name('discipleship.create');
+    Route::post('/discipleship', [DiscipleshipController::class, 'store'])
+        ->middleware('permission:discipleship.create')
+        ->name('discipleship.store');
+    Route::get('/discipleship/certificates', [DiscipleshipController::class, 'certificates'])
+        ->middleware('permission:discipleship.read')
+        ->name('discipleship.certificates');
+    Route::get('/discipleship/{participant}', [DiscipleshipController::class, 'show'])
+        ->middleware('permission:discipleship.read')
+        ->name('discipleship.show');
+    Route::put('/discipleship/{participant}/stages/{stage}', [DiscipleshipController::class, 'updateStage'])
+        ->middleware('permission:discipleship.update')
+        ->name('discipleship.stages.update');
+    Route::post('/discipleship/{participant}/certificate', [DiscipleshipController::class, 'awardCertificate'])
+        ->middleware('permission:discipleship.award')
+        ->name('discipleship.certificate.award');
 
     Route::get('/follow-up', [FollowUpController::class, 'index'])
         ->middleware('permission:follow_up.read')
@@ -402,6 +451,18 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/reports/visitors/export', [ReportController::class, 'visitorsExport'])
         ->middleware('permission:reports.export')
         ->name('reports.visitors.export');
+    Route::get('/reports/children-ministry', [ReportController::class, 'childrenMinistry'])
+        ->middleware('permission:reports.read')
+        ->name('reports.children-ministry');
+    Route::get('/reports/children-ministry/export', [ReportController::class, 'childrenMinistryExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.children-ministry.export');
+    Route::get('/reports/discipleship', [ReportController::class, 'discipleship'])
+        ->middleware('permission:reports.read')
+        ->name('reports.discipleship');
+    Route::get('/reports/discipleship/export', [ReportController::class, 'discipleshipExport'])
+        ->middleware('permission:reports.export')
+        ->name('reports.discipleship.export');
     Route::get('/reports/pledges', [ReportController::class, 'pledges'])
         ->middleware('permission:reports.read')
         ->name('reports.pledges');
@@ -446,6 +507,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
 
+Route::middleware(['auth', 'active'])->group(function () {
     // Finance routes
     Route::resource('employees', App\Http\Controllers\EmployeeController::class);
     Route::get('expenditures/export', [App\Http\Controllers\ExpenditureController::class, 'export'])
@@ -459,17 +521,47 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->name('department-expenses.export');
     Route::resource('department-expenses', App\Http\Controllers\DepartmentExpenseController::class);
     Route::get('income/export', [App\Http\Controllers\IncomeController::class, 'export'])
+        ->middleware('permission:income.read')
         ->name('income.export');
-    Route::resource('income', App\Http\Controllers\IncomeController::class);
+    Route::get('income', [App\Http\Controllers\IncomeController::class, 'index'])
+        ->middleware('permission:income.read')->name('income.index');
+    Route::get('income/create', [App\Http\Controllers\IncomeController::class, 'create'])
+        ->middleware('permission:income.create')->name('income.create');
+    Route::post('income', [App\Http\Controllers\IncomeController::class, 'store'])
+        ->middleware('permission:income.create')->name('income.store');
+    Route::get('income/{income}/edit', [App\Http\Controllers\IncomeController::class, 'edit'])
+        ->middleware('permission:income.update')->name('income.edit');
+    Route::put('income/{income}', [App\Http\Controllers\IncomeController::class, 'update'])
+        ->middleware('permission:income.update')->name('income.update');
+    Route::delete('income/{income}', [App\Http\Controllers\IncomeController::class, 'destroy'])
+        ->middleware('permission:income.delete')->name('income.destroy');
     // Income Types — full CRUD inline
     Route::get('income-types/export', [App\Http\Controllers\IncomeTypeController::class, 'export'])
+        ->middleware('permission:income.read')
         ->name('income-types.export');
-    Route::resource('income-types', App\Http\Controllers\IncomeTypeController::class)
-        ->only(['index', 'store', 'update', 'destroy']);
+    Route::get('income-types', [App\Http\Controllers\IncomeTypeController::class, 'index'])
+        ->middleware('permission:income.read')->name('income-types.index');
+    Route::post('income-types', [App\Http\Controllers\IncomeTypeController::class, 'store'])
+        ->middleware('permission:income.create')->name('income-types.store');
+    Route::put('income-types/{income_type}', [App\Http\Controllers\IncomeTypeController::class, 'update'])
+        ->middleware('permission:income.update')->name('income-types.update');
+    Route::delete('income-types/{income_type}', [App\Http\Controllers\IncomeTypeController::class, 'destroy'])
+        ->middleware('permission:income.delete')->name('income-types.destroy');
     Route::get('givings/export', [App\Http\Controllers\DonationController::class, 'export'])
+        ->middleware('permission:givings.export')
         ->name('givings.export');
-    Route::resource('givings', App\Http\Controllers\DonationController::class)
-        ->parameters(['givings' => 'donation']);
+    Route::get('givings', [App\Http\Controllers\DonationController::class, 'index'])
+        ->middleware('permission:givings.read')->name('givings.index');
+    Route::get('givings/create', [App\Http\Controllers\DonationController::class, 'create'])
+        ->middleware('permission:givings.create')->name('givings.create');
+    Route::post('givings', [App\Http\Controllers\DonationController::class, 'store'])
+        ->middleware('permission:givings.create')->name('givings.store');
+    Route::get('givings/{donation}/edit', [App\Http\Controllers\DonationController::class, 'edit'])
+        ->middleware('permission:givings.update')->name('givings.edit');
+    Route::put('givings/{donation}', [App\Http\Controllers\DonationController::class, 'update'])
+        ->middleware('permission:givings.update')->name('givings.update');
+    Route::delete('givings/{donation}', [App\Http\Controllers\DonationController::class, 'destroy'])
+        ->middleware('permission:givings.delete')->name('givings.destroy');
     Route::get('campaigns/export', [App\Http\Controllers\CampaignController::class, 'export'])
         ->name('campaigns.export');
     Route::resource('campaigns', App\Http\Controllers\CampaignController::class);
@@ -482,3 +574,4 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('pledge-payments/export', [App\Http\Controllers\PledgePaymentController::class, 'export'])
         ->name('pledge-payments.export');
     Route::resource('pledge-payments', App\Http\Controllers\PledgePaymentController::class);
+});

@@ -286,7 +286,7 @@
             <h4 class="mt-1 text-lg font-semibold text-[var(--color-ink-950)]">Member management</h4>
             <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                 <p class="font-semibold"><i class="fas fa-lock mr-1.5"></i>You can view this group but cannot add or remove members.</p>
-                <p class="mt-2 text-amber-700">Ask an administrator or secretary for the <span class="font-semibold">groups.update</span> permission if you need to manage group membership.</p>
+                <p class="mt-2 text-amber-700">Ask an administrator or chief usher for the <span class="font-semibold">groups.update</span> permission if you need to manage group membership.</p>
             </div>
             @endcan
         </aside>

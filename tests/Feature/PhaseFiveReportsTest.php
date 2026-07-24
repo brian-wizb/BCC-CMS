@@ -17,7 +17,7 @@ class PhaseFiveReportsTest extends TestCase
 
     public function test_member_admin_can_open_leadership_reports_pages(): void
     {
-        $user = $this->actingAsRole('church_secretary');
+        $user = $this->actingAsRole('chief_usher');
 
         Department::query()->create(['name' => 'Protocol', 'status' => 'active']);
         Zone::query()->create(['name' => 'Zone A', 'status' => 'active']);
@@ -49,7 +49,7 @@ class PhaseFiveReportsTest extends TestCase
 
     public function test_member_admin_can_filter_reports_by_date_ranges(): void
     {
-        $user = $this->actingAsRole('church_secretary');
+        $user = $this->actingAsRole('chief_usher');
 
         Zone::query()->create(['name' => 'Zone A', 'status' => 'active']);
         Zone::query()->create(['name' => 'Zone B', 'status' => 'active']);

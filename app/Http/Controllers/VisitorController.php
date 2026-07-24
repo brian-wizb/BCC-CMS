@@ -141,6 +141,26 @@ class VisitorController extends Controller
             return back()->with('status', 'Visitor was already converted.');
         }
 
+        $existingMember = null;
+        if (filled($visitor->phone) || filled($visitor->email)) {
+            $existingMember = Member::query()
+                ->where(function ($query) use ($visitor) {
+                    if (filled($visitor->phone)) {
+                        $query->orWhere('phone', $visitor->phone);
+                    }
+                    if (filled($visitor->email)) {
+                        $query->orWhere('email', $visitor->email);
+                    }
+                })
+                ->first();
+        }
+
+        if ($existingMember) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'visitor' => "This visitor matches existing member '{$existingMember->full_name}'. Link or update the existing record instead.",
+            ]);
+        }
+
         $member = Member::query()->create([
             'full_name' => $visitor->full_name,
             'gender' => $visitor->gender ?: 'Unknown',
@@ -169,12 +189,28 @@ class VisitorController extends Controller
 
     private function validatedData(Request $request): array
     {
+        $visitorId = $request->route('visitor')?->id;
+        $firstName = trim((string) $request->input('first_name'));
+        $middleName = trim((string) $request->input('middle_name'));
+        $surname = trim((string) $request->input('surname'));
+        $fullName = collect([$firstName, $middleName, $surname])
+            ->filter(fn (string $part) => $part !== '')
+            ->implode(' ');
+
+        $request->merge([
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'surname' => $surname,
+            'phone' => trim((string) $request->input('phone')),
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'surname' => ['required', 'string', 'max:100'],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50', Rule::unique('visitors', 'phone')->ignore($visitorId)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('visitors', 'email')->ignore($visitorId)],
             'gender' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:255'],
             'invited_by' => ['nullable', 'string', 'max:255'],
@@ -184,11 +220,23 @@ class VisitorController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $data['full_name'] = collect([
-            trim((string) ($data['first_name'] ?? '')),
-            trim((string) ($data['middle_name'] ?? '')),
-            trim((string) ($data['surname'] ?? '')),
-        ])->filter(fn (string $part) => $part !== '')->implode(' ');
+        $duplicateVisitor = Visitor::query()
+            ->when($visitorId, fn ($query) => $query->whereKeyNot($visitorId))
+            ->whereRaw('LOWER(TRIM(full_name)) = ?', [strtolower($fullName)])
+            ->when(
+                filled($data['first_visit_date'] ?? null),
+                fn ($query) => $query->whereDate('first_visit_date', $data['first_visit_date']),
+                fn ($query) => $query->whereNull('first_visit_date'),
+            )
+            ->exists();
+
+        if ($duplicateVisitor) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'first_name' => 'A visitor with the same name and first visit date already exists.',
+            ]);
+        }
+
+        $data['full_name'] = $fullName;
 
         unset($data['first_name'], $data['middle_name'], $data['surname']);
 

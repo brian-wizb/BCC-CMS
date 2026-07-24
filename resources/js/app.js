@@ -15,7 +15,7 @@ const THEME_LABELS = {
     light: { name: 'Light', preview: 'Clean & bright' },
     dark: { name: 'Dark', preview: 'Classic dark' },
     solarized: { name: 'Solarized', preview: 'Warm amber & cream' },
-    forest: { name: 'Forest', preview: 'Green & natural' },
+    forest: { name: 'Persian Green', preview: '#00A693' },
 };
 
 function getStoredTheme() {
@@ -474,7 +474,7 @@ function initializeSidebar() {
 }
 
 function initializeMobileTopbarAutoFold() {
-    const topbar = document.querySelector('.app-topbar');
+    const topbar = document.querySelector('[data-mobile-topbar]');
     if (!topbar) {
         return;
     }
@@ -491,6 +491,10 @@ function initializeMobileTopbarAutoFold() {
     let lastScrollY = getScrollY();
     let ticking = false;
     let isCompact = false;
+    let directionDistance = 0;
+    let lastDirection = 0;
+    let transitionLockedUntil = 0;
+    let transitionBaselineTimer = null;
 
     const setCompact = (compact) => {
         if (isCompact === compact) {
@@ -498,15 +502,38 @@ function initializeMobileTopbarAutoFold() {
         }
 
         isCompact = compact;
+        transitionLockedUntil = window.performance.now() + 360;
+        directionDistance = 0;
+        lastDirection = 0;
         document.documentElement.dataset.topbarCompact = compact ? 'true' : 'false';
+        topbar.setAttribute('aria-expanded', compact ? 'false' : 'true');
+
+        // Folding changes the sticky header's height, which can alter scrollY.
+        // Re-baseline after the CSS transition so that layout movement is not
+        // mistaken for an upward gesture.
+        window.clearTimeout(transitionBaselineTimer);
+        transitionBaselineTimer = window.setTimeout(() => {
+            lastScrollY = getScrollY();
+            directionDistance = 0;
+            lastDirection = 0;
+        }, 380);
     };
 
     const evaluateState = () => {
         const currentY = getScrollY();
         const delta = currentY - lastScrollY;
+        const direction = Math.sign(delta);
+
+        if (window.performance.now() < transitionLockedUntil) {
+            lastScrollY = currentY;
+            ticking = false;
+            return;
+        }
 
         if (!mobileTopbarQuery.matches) {
             setCompact(false);
+            directionDistance = 0;
+            lastDirection = 0;
             lastScrollY = currentY;
             ticking = false;
             return;
@@ -514,17 +541,28 @@ function initializeMobileTopbarAutoFold() {
 
         if (document.documentElement.dataset.sidebarOpen === 'true') {
             setCompact(false);
+            directionDistance = 0;
             lastScrollY = currentY;
             ticking = false;
             return;
         }
 
+        if (direction !== 0) {
+            directionDistance = direction === lastDirection
+                ? directionDistance + Math.abs(delta)
+                : Math.abs(delta);
+            lastDirection = direction;
+        }
+
         if (currentY <= 24) {
             setCompact(false);
-        } else if (delta > 6 && currentY > 72) {
+            directionDistance = 0;
+        } else if (direction > 0 && directionDistance >= 28 && currentY > 72) {
             setCompact(true);
-        } else if (delta < -6) {
+            directionDistance = 0;
+        } else if (direction < 0 && directionDistance >= 14) {
             setCompact(false);
+            directionDistance = 0;
         }
 
         lastScrollY = currentY;
@@ -550,6 +588,19 @@ function initializeMobileTopbarAutoFold() {
         appMain.addEventListener('scroll', onScroll, { passive: true });
     }
     mobileTopbarQuery.addEventListener('change', handleViewportChange);
+
+    topbar.querySelector('[data-topbar-expand]')?.addEventListener('click', () => {
+        setCompact(false);
+        transitionLockedUntil = window.performance.now() + 600;
+        directionDistance = 0;
+        lastScrollY = getScrollY();
+    });
+
+    topbar.addEventListener('focusin', () => {
+        if (mobileTopbarQuery.matches) {
+            setCompact(false);
+        }
+    });
 
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {

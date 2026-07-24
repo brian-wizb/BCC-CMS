@@ -109,6 +109,11 @@ class Member extends Model
         return $this->hasMany(DepartmentMember::class);
     }
 
+    public function discipleshipParticipant(): HasOne
+    {
+        return $this->hasOne(DiscipleshipParticipant::class);
+    }
+
     public function zoneMemberships(): HasMany
     {
         return $this->hasMany(ZoneMember::class);

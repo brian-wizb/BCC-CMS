@@ -13,6 +13,8 @@ use App\Models\Pledge;
 use App\Models\PledgePayment;
 use App\Models\FollowUpTask;
 use App\Models\Department;
+use App\Models\DiscipleshipParticipant;
+use App\Models\DiscipleshipStageProgress;
 use App\Models\Group;
 use App\Models\Leader;
 use App\Models\Visitor;
@@ -117,6 +119,11 @@ class DashboardController extends Controller
             'income_total' => round($incomeTotal + $deptIncomeTotal, 2),
             'expenditures_total' => round($expendituresTotal, 2),
             'net_total' => round(($donationsTotal + $incomeTotal + $deptIncomeTotal) - $expendituresTotal, 2),
+            'discipleship_enrolled' => DiscipleshipParticipant::query()->count(),
+            'discipleship_completed' => DiscipleshipParticipant::query()
+                ->whereHas('stages', fn ($query) => $query->where('status', 'completed'), '=', 4)
+                ->count(),
+            'discipleship_awarded' => DiscipleshipParticipant::query()->whereNotNull('certificate_awarded_at')->count(),
         ];
 
         $chartData = [
@@ -141,15 +148,74 @@ class DashboardController extends Controller
         $openAlertsCount    = Alert::query()->where('status', 'open')->count();
         $criticalAlertsCount = Alert::query()->where('severity', 'critical')->where('status', '!=', 'resolved')->count();
 
-        if ($user?->hasRole('church_secretary')) {
+        if ($user?->hasRole('investment_officer')) {
+            $monthStart = $today->copy()->startOfMonth();
+            $monthEnd = $today->copy()->endOfMonth();
+
+            $incomeStats = [
+                'total' => (float) Income::query()->sum('amount'),
+                'this_month' => (float) Income::query()
+                    ->whereBetween('received_date', [$monthStart, $monthEnd])
+                    ->sum('amount'),
+                'tithes_total' => (float) Donation::query()
+                    ->where('type', 'like', '%Tithe%')
+                    ->sum('amount'),
+                'income_records' => Income::query()->count(),
+                'income_types' => \App\Models\IncomeType::query()->count(),
+                'members' => Member::query()->count(),
+            ];
+
+            $recentIncome = Income::query()
+                ->with(['incomeType:id,type', 'member:id,full_name'])
+                ->latest('received_date')
+                ->latest('id')
+                ->limit(8)
+                ->get();
+
+            $recentTithes = Donation::query()
+                ->with('member:id,full_name')
+                ->where('type', 'like', '%Tithe%')
+                ->latest('donation_date')
+                ->latest('id')
+                ->limit(8)
+                ->get();
+
+            $incomeByType = Income::query()
+                ->join('income_types', 'incomes.income_type_id', '=', 'income_types.id')
+                ->selectRaw('income_types.type as name, SUM(incomes.amount) as value')
+                ->groupBy('income_types.id', 'income_types.type')
+                ->orderByDesc('value')
+                ->limit(8)
+                ->get()
+                ->map(fn ($item) => ['name' => $item->name, 'value' => (float) $item->value])
+                ->values();
+
+            return view('dashboard.investment-officer', [
+                'user' => $user,
+                'primaryRole' => $user->primaryRole(),
+                'incomeStats' => $incomeStats,
+                'recentIncome' => $recentIncome,
+                'recentTithes' => $recentTithes,
+                'incomeByType' => $incomeByType,
+            ]);
+        }
+
+        if ($user?->hasRole('chief_usher')) {
             $peopleStats = [
                 'members' => Member::query()->count(),
                 'visitors' => Visitor::query()->count(),
+                'children_ministry' => \App\Models\ChildrenMinistry::query()->count(),
                 'leaders' => Leader::query()->count(),
                 'departments' => Department::query()->count(),
                 'zones' => Zone::query()->count(),
                 'groups' => Group::query()->count(),
                 'follow_up_pending' => FollowUpTask::query()->whereIn('status', ['pending', 'in_progress'])->count(),
+                'discipleship_enrolled' => DiscipleshipParticipant::query()->count(),
+                'discipleship_in_progress' => DiscipleshipStageProgress::query()
+                    ->where('status', 'in_progress')
+                    ->distinct('discipleship_participant_id')
+                    ->count('discipleship_participant_id'),
+                'discipleship_awarded' => DiscipleshipParticipant::query()->whereNotNull('certificate_awarded_at')->count(),
             ];
 
             $recentMembers = Member::query()
@@ -164,7 +230,7 @@ class DashboardController extends Controller
                 ->limit(8)
                 ->get();
 
-            return view('dashboard.secretary', [
+            return view('dashboard.chief-usher', [
                 'user' => $user,
                 'primaryRole' => $user->primaryRole(),
                 'peopleStats' => $peopleStats,

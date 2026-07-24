@@ -6,6 +6,7 @@ use App\Models\AttendanceRecord;
 use App\Models\Communication;
 use App\Models\CommunicationDelivery;
 use App\Models\Department;
+use App\Models\DiscipleshipParticipant;
 use App\Models\DepartmentExpense;
 use App\Models\DepartmentIncome;
 use App\Models\Donation;
@@ -379,6 +380,109 @@ class ReportController extends Controller
             }
             fclose($handle);
         }, 'visitors-report.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function childrenMinistry(Request $request): View
+    {
+        ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
+
+        $base = \App\Models\ChildrenMinistry::query()
+            ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo . ' 23:59:59'));
+
+        $total = (clone $base)->count();
+        $withLinkedParents = (clone $base)->whereNotNull('parent_member_id')->count();
+        $bySex = (clone $base)->select('sex', DB::raw('count(*) as total'))->groupBy('sex')->pluck('total', 'sex');
+
+        $recentChildren = (clone $base)->with('parentMember:id,full_name')
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get(['id', 'first_name', 'middle_name', 'surname', 'sex', 'date_of_birth', 'parent_name', 'parent_contact', 'parent_member_id', 'created_at']);
+
+        return view('reports.children-ministry', compact(
+            'total', 'withLinkedParents', 'bySex',
+            'recentChildren', 'dateFrom', 'dateTo'
+        ));
+    }
+
+    public function childrenMinistryExport(Request $request): StreamedResponse
+    {
+        ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
+
+        $children = \App\Models\ChildrenMinistry::query()
+            ->with('parentMember:id,full_name')
+            ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo . ' 23:59:59'))
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->streamDownload(function () use ($children): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['first_name', 'middle_name', 'surname', 'date_of_birth', 'sex', 'parent_name', 'parent_contact', 'linked_member', 'remarks', 'added_date']);
+            foreach ($children as $child) {
+                fputcsv($handle, [
+                    $child->first_name,
+                    $child->middle_name,
+                    $child->surname,
+                    optional($child->date_of_birth)->toDateString(),
+                    $child->sex,
+                    $child->parent_name,
+                    $child->parent_contact,
+                    $child->parentMember?->full_name ?? '—',
+                    $child->remarks,
+                    optional($child->created_at)->toDateString(),
+                ]);
+            }
+            fclose($handle);
+        }, 'children-ministry-report.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    public function discipleship(Request $request): View
+    {
+        ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
+
+        $base = DiscipleshipParticipant::query()
+            ->when($dateFrom, fn ($query) => $query->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($query) => $query->whereDate('created_at', '<=', $dateTo));
+
+        $total = (clone $base)->count();
+        $registeredMembers = (clone $base)->whereNotNull('member_id')->count();
+        $completed = (clone $base)->whereHas('stages', fn ($query) => $query->where('status', 'completed'), '=', 4)->count();
+        $awarded = (clone $base)->whereNotNull('certificate_awarded_at')->count();
+        $stageBreakdown = (clone $base)->with('stages')->get()->flatMap->stages
+            ->groupBy('stage_number')
+            ->map(fn ($stages) => $stages->countBy('status'));
+        $participants = (clone $base)->with(['member:id,full_name,phone', 'stages' => fn ($query) => $query->orderBy('stage_number')])
+            ->latest()->limit(50)->get();
+
+        return view('reports.discipleship', compact('total', 'registeredMembers', 'completed', 'awarded', 'stageBreakdown', 'participants', 'dateFrom', 'dateTo'));
+    }
+
+    public function discipleshipExport(Request $request): StreamedResponse
+    {
+        ['dateFrom' => $dateFrom, 'dateTo' => $dateTo] = $this->extractDateRange($request);
+        $participants = DiscipleshipParticipant::query()
+            ->with(['member:id,full_name,phone', 'stages'])
+            ->when($dateFrom, fn ($query) => $query->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($query) => $query->whereDate('created_at', '<=', $dateTo))
+            ->latest()->get();
+
+        return response()->streamDownload(function () use ($participants): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['participant', 'participant_type', 'phone', 'foundation_1', 'foundation_2', 'foundation_3', 'foundation_4', 'certificate_number', 'certificate_awarded_at', 'enrolled_at']);
+            foreach ($participants as $participant) {
+                fputcsv($handle, [
+                    $participant->display_name,
+                    $participant->member_id ? 'Registered member' : 'External participant',
+                    $participant->member?->phone ?: $participant->external_phone,
+                    ...collect([1, 2, 3, 4])->map(fn ($stage) => $participant->stages->firstWhere('stage_number', $stage)?->status ?? 'not_started')->all(),
+                    $participant->certificate_number,
+                    optional($participant->certificate_awarded_at)->toDateTimeString(),
+                    optional($participant->created_at)->toDateString(),
+                ]);
+            }
+            fclose($handle);
+        }, 'discipleship-report.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function pledges(Request $request): View

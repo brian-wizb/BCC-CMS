@@ -1,4 +1,9 @@
-<x-layouts.app title="Givings Records">
+@php
+    $titheOnly = auth()->user()->hasRole('investment_officer');
+    $canManageGivings = auth()->user()->hasPermission('givings.update')
+        || auth()->user()->hasPermission('givings.delete');
+@endphp
+<x-layouts.app :title="$titheOnly ? 'Tithe Records' : 'Givings Records'">
 
     <div class="space-y-6">
         {{-- Header --}}
@@ -9,19 +14,23 @@
                 </span>
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Finance</p>
-                    <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">Givings Records</h3>
+                    <h3 class="text-xl font-semibold text-[var(--color-ink-950)]">{{ $titheOnly ? 'Tithe Records' : 'Givings Records' }}</h3>
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('givings.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
-                    <i class="fas fa-download text-xs"></i> Export CSV
-                </a>
+                @if(auth()->user()->hasPermission('givings.export'))
+                    <a href="{{ route('givings.export', request()->only(['search', 'date_from', 'date_to'])) }}" class="btn-secondary flex items-center gap-1.5">
+                        <i class="fas fa-download text-xs"></i> Export CSV
+                    </a>
+                @endif
                 <button type="button" onclick="window.print()" class="btn-secondary flex items-center gap-1.5">
                     <i class="fas fa-print text-xs"></i> Print
                 </button>
-                <a href="{{ route('givings.create') }}" class="btn-primary flex items-center gap-1.5">
-                    <i class="fas fa-plus text-xs"></i> New Giving
-                </a>
+                @if(auth()->user()->hasPermission('givings.create'))
+                    <a href="{{ route('givings.create') }}" class="btn-primary flex items-center gap-1.5">
+                        <i class="fas fa-plus text-xs"></i> New Giving
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -66,7 +75,9 @@
                             <th class="px-5 py-3"><i class="fas fa-calendar-alt mr-1.5 opacity-60"></i>Date</th>
                             <th class="px-5 py-3"><i class="fas fa-comment-sms mr-1.5 opacity-60"></i>SMS Status</th>
                             <th class="px-5 py-3"><i class="fas fa-paperclip mr-1.5 opacity-60"></i>Attachment</th>
-                            <th class="px-5 py-3 text-right">Actions</th>
+                            @if($canManageGivings)
+                                <th class="px-5 py-3 text-right">Actions</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--color-surface-200)] bg-white">
@@ -123,12 +134,16 @@
                                         <span class="text-slate-300">—</span>
                                     @endif
                                 </td>
+                                @if($canManageGivings)
                                 <td class="px-5 py-3 text-right">
                                     <div class="flex items-center justify-end gap-2">
+                                        @if(auth()->user()->hasPermission('givings.update'))
                                         <a href="{{ route('givings.edit', $donation) }}"
                                            class="rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                                             <i class="fas fa-pen mr-1 text-[10px]"></i>Edit
                                         </a>
+                                        @endif
+                                        @if(auth()->user()->hasPermission('givings.delete'))
                                         <form method="POST" action="{{ route('givings.destroy', $donation) }}"
                                               data-confirm="Delete this giving record? This cannot be undone.">
                                             @csrf
@@ -138,14 +153,21 @@
                                                 <i class="fas fa-trash mr-1 text-[10px]"></i>Delete
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="px-5 py-12 text-center">
+                                <td colspan="{{ $canManageGivings ? 11 : 10 }}" class="px-5 py-12 text-center">
                                     <i class="fas fa-hand-holding-heart mb-3 block text-3xl text-slate-300"></i>
-                                    <p class="text-sm text-slate-400">No givings recorded yet. <a href="{{ route('givings.create') }}" class="text-blue-600 underline">Add the first one</a>.</p>
+                                    <p class="text-sm text-slate-400">
+                                        No givings recorded yet.
+                                        @if(auth()->user()->hasPermission('givings.create'))
+                                            <a href="{{ route('givings.create') }}" class="text-blue-600 underline">Add the first one</a>.
+                                        @endif
+                                    </p>
                                 </td>
                             </tr>
                         @endforelse

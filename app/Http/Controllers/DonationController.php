@@ -21,6 +21,14 @@ class DonationController extends Controller
     {
         $query = Donation::with('member');
 
+        if (request()->user()?->hasRole('investment_officer')) {
+            $query->where(function ($q) {
+                foreach (self::TITHE_KEYWORDS as $keyword) {
+                    $q->orWhere('type', 'like', "%{$keyword}%");
+                }
+            });
+        }
+
         if (! empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('donor_name', 'like', "%{$search}%")

@@ -13,7 +13,16 @@
     $profilePhotoUrl = $user?->profile_photo_path ? route('users.profile-photo', $user) : null;
 @endphp
 
-<header class="app-topbar">
+<header class="app-topbar" data-mobile-topbar>
+    <button type="button"
+            class="topbar-expand-control"
+            data-topbar-expand
+            aria-label="Expand top bar"
+            title="Expand top bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+        </svg>
+    </button>
     <div class="app-topbar-primary">
         <div class="topbar-heading-wrap">
             <button type="button" class="topbar-nav-toggle" data-sidebar-toggle aria-label="Toggle navigation">
@@ -97,8 +106,8 @@
                             <div class="theme-option-preview">Warm amber & cream</div>
                         </div>
                         <div class="theme-option" data-theme="forest" role="menuitem">
-                            <div class="theme-option-title">Forest</div>
-                            <div class="theme-option-preview">Green & natural</div>
+                            <div class="theme-option-title">Persian Green</div>
+                            <div class="theme-option-preview">#00A693</div>
                         </div>
                     </div>
                 </div>
